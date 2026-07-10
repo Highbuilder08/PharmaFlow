@@ -1,17 +1,27 @@
-body{
-
-    background:#f8f9fa;
-
+body {
+    background: #f8f9fa;
 }
 
-footer{
-
-    border-top:1px solid #ddd;
-
+footer {
+    border-top: 1px solid #ddd;
 }
 
-.navbar-brand{
+.navbar-brand {
+    font-weight: bold;
+}
 
-    font-weight:bold;
+.login-card {
+    max-width: 420px;
+    margin: 60px auto;
+    padding: 32px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
 
+.login-card input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
 }
