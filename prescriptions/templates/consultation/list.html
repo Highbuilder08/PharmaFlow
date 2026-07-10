@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>복약 상담 게시판</h2>
+<a href="{% url 'prescriptions:consultation_create' %}">글쓰기</a>
+<table border="1">
+    <tr><th>번호</th><th>제목</th><th>작성자</th><th>조회수</th></tr>
+    {% for post in consultations %}
+    <tr>
+        <td>{{ post.id }}</td>
+        <td><a href="{% url 'prescriptions:consultation_detail' post.id %}">{{ post.title }}</a></td>
+        <td>{{ post.writer.username }}</td>
+        <td>{{ post.views }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
