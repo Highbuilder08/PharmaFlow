@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ prescription.patient_name }} 환자 처방전 상세</h2>
+<p><strong>작성자:</strong> {{ prescription.writer.username }}</p>
+<p><strong>처방일:</strong> {{ prescription.prescription_date }}</p>
+<p><strong>증상:</strong> {{ prescription.symptoms }}</p>
+
+<hr>
+<h3>첨부파일 (NFS 저장소)</h3>
+<ul>
+    {% for attachment in prescription.attachments.all %}
+        <li>
+            <a href="{{ attachment.file.url }}" target="_blank">
+                {{ attachment.file.name }} 다운로드
+            </a>
+        </li>
+    {% empty %}
+        <li>첨부파일이 없습니다.</li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'prescriptions:list' %}">목록으로</a>
+{% endblock %}

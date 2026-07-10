@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>상담 글쓰기</h2>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">작성완료</button>
+    <a href="{% url 'prescriptions:consultation_list' %}">취소</a>
+</form>
+{% endblock %}

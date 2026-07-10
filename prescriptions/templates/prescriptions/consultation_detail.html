@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ consultation.title }}</h2>
+<p>작성자: {{ consultation.writer.username }} | 조회수: {{ consultation.views }}</p>
+<hr>
+<p>{{ consultation.content|linebreaks }}</p>
+<hr>
+
+<h3>댓글</h3>
+<ul>
+    {% for comment in consultation.comments.all %}
+        <li>
+            <strong>{{ comment.writer.username }}</strong>: {{ comment.content }} 
+            <small>({{ comment.created_at|date:"Y-m-d H:i" }})</small>
+        </li>
+    {% empty %}
+        <li>아직 댓글이 없습니다.</li>
+    {% endfor %}
+</ul>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="text" name="content" placeholder="댓글을 입력하세요" required>
+    <button type="submit">댓글 달기</button>
+</form>
+
+<br>
+<a href="{% url 'prescriptions:consultation_list' %}">목록으로</a>
+{% endblock %}

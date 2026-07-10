@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>처방전 등록</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    
+    <p>
+        <label>첨부파일 (처방전 사진 등):</label>
+        <input type="file" name="attachments" multiple>
+    </p>
+
+    <button type="submit">등록하기</button>
+    <a href="{% url 'prescriptions:list' %}">취소</a>
+</form>
+{% endblock %}
