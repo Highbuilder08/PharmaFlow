@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>PharmaFlow 테스트</title>
+</head>
+<body>
+    <header>
+        <h1>💊 PharmaFlow (개발자 3 테스트 화면)</h1>
+        <nav>
+            <a href="{% url 'prescriptions:list' %}">처방전 목록</a> | 
+            <a href="{% url 'prescriptions:consultation_list' %}">상담 게시판</a>
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        <!-- 여기에 딱 한 번만 들어가야 합니다! -->
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>

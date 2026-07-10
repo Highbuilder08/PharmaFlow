@@ -7,12 +7,27 @@
 <p>{{ consultation.content|linebreaks }}</p>
 <hr>
 
+<!-- 👇 게시글 삭제 버튼 추가 -->
+{% if request.user == consultation.writer or request.user.is_superuser %}
+<form action="{% url 'prescriptions:consultation_delete' consultation.id %}" method="POST" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" onclick="return confirm('정말 이 게시글을 삭제하시겠습니까?');">게시글 삭제</button>
+</form>
+{% endif %}
 <h3>댓글</h3>
 <ul>
     {% for comment in consultation.comments.all %}
         <li>
             <strong>{{ comment.writer.username }}</strong>: {{ comment.content }} 
             <small>({{ comment.created_at|date:"Y-m-d H:i" }})</small>
+            
+            <!-- 👇 댓글 삭제 버튼 추가 -->
+            {% if request.user == comment.writer or request.user.is_superuser %}
+            <form action="{% url 'prescriptions:comment_delete' comment.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?');" style="font-size: 12px; color: red;">삭제</button>
+            </form>
+            {% endif %}
         </li>
     {% empty %}
         <li>아직 댓글이 없습니다.</li>

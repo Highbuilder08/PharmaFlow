@@ -85,3 +85,43 @@ def consultation_create(request):
     
     # 경로 변경: prescriptions/consultation_create.html
     return render(request, 'prescriptions/consultation_create.html', {'form': form})
+
+# ==========================================
+# 3. 삭제 (Delete) 뷰
+# ==========================================
+
+@login_required
+def prescription_delete(request, pk):
+    prescription = get_object_or_404(Prescription, pk=pk)
+    
+    # 권한 체크: 작성자 본인이거나 관리자만 삭제 가능
+    if request.user == prescription.writer or request.user.is_superuser:
+        if request.method == 'POST':
+            prescription.delete()
+            return redirect('prescriptions:list')
+            
+    # 권한이 없거나 GET 요청인 경우 상세 페이지로 돌려보냄
+    return redirect('prescriptions:detail', pk=pk)
+
+@login_required
+def consultation_delete(request, pk):
+    consultation = get_object_or_404(Consultation, pk=pk)
+    
+    if request.user == consultation.writer or request.user.is_superuser:
+        if request.method == 'POST':
+            consultation.delete()
+            return redirect('prescriptions:consultation_list')
+            
+    return redirect('prescriptions:consultation_detail', pk=pk)
+
+@login_required
+def comment_delete(request, pk):
+    comment = get_object_or_404(ConsultationComment, pk=pk)
+    consultation_pk = comment.consultation.pk # 돌아갈 게시글 번호 미리 저장
+    
+    if request.user == comment.writer or request.user.is_superuser:
+        if request.method == 'POST':
+            comment.delete()
+            
+    # 댓글 삭제 후 원래 있던 게시글 상세 화면으로 돌아감
+    return redirect('prescriptions:consultation_detail', pk=consultation_pk)
