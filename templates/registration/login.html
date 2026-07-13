@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}로그인 | PharmaFlow{% endblock %}
+
+{% block content %}
+<div class="login-card">
+    <h2 class="mb-4">로그인</h2>
+
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            아이디 또는 비밀번호를 확인해주세요.
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button
+            type="submit"
+            class="btn btn-success w-100"
+        >
+            로그인
+        </button>
+    </form>
+</div>
+{% endblock %}
