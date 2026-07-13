@@ -5,7 +5,7 @@
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
 <hr>
-<a href="{% url 'prescriptions:consultation_list' %}">목록으로</a>
+<a href="{% url 'prescriptions:consultation_list' %}" class="btn">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
     <a href="{% url 'prescriptions:consultation_update' consultation.id %}"><button>수정</button></a>
     <form action="{% url 'prescriptions:consultation_delete' consultation.id %}" method="POST" style="display:inline;">
@@ -14,7 +14,7 @@
     </form>
 {% endif %}
 <hr>
-<h3>댓글</h3>
+<h3>답변</h3>
 <ul>
     {% for comment in consultation.comments.all %}
         <li>
@@ -31,6 +31,6 @@
 <form method="POST">
     {% csrf_token %}
     <input type="text" name="content" required>
-    <button type="submit">댓글 달기</button>
+    <button type="submit">답변 등록</button>
 </form>
 {% endblock %}

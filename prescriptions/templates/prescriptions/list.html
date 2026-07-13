@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>처방전 목록</h2>
-<a href="{% url 'prescriptions:create' %}">새 처방전 등록</a>
+<a href="{% url 'prescriptions:create' %}" class="btn">새 처방전 등록</a>
 <table border="1">
     <tr><th>번호</th><th>환자명</th><th>처방일</th><th>작성자</th></tr>
     {% for p in prescriptions %}
