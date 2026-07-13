@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ title|default:"약국 정보 수정" }} | PharmaFlow
+{{ title }} | PharmaFlow
 {% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
             <div class="card-body p-4">
 
                 <h2 class="mb-4">
-                    {{ title|default:"약국 정보 수정" }}
+                    {{ title }}
                 </h2>
 
                 <form method="post" novalidate>
@@ -25,14 +25,27 @@
 
                     {% for field in form %}
                         <div class="mb-3">
-                            <label
-                                for="{{ field.id_for_label }}"
-                                class="form-label"
-                            >
-                                {{ field.label }}
-                            </label>
+                            {% if field.field.widget.input_type == "checkbox" %}
+                                <div class="form-check">
+                                    {{ field }}
 
-                            {{ field }}
+                                    <label
+                                        for="{{ field.id_for_label }}"
+                                        class="form-check-label"
+                                    >
+                                        {{ field.label }}
+                                    </label>
+                                </div>
+                            {% else %}
+                                <label
+                                    for="{{ field.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    {{ field.label }}
+                                </label>
+
+                                {{ field }}
+                            {% endif %}
 
                             {% if field.help_text %}
                                 <div class="form-text">
@@ -49,21 +62,12 @@
                     {% endfor %}
 
                     <div class="d-flex justify-content-end gap-2">
-                        {% if cancel_url_name %}
-                            <a
-                                href="{% url cancel_url_name %}"
-                                class="btn btn-outline-secondary"
-                            >
-                                취소
-                            </a>
-                        {% else %}
-                            <a
-                                href="{% url 'accounts:pharmacy_detail' %}"
-                                class="btn btn-outline-secondary"
-                            >
-                                취소
-                            </a>
-                        {% endif %}
+                        <a
+                            href="{% url 'accounts:user_list' %}"
+                            class="btn btn-outline-secondary"
+                        >
+                            취소
+                        </a>
 
                         <button
                             type="submit"

@@ -11,9 +11,14 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from .decorators import owner_required, superuser_required
-from .forms import PharmacyForm, SignUpForm
+from .decorators import staff_manager_required, superuser_required
 from .models import Pharmacy, PharmacyOwnershipRequest, User
+from .forms import (
+    PharmacyUpdateForm,
+    SignUpForm,
+    StaffCreateForm,
+    StaffUpdateForm,
+)
 
 
 def signup(request):
@@ -79,7 +84,8 @@ def signup(request):
                     ),
                 )
 
-            return redirect("login")
+            return redirect("accounts:login")
+
     else:
         form = SignUpForm()
 
@@ -172,7 +178,10 @@ def pharmacy_search(request):
             status=502,
         )
 
-    result_code = root.findtext(".//resultCode", default="")
+    result_code = root.findtext(
+        ".//resultCode",
+        default="",
+    )
 
     if result_code not in ("00", "0"):
         result_message = root.findtext(
@@ -250,20 +259,124 @@ def pharmacy_search(request):
     )
 
 
-@login_required
-def pharmacy_list(request):
-    if request.user.is_superuser:
-        pharmacies = Pharmacy.objects.all()
+def _get_user_pharmacy(user):
+    if not user.pharmacy_id:
+        return None
 
-    elif request.user.pharmacy_id:
-        pharmacies = Pharmacy.objects.filter(
-            pk=request.user.pharmacy_id,
+    return user.pharmacy
+
+
+def _can_edit_pharmacy(user, pharmacy):
+    if user.is_superuser or user.is_staff:
+        return True
+
+    return (
+        user.is_authenticated
+        and user.is_approved
+        and user.role == User.Role.OWNER
+        and user.pharmacy_id == pharmacy.pk
+    )
+
+
+@login_required
+def pharmacy_detail(request):
+    pharmacy = _get_user_pharmacy(request.user)
+
+    if pharmacy is None:
+        return render(
+            request,
+            "accounts/pharmacy_detail.html",
+            {
+                "pharmacy": None,
+                "can_edit": False,
+            },
         )
 
-    else:
-        pharmacies = Pharmacy.objects.none()
+    return render(
+        request,
+        "accounts/pharmacy_detail.html",
+        {
+            "pharmacy": pharmacy,
+            "can_edit": _can_edit_pharmacy(
+                request.user,
+                pharmacy,
+            ),
+        },
+    )
 
-    pharmacies = pharmacies.order_by("pharmacy_name")
+
+@login_required
+def pharmacy_update(request):
+    pharmacy = _get_user_pharmacy(request.user)
+
+    if pharmacy is None:
+        messages.error(
+            request,
+            "소속 약국 정보가 없습니다.",
+        )
+
+        return redirect(
+            "accounts:pharmacy_detail"
+        )
+
+    if not _can_edit_pharmacy(
+        request.user,
+        pharmacy,
+    ):
+        messages.error(
+            request,
+            "약국 정보를 수정할 권한이 없습니다."
+        )
+        
+        return redirect(
+            "accounts:pharmacy_detail"
+        )
+
+    if request.method == "POST":
+        form = PharmacyUpdateForm(
+            request.POST,
+            instance=pharmacy,
+        )
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                "약국 정보가 수정되었습니다.",
+            )
+
+            return redirect(
+                "accounts:pharmacy_detail"
+            )
+
+    else:
+        form = PharmacyUpdateForm(
+            instance=pharmacy,
+        )
+
+    return render(
+        request,
+        "accounts/pharmacy_form.html",
+        {
+            "form": form,
+            "pharmacy": pharmacy,
+            "title": "약국 정보 수정",
+            "submit_text": "저장",
+            "cancel_url_name": "accounts:pharmacy_detail",
+        },
+    )
+
+
+@login_required
+@superuser_required
+def pharmacy_list(request):
+
+    pharmacies = (
+        Pharmacy.objects
+        .all()
+        .order_by("pharmacy_name")
+    )
 
     return render(
         request,
@@ -278,7 +391,9 @@ def pharmacy_list(request):
 @superuser_required
 def pharmacy_create(request):
     if request.method == "POST":
-        form = PharmacyForm(request.POST)
+        form = PharmacyUpdateForm(
+            request.POST
+        )
 
         if form.is_valid():
             form.save()
@@ -288,9 +403,12 @@ def pharmacy_create(request):
                 "약국이 등록되었습니다.",
             )
 
-            return redirect("accounts:pharmacy_list")
+            return redirect(
+                "accounts:pharmacy_list"
+            )
+
     else:
-        form = PharmacyForm()
+        form = PharmacyUpdateForm()
 
     return render(
         request,
@@ -299,61 +417,7 @@ def pharmacy_create(request):
             "form": form,
             "title": "약국 등록",
             "submit_text": "등록",
-        },
-    )
-
-
-@login_required
-def pharmacy_update(request, pk):
-    pharmacy = get_object_or_404(
-        Pharmacy,
-        pk=pk,
-    )
-
-    can_update = (
-        request.user.is_superuser
-        or (
-            request.user.role == User.Role.OWNER
-            and request.user.is_approved
-            and request.user.pharmacy_id == pharmacy.pk
-        )
-    )
-
-    if not can_update:
-        messages.error(
-            request,
-            "해당 약국을 수정할 권한이 없습니다.",
-        )
-
-        return redirect("accounts:pharmacy_list")
-
-    if request.method == "POST":
-        form = PharmacyForm(
-            request.POST,
-            instance=pharmacy,
-        )
-
-        if form.is_valid():
-            form.save()
-
-            messages.success(
-                request,
-                "약국 정보가 수정되었습니다.",
-            )
-
-            return redirect("accounts:pharmacy_list")
-    else:
-        form = PharmacyForm(
-            instance=pharmacy,
-        )
-
-    return render(
-        request,
-        "accounts/pharmacy_form.html",
-        {
-            "form": form,
-            "title": "약국 수정",
-            "submit_text": "수정",
+            "cancel_url_name": "accounts:pharmacy_list",
         },
     )
 
@@ -381,7 +445,9 @@ def pharmacy_delete(request, pk):
                 "소속 사용자가 존재하는 약국은 삭제할 수 없습니다.",
             )
 
-        return redirect("accounts:pharmacy_list")
+        return redirect(
+            "accounts:pharmacy_list"
+        )
 
     return render(
         request,
@@ -393,16 +459,15 @@ def pharmacy_delete(request, pk):
 
 
 @login_required
-@owner_required
+@staff_manager_required
 def user_list(request):
     users = (
         User.objects.filter(
             pharmacy=request.user.pharmacy,
+            role=User.Role.STAFF,
+            is_superuser=False,
         )
-        .exclude(pk=request.user.pk)
-        .exclude(is_superuser=True)
         .order_by(
-            "is_approved",
             "name",
             "username",
         )
@@ -418,68 +483,107 @@ def user_list(request):
 
 
 @login_required
-@owner_required
-@require_POST
-def user_approve(request, pk):
-    target_user = get_object_or_404(
-        User,
-        pk=pk,
-        pharmacy=request.user.pharmacy,
-        is_superuser=False,
-    )
+@staff_manager_required
+def user_create(request):
+    if request.method == "POST":
+        form = StaffCreateForm(request.POST)
 
-    if target_user.role == User.Role.OWNER:
-        messages.error(
-            request,
-            "점주 계정은 이 화면에서 승인할 수 없습니다.",
-        )
+        if form.is_valid():
+            staff = form.save(commit=False)
 
-        return redirect("accounts:user_list")
+            staff.pharmacy = request.user.pharmacy
+            staff.role = User.Role.STAFF
+            staff.is_approved = True
 
-    target_user.is_approved = True
-    target_user.save(
-        update_fields=[
-            "is_approved",
-        ]
-    )
+            staff.save()
 
-    messages.success(
+            messages.success(
+                request,
+                f"{staff.name} 직원을 추가했습니다.",
+            )
+
+            return redirect(
+                "accounts:user_list"
+            )
+
+    else:
+        form = StaffCreateForm()
+
+    return render(
         request,
-        f"{target_user.name} 사용자를 승인했습니다.",
+        "accounts/user_form.html",
+        {
+            "form": form,
+            "title": "직원 추가",
+            "submit_text": "추가",
+        },
     )
-
-    return redirect("accounts:user_list")
 
 
 @login_required
-@owner_required
-@require_POST
-def user_revoke(request, pk):
-    target_user = get_object_or_404(
+@staff_manager_required
+def user_update(request, pk):
+    staff = get_object_or_404(
         User,
         pk=pk,
         pharmacy=request.user.pharmacy,
+        role=User.Role.STAFF,
         is_superuser=False,
     )
 
-    if target_user.role == User.Role.OWNER:
-        messages.error(
-            request,
-            "점주 계정은 이 화면에서 처리할 수 없습니다.",
+    if request.method == "POST":
+        form = StaffUpdateForm(
+            request.POST,
+            instance=staff,
         )
 
-        return redirect("accounts:user_list")
+        if form.is_valid():
+            form.save()
 
-    target_user.is_approved = False
-    target_user.save(
-        update_fields=[
-            "is_approved",
-        ]
+            messages.success(
+                request,
+                f"{staff.name} 직원 정보를 수정했습니다.",
+            )
+
+            return redirect(
+                "accounts:user_list"
+            )
+
+    else:
+        form = StaffUpdateForm(
+            instance=staff,
+        )
+
+    return render(
+        request,
+        "accounts/user_form.html",
+        {
+            "form": form,
+            "staff": staff,
+            "title": "직원 정보 수정",
+            "submit_text": "저장",
+        },
     )
+
+
+@login_required
+@staff_manager_required
+@require_POST
+def user_delete(request, pk):
+    staff = get_object_or_404(
+        User,
+        pk=pk,
+        pharmacy=request.user.pharmacy,
+        role=User.Role.STAFF,
+        is_superuser=False,
+    )
+
+    staff_name = staff.name
+    staff.delete()
 
     messages.success(
         request,
-        f"{target_user.name} 사용자의 승인을 취소했습니다.",
+        f"{staff_name} 직원을 삭제했습니다.",
     )
 
     return redirect("accounts:user_list")
