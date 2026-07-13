@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,16 +16,21 @@ def signup(request):
         form = SignUpForm(request.POST)
 
         if form.is_valid():
-            user = form.save()
-
-            login(request, user)
-
+            user = form.save(commit=False)
+            
+            user.is_approved = False
+            
+            user.save()
+        
             messages.success(
-                request,
-                "회원가입이 완료되었습니다.",
+                request,(
+                "회원가입이 완료되었습니다.\n"
+                 "관리자 승인 후 로그인할 수 있습니다."
+                ),
             )
 
-            return redirect("core:index")
+            return redirect("login")
+
     else:
         form = SignUpForm()
 
