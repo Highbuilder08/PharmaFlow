@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     'accounts.apps.AccountsConfig',
     'prescriptions.apps.PrescriptionsConfig',
+    'consultations.apps.ConsultationsConfig', 
     'core.apps.CoreConfig',
     "inventory.apps.InventoryConfig",
 ]
