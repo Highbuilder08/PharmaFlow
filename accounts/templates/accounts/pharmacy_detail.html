@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}
+약국 정보 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                약국 정보
+            </h2>
+
+            {% if can_edit %}
+                <a
+                    href="{% url 'accounts:pharmacy_update' %}"
+                    class="btn btn-success"
+                >
+                    수정
+                </a>
+            {% endif %}
+        </div>
+
+        {% if pharmacy %}
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            약국명
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.pharmacy_name }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            대표자명
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.owner_name|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            사업자등록번호
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.business_number|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            사업자명
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.business_name|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            주소
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.address|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            대표 연락처
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.phone|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            이메일
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.email|default:"-" }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">
+                            운영 상태
+                        </div>
+
+                        <div class="col-md-8">
+                            {{ pharmacy.get_status_display }}
+                        </div>
+                    </div>
+
+                    {% if pharmacy and pharmacy.latitude and pharmacy.longitude %}
+                        <div
+                            id="pharmacy-map"
+                            class="mt-4"
+                            style="height: 320px;"
+                        ></div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        {% else %}
+
+            <div class="alert alert-warning">
+                등록된 소속 약국 정보가 없습니다.
+            </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+{% if pharmacy and pharmacy.latitude and pharmacy.longitude %}
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
+<script>
+    const latitude = Number(
+        "{{ pharmacy.latitude|escapejs }}"
+    );
+
+    const longitude = Number(
+        "{{ pharmacy.longitude|escapejs }}"
+    );
+
+    const map = L.map("pharmacy-map").setView(
+        [
+            latitude,
+            longitude
+        ],
+        16
+    );
+
+    L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+
+    L.marker([
+        latitude,
+        longitude
+    ])
+        .addTo(map)
+        .bindPopup(
+            "{{ pharmacy.pharmacy_name|escapejs }}"
+        )
+        .openPopup();
+
+    setTimeout(function () {
+        map.invalidateSize();
+        }, 100);
+</script>
+{% endif %}
+
+{% endblock %}

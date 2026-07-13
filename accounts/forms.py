@@ -28,37 +28,37 @@ class SignUpForm(UserCreationForm):
     )
 
     pharmacy_external_id = forms.CharField(
-        widget=forms.HiddenInput(),
         required=False,
+        widget=forms.HiddenInput(),
     )
 
     pharmacy_name = forms.CharField(
-        widget=forms.HiddenInput(),
         required=False,
+        widget=forms.HiddenInput(),
     )
 
     pharmacy_address = forms.CharField(
-        widget=forms.HiddenInput(),
         required=False,
+        widget=forms.HiddenInput(),
     )
 
     pharmacy_phone = forms.CharField(
-        widget=forms.HiddenInput(),
         required=False,
+        widget=forms.HiddenInput(),
     )
 
     pharmacy_latitude = forms.DecimalField(
+        required=False,
         max_digits=10,
         decimal_places=7,
         widget=forms.HiddenInput(),
-        required=False,
     )
 
     pharmacy_longitude = forms.DecimalField(
+        required=False,
         max_digits=10,
         decimal_places=7,
         widget=forms.HiddenInput(),
-        required=False,
     )
 
     class Meta:
@@ -66,10 +66,18 @@ class SignUpForm(UserCreationForm):
 
         fields = (
             "username",
-            "name",
-            "email",
             "password1",
             "password2",
+            "name",
+            "email",
+            "requested_role",
+            "business_number",
+            "pharmacy_external_id",
+            "pharmacy_name",
+            "pharmacy_address",
+            "pharmacy_phone",
+            "pharmacy_latitude",
+            "pharmacy_longitude",
         )
 
         labels = {
@@ -82,10 +90,24 @@ class SignUpForm(UserCreationForm):
         super().__init__(*args, **kwargs)
 
         for field in self.fields.values():
-            if not isinstance(field.widget, forms.HiddenInput):
+            if isinstance(field.widget, forms.HiddenInput):
+                continue
+
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs["class"] = "form-select"
+            else:
                 field.widget.attrs["class"] = "form-control"
 
-        self.fields["requested_role"].widget.attrs["class"] = "form-select"
+        self.fields["username"].widget.attrs["placeholder"] = "아이디"
+        self.fields["password1"].widget.attrs["placeholder"] = "비밀번호"
+        self.fields["password2"].widget.attrs["placeholder"] = (
+            "비밀번호 확인"
+        )
+        self.fields["name"].widget.attrs["placeholder"] = "이름"
+        self.fields["email"].widget.attrs["placeholder"] = "이메일"
+        self.fields["business_number"].widget.attrs["placeholder"] = (
+            "사업자등록번호"
+        )
 
         self.order_fields(
             [
@@ -104,6 +126,14 @@ class SignUpForm(UserCreationForm):
                 "pharmacy_longitude",
             ]
         )
+
+    def clean_business_number(self):
+        business_number = self.cleaned_data.get(
+            "business_number",
+            "",
+        )
+
+        return business_number.strip()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -130,12 +160,12 @@ class SignUpForm(UserCreationForm):
         return cleaned_data
 
 
-class PharmacyForm(forms.ModelForm):
+class PharmacyUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Pharmacy
 
-        fields = (
+        fields = [
             "business_number",
             "business_name",
             "pharmacy_name",
@@ -144,42 +174,40 @@ class PharmacyForm(forms.ModelForm):
             "phone",
             "email",
             "status",
-        )
+            "latitude",
+            "longitude",
+        ]
+
+        labels = {
+            "business_number": "사업자등록번호",
+            "business_name": "사업자명",
+            "pharmacy_name": "약국명",
+            "owner_name": "대표자명",
+            "address": "주소",
+            "phone": "대표 연락처",
+            "email": "이메일",
+            "status": "운영 상태",
+            "latitude": "위도",
+            "longitude": "경도",
+        }
 
         widgets = {
-            "business_number": forms.TextInput(
+            "business_number": forms.TextInput(),
+            "business_name": forms.TextInput(),
+            "pharmacy_name": forms.TextInput(),
+            "owner_name": forms.TextInput(),
+            "address": forms.TextInput(),
+            "phone": forms.TextInput(),
+            "email": forms.EmailInput(),
+            "status": forms.Select(),
+            "latitude": forms.NumberInput(
                 attrs={
-                    "placeholder": "예: 123-45-67890",
+                    "step": "0.0000001",
                 }
             ),
-            "business_name": forms.TextInput(
+            "longitude": forms.NumberInput(
                 attrs={
-                    "placeholder": "사업자명을 입력하세요",
-                }
-            ),
-            "pharmacy_name": forms.TextInput(
-                attrs={
-                    "placeholder": "약국명을 입력하세요",
-                }
-            ),
-            "owner_name": forms.TextInput(
-                attrs={
-                    "placeholder": "대표자명을 입력하세요",
-                }
-            ),
-            "address": forms.TextInput(
-                attrs={
-                    "placeholder": "주소를 입력하세요",
-                }
-            ),
-            "phone": forms.TextInput(
-                attrs={
-                    "placeholder": "예: 02-1234-5678",
-                }
-            ),
-            "email": forms.EmailInput(
-                attrs={
-                    "placeholder": "example@example.com",
+                    "step": "0.0000001",
                 }
             ),
         }
@@ -188,9 +216,62 @@ class PharmacyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         for field in self.fields.values():
-            field.widget.attrs["class"] = "form-control"
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs["class"] = "form-select"
+            else:
+                field.widget.attrs["class"] = "form-control"
 
-        self.fields["status"].widget.attrs["class"] = "form-select"
+        self.fields["business_number"].widget.attrs["placeholder"] = (
+            "사업자등록번호"
+        )
+        self.fields["business_name"].widget.attrs["placeholder"] = (
+            "사업자명"
+        )
+        self.fields["pharmacy_name"].widget.attrs["placeholder"] = (
+            "약국명"
+        )
+        self.fields["owner_name"].widget.attrs["placeholder"] = (
+            "대표자명"
+        )
+        self.fields["address"].widget.attrs["placeholder"] = "주소"
+        self.fields["phone"].widget.attrs["placeholder"] = "대표 연락처"
+        self.fields["email"].widget.attrs["placeholder"] = "이메일"
+
+    def clean_business_number(self):
+        business_number = self.cleaned_data.get(
+            "business_number",
+        )
+
+        if not business_number:
+            return None
+
+        return business_number.strip()
+
+    def clean_pharmacy_name(self):
+        pharmacy_name = self.cleaned_data.get(
+            "pharmacy_name",
+            "",
+        ).strip()
+
+        if not pharmacy_name:
+            raise forms.ValidationError(
+                "약국명을 입력해 주세요."
+            )
+
+        return pharmacy_name
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        latitude = cleaned_data.get("latitude")
+        longitude = cleaned_data.get("longitude")
+
+        if (latitude is None) != (longitude is None):
+            raise forms.ValidationError(
+                "위도와 경도는 함께 입력해야 합니다."
+            )
+
+        return cleaned_data
 
 
 class ApprovedAuthenticationForm(AuthenticationForm):

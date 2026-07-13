@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ title }} | PharmaFlow
+{{ title|default:"약국 정보 수정" }} | PharmaFlow
 {% endblock %}
 
 {% block content %}
@@ -11,10 +11,10 @@
             <div class="card-body p-4">
 
                 <h2 class="mb-4">
-                    {{ title }}
+                    {{ title|default:"약국 정보 수정" }}
                 </h2>
 
-                <form method="post">
+                <form method="post" novalidate>
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -49,12 +49,21 @@
                     {% endfor %}
 
                     <div class="d-flex justify-content-end gap-2">
-                        <a
-                            href="{% url 'accounts:pharmacy_list' %}"
-                            class="btn btn-secondary"
-                        >
-                            취소
-                        </a>
+                        {% if cancel_url_name %}
+                            <a
+                                href="{% url cancel_url_name %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                취소
+                            </a>
+                        {% else %}
+                            <a
+                                href="{% url 'accounts:pharmacy_detail' %}"
+                                class="btn btn-outline-secondary"
+                            >
+                                취소
+                            </a>
+                        {% endif %}
 
                         <button
                             type="submit"
