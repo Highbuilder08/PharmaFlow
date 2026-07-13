@@ -12,7 +12,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,6 +30,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "192.168.32.87",
 ]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'prescriptions.apps.PrescriptionsConfig',
     'core.apps.CoreConfig',
-    'inventory.apps.InventoryConfig',
 ]
 
 MIDDLEWARE = [
@@ -131,3 +130,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+#STATIC_URL = 'static/'
+STATIC_URL = '/static/' # 정적 파일 생성
+
+STATICFILES_DIRS = [ # 정적 파일 경로
+    BASE_DIR / "static",
+]
+
+# 로그인 경로
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = "/accounts/login/"
