@@ -1,6 +1,6 @@
 # prescriptions/forms.py
 from django import forms
-from .models import Prescription, Consultation, ConsultationComment, PrescriptionItem
+from .models import Prescription, PrescriptionItem
 from inventory.models import Medicine
 
 class PrescriptionForm(forms.ModelForm):
@@ -11,11 +11,6 @@ class PrescriptionForm(forms.ModelForm):
         widgets = {
             'prescription_date': forms.DateInput(attrs={'type': 'date'}),
         }
-
-class ConsultationForm(forms.ModelForm):
-    class Meta:
-        model = Consultation
-        fields = ['title', 'content']
         
 class PrescriptionItemForm(forms.ModelForm):
     class Meta:
