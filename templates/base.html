@@ -26,18 +26,23 @@
 </head>
 
 <body>
+
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-success">
         <div class="container">
+
             <a
-                class="navbar-brand"
+                class="navbar-brand fw-bold"
                 href="{% url 'core:index' %}"
             >
                 PharmaFlow
             </a>
 
-            <div class="ms-auto">
+            <div class="ms-auto d-flex align-items-center gap-2">
+
                 {% if user.is_authenticated %}
-                    <span class="text-white me-3">
+
+                    <span class="text-white">
                         {{ user.name|default:user.username }}님
                     </span>
 
@@ -55,24 +60,57 @@
                             로그아웃
                         </button>
                     </form>
+
                 {% else %}
+
                     <a
                         href="{% url 'login' %}"
                         class="btn btn-light btn-sm"
                     >
                         로그인
                     </a>
+
+                    <a
+                        href="{% url 'accounts:signup' %}"
+                        class="btn btn-outline-light btn-sm"
+                    >
+                        회원가입
+                    </a>
+
                 {% endif %}
+
             </div>
+
         </div>
     </nav>
 
+    <!-- Main -->
     <main class="container mt-5">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div
+                    class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
+                    role="alert"
+                >
+                    {{ message }}
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                    ></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         {% block content %}
         {% endblock %}
+
     </main>
 
-    <footer class="bg-light mt-5 py-3">
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-3 border-top">
         <div class="container text-center">
             PharmaFlow © 2026
         </div>
@@ -81,5 +119,6 @@
     <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
     ></script>
+
 </body>
 </html>
