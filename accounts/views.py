@@ -110,3 +110,26 @@ def pharmacy_update(request, pk):
         },
     )
 
+
+@login_required
+def pharmacy_delete(request, pk):
+    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+
+    if request.method == "POST":
+        pharmacy.delete()
+
+        messages.success(
+            request,
+            "약국이 삭제되었습니다.",
+        )
+
+        return redirect("accounts:pharmacy_list")
+
+    return render(
+        request,
+        "accounts/pharmacy_confirm_delete.html",
+        {
+            "pharmacy": pharmacy,
+        },
+    )
+
