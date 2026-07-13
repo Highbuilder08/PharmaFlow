@@ -5,12 +5,15 @@
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
 <hr>
-<a href="{% url 'prescriptions:consultation_list' %}" class="btn">목록으로</a>
+<a href="{% url 'consultations:list' %}" class="btn">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
-    <a href="{% url 'prescriptions:consultation_update' consultation.id %}"><button>수정</button></a>
-    <form action="{% url 'prescriptions:consultation_delete' consultation.id %}" method="POST" style="display:inline;">
+    <!-- 수정: button 태그를 없애고 a 태그에 btn 클래스 부여 -->
+    <a href="{% url 'consultations:update' consultation.id %}" class="btn">수정</a>
+    
+    <form action="{% url 'consultations:delete' consultation.id %}" method="POST" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" onclick="return confirm('게시글을 삭제하시겠습니까?');">삭제</button>
+        <!-- 삭제: 여기도 btn 클래스와 빨간색(danger) 스타일 부여 -->
+        <button type="submit" class="btn" style="background-color: #dc3545;" onclick="return confirm('게시글을 삭제하시겠습니까?');">삭제</button>
     </form>
 {% endif %}
 <hr>
@@ -20,7 +23,7 @@
         <li>
             <strong>{{ comment.writer.username }}</strong>: {{ comment.content }}
             {% if request.user == comment.writer or request.user.is_superuser %}
-            <form action="{% url 'prescriptions:comment_delete' comment.id %}" method="POST" style="display:inline;">
+            <form action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?');" style="font-size:12px; color:red;">삭제</button>
             </form>
