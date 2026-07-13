@@ -5,9 +5,5 @@ from . import views
 app_name = 'inventory'
 
 urlpatterns = [
-    path(
-        "",
-        views.medicine_list,
-        name="medicine_list",
-    ),
+    path("", views.medicine_list, name="medicine_list"),
 ]
