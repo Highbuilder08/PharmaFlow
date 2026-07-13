@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}
+직원 관리 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h2 class="mb-1">
+        직원 관리
+    </h2>
+
+    <div class="text-muted">
+        {{ user.pharmacy.pharmacy_name }}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-success">
+                    <tr>
+                        <th>아이디</th>
+                        <th>이름</th>
+                        <th>역할</th>
+                        <th>승인 상태</th>
+                        <th class="text-center">관리</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for account in users %}
+                        <tr>
+                            <td>{{ account.username }}</td>
+                            <td>{{ account.name }}</td>
+                            <td>{{ account.get_role_display }}</td>
+
+                            <td>
+                                {% if account.is_approved %}
+                                    <span class="badge bg-success">
+                                        승인 완료
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        승인 대기
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if account.is_approved %}
+                                    <form
+                                        method="post"
+                                        action="{% url 'accounts:user_revoke' account.pk %}"
+                                        class="d-inline"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-danger btn-sm"
+                                        >
+                                            승인 취소
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form
+                                        method="post"
+                                        action="{% url 'accounts:user_approve' account.pk %}"
+                                        class="d-inline"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-success btn-sm"
+                                        >
+                                            승인
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    {% empty %}
+                        <tr>
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4"
+                            >
+                                소속 직원이 없습니다.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

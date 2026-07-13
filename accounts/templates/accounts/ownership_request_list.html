@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}점주 권한 신청 | PharmaFlow{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">점주 권한 신청</h2>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+
+                <thead class="table-light">
+                    <tr>
+                        <th>신청자</th>
+                        <th>아이디</th>
+                        <th>약국</th>
+                        <th>사업자번호</th>
+                        <th>상태</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for ownership_request in ownership_requests %}
+
+                        <tr>
+                            <td>
+                                {{ ownership_request.user.name|default:"이름 미등록" }}
+                            </td>
+
+                            <td>
+                                {{ ownership_request.user.username }}
+                            </td>
+
+                            <td>
+                                {{ ownership_request.pharmacy.pharmacy_name }}
+                            </td>
+
+                            <td>
+                                {{ ownership_request.business_number }}
+                            </td>
+
+                            <td>
+                                {% if ownership_request.status == "PENDING" %}
+                                    <span class="badge bg-warning text-dark">
+                                        {{ ownership_request.get_status_display }}
+                                    </span>
+                                {% elif ownership_request.status == "APPROVED" %}
+                                    <span class="badge bg-success">
+                                        {{ ownership_request.get_status_display }}
+                                    </span>
+                                {% elif ownership_request.status == "REJECTED" %}
+                                    <span class="badge bg-danger">
+                                        {{ ownership_request.get_status_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ ownership_request.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if ownership_request.status == "PENDING" %}
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'accounts:ownership_request_approve' ownership_request.pk %}"
+                                        class="d-inline"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-success btn-sm"
+                                            onclick="return confirm('이 점주 권한 신청을 승인하시겠습니까?');"
+                                        >
+                                            승인
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'accounts:ownership_request_reject' ownership_request.pk %}"
+                                        class="d-inline"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="return confirm('이 점주 권한 신청을 거절하시겠습니까?');"
+                                        >
+                                            거절
+                                        </button>
+                                    </form>
+
+                                {% else %}
+
+                                    <span class="text-muted">
+                                        처리 완료
+                                    </span>
+
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+                            <td
+                                colspan="6"
+                                class="text-center text-muted py-4"
+                            >
+                                등록된 점주 권한 신청이 없습니다.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

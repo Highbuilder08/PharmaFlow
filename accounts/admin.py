@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Pharmacy, User
+from .models import Pharmacy, PharmacyOwnershipRequest, User
+from django.db import transaction
+from django.utils import timezone
 
 
 @admin.register(Pharmacy)
@@ -159,7 +161,6 @@ class CustomUserAdmin(UserAdmin):
             f"{updated}명의 사용자를 승인했습니다.",
             )
     
-    
     @admin.action(description="선택한 사용자의 승인을 취소")
     def cancel_approval(self, request, queryset):
         updated = queryset.update(is_approved=False)
@@ -169,3 +170,98 @@ class CustomUserAdmin(UserAdmin):
             f"{updated}명의 사용자 승인을 취소했습니다.",
             )
 
+
+@admin.register(PharmacyOwnershipRequest)
+class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "pharmacy",
+        "business_number",
+        "status",
+        "created_at",
+        "processed_at",
+    )
+
+    list_filter = (
+        "status",
+        "created_at",
+    )
+
+    search_fields = (
+        "user__username",
+        "user__name",
+        "pharmacy__pharmacy_name",
+        "business_number",
+    )
+
+    actions = (
+        "approve_requests",
+        "reject_requests",
+    )
+
+    @admin.action(description="선택한 점주 신청 승인")
+    def approve_requests(self, request, queryset):
+        approved_count = 0
+
+        with transaction.atomic():
+            for ownership_request in queryset.select_related(
+                "user",
+                "pharmacy",
+            ):
+                ownership_request.status = (
+                    PharmacyOwnershipRequest.Status.APPROVED
+                )
+
+                ownership_request.processed_at = timezone.now()
+
+                ownership_request.save(
+                    update_fields=[
+                        "status",
+                        "processed_at",
+                    ]
+                )
+
+                user = ownership_request.user
+                user.role = User.Role.OWNER
+                user.pharmacy = ownership_request.pharmacy
+                user.is_approved = True
+
+                user.save(
+                    update_fields=[
+                        "role",
+                        "pharmacy",
+                        "is_approved",
+                    ]
+                )
+
+                pharmacy = ownership_request.pharmacy
+
+                if not pharmacy.business_number:
+                    pharmacy.business_number = (
+                        ownership_request.business_number
+                    )
+
+                    pharmacy.save(
+                        update_fields=[
+                            "business_number",
+                        ]
+                    )
+
+                approved_count += 1
+
+        self.message_user(
+            request,
+            f"{approved_count}건의 점주 신청을 승인했습니다.",
+        )
+
+    @admin.action(description="선택한 점주 신청 거절")
+    def reject_requests(self, request, queryset):
+        updated = queryset.update(
+            status=PharmacyOwnershipRequest.Status.REJECTED,
+            processed_at=timezone.now(),
+        )
+
+        self.message_user(
+            request,
+            f"{updated}건의 점주 신청을 거절했습니다.",
+        )
