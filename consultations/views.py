@@ -5,7 +5,7 @@ from django.shortcuts import render
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Consultation, ConsultationComment
+from .models import Consultation, ConsultationComment, ConsultationAttachment
 from .forms import ConsultationForm
 
 # 🚨 핵심: consultations 앱에 있는 데코레이터를 빌려옵니다!
@@ -35,11 +35,17 @@ def consultation_detail(request, pk):
 @login_message_required
 def consultation_create(request):
     if request.method == 'POST':
-        form = ConsultationForm(request.POST)
+        # 👇 request.FILES 추가
+        form = ConsultationForm(request.POST, request.FILES)
         if form.is_valid():
             consultation = form.save(commit=False)
             consultation.writer = request.user
             consultation.save()
+            
+            # 🚀 넘겨받은 첨부파일들 저장하기
+            for f in request.FILES.getlist('attachments'):
+                ConsultationAttachment.objects.create(consultation=consultation, file=f)
+                
             return redirect('consultations:list')
     else:
         form = ConsultationForm()
@@ -52,9 +58,15 @@ def consultation_update(request, pk):
         return redirect('consultations:detail', pk=pk)
 
     if request.method == 'POST':
-        form = ConsultationForm(request.POST, instance=consultation)
+        # 👇 request.FILES 추가
+        form = ConsultationForm(request.POST, request.FILES, instance=consultation)
         if form.is_valid():
             form.save()
+            
+            # 🚀 수정할 때 새로 넘겨받은 첨부파일들 추가 저장하기
+            for f in request.FILES.getlist('attachments'):
+                ConsultationAttachment.objects.create(consultation=consultation, file=f)
+                
             return redirect('consultations:detail', pk=pk)
     else:
         form = ConsultationForm(instance=consultation)
@@ -76,4 +88,15 @@ def comment_delete(request, pk):
     if request.user == comment.writer or request.user.is_superuser:
         if request.method == 'POST':
             comment.delete()
+    return redirect('consultations:detail', pk=consultation_pk)
+
+@login_message_required
+def attachment_delete(request, pk):
+    attachment = get_object_or_404(ConsultationAttachment, pk=pk)
+    consultation_pk = attachment.consultation.pk
+    
+    if request.user == attachment.consultation.writer or request.user.is_superuser:
+        if request.method == 'POST':
+            attachment.delete()
+            
     return redirect('consultations:detail', pk=consultation_pk)

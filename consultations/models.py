@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.conf import settings
 
@@ -16,3 +17,11 @@ class ConsultationComment(models.Model):
     writer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="작성자")
     content = models.TextField(verbose_name="댓글 내용")
     created_at = models.DateTimeField(auto_now_add=True)
+    
+class ConsultationAttachment(models.Model):
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='consultations/%Y/%m/', verbose_name="첨부파일")
+
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)

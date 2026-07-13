@@ -5,6 +5,27 @@
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
 <hr>
+
+<h3>📁 첨부파일</h3>
+<ul>
+    {% for attachment in consultation.attachments.all %}
+        <li>
+            {{ attachment.filename }} 
+            <a href="{{ attachment.file.url }}" target="_blank">[다운로드]</a>
+            
+            {% if request.user == consultation.writer or request.user.is_superuser %}
+            <form action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');" class="btn" style="background-color: #dc3545; padding: 2px 5px; font-size: 11px;">삭제</button>
+            </form>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li style="color: #888;">첨부파일이 없습니다.</li>
+    {% endfor %}
+</ul>
+<hr>
+
 <a href="{% url 'consultations:list' %}" class="btn">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
     <!-- 수정: button 태그를 없애고 a 태그에 btn 클래스 부여 -->
