@@ -40,3 +40,35 @@ def owner_required(view_func):
         return view_func(request, *args, **kwargs)
 
     return wrapper
+
+
+def staff_manager_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+
+        can_manage_staff = (
+            user.is_authenticated
+            and user.is_approved
+            and user.pharmacy_id is not None
+            and user.role in (
+                User.Role.OWNER,
+                User.Role.PHARMACIST,
+            )
+        )
+
+        if not can_manage_staff:
+            messages.error(
+                request,
+                "직원 관리 권한이 없습니다.",
+            )
+
+            return redirect("core:index")
+
+        return view_func(
+            request,
+            *args,
+            **kwargs,
+        )
+
+    return wrapper

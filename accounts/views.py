@@ -5,16 +5,20 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from .decorators import owner_required, superuser_required
-from .forms import PharmacyUpdateForm, SignUpForm
+from .decorators import staff_manager_required, superuser_required
 from .models import Pharmacy, PharmacyOwnershipRequest, User
+from .forms import (
+    PharmacyUpdateForm,
+    SignUpForm,
+    StaffCreateForm,
+    StaffUpdateForm,
+)
 
 
 def signup(request):
@@ -263,9 +267,8 @@ def _get_user_pharmacy(user):
 
 
 def _can_edit_pharmacy(user, pharmacy):
-    def _can_edit_pharmacy(user, pharmacy):
-        if user.is_superuser or user.is_staff:
-            return True
+    if user.is_superuser or user.is_staff:
+        return True
 
     return (
         user.is_authenticated
@@ -456,20 +459,15 @@ def pharmacy_delete(request, pk):
 
 
 @login_required
-@owner_required
+@staff_manager_required
 def user_list(request):
     users = (
         User.objects.filter(
             pharmacy=request.user.pharmacy,
-        )
-        .exclude(
-            pk=request.user.pk
-        )
-        .exclude(
-            is_superuser=True
+            role=User.Role.STAFF,
+            is_superuser=False,
         )
         .order_by(
-            "is_approved",
             "name",
             "username",
         )
@@ -485,78 +483,107 @@ def user_list(request):
 
 
 @login_required
-@owner_required
-@require_POST
-def user_approve(request, pk):
-    target_user = get_object_or_404(
-        User,
-        pk=pk,
-        pharmacy=request.user.pharmacy,
-        is_superuser=False,
-    )
+@staff_manager_required
+def user_create(request):
+    if request.method == "POST":
+        form = StaffCreateForm(request.POST)
 
-    if target_user.role == User.Role.OWNER:
-        messages.error(
-            request,
-            "점주 계정은 이 화면에서 승인할 수 없습니다.",
-        )
+        if form.is_valid():
+            staff = form.save(commit=False)
 
-        return redirect(
-            "accounts:user_list"
-        )
+            staff.pharmacy = request.user.pharmacy
+            staff.role = User.Role.STAFF
+            staff.is_approved = True
 
-    target_user.is_approved = True
+            staff.save()
 
-    target_user.save(
-        update_fields=[
-            "is_approved",
-        ]
-    )
+            messages.success(
+                request,
+                f"{staff.name} 직원을 추가했습니다.",
+            )
 
-    messages.success(
+            return redirect(
+                "accounts:user_list"
+            )
+
+    else:
+        form = StaffCreateForm()
+
+    return render(
         request,
-        f"{target_user.name} 사용자를 승인했습니다.",
-    )
-
-    return redirect(
-        "accounts:user_list"
+        "accounts/user_form.html",
+        {
+            "form": form,
+            "title": "직원 추가",
+            "submit_text": "추가",
+        },
     )
 
 
 @login_required
-@owner_required
-@require_POST
-def user_revoke(request, pk):
-    target_user = get_object_or_404(
+@staff_manager_required
+def user_update(request, pk):
+    staff = get_object_or_404(
         User,
         pk=pk,
         pharmacy=request.user.pharmacy,
+        role=User.Role.STAFF,
         is_superuser=False,
     )
 
-    if target_user.role == User.Role.OWNER:
-        messages.error(
-            request,
-            "점주 계정은 이 화면에서 처리할 수 없습니다.",
+    if request.method == "POST":
+        form = StaffUpdateForm(
+            request.POST,
+            instance=staff,
         )
 
-        return redirect(
-            "accounts:user_list"
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                f"{staff.name} 직원 정보를 수정했습니다.",
+            )
+
+            return redirect(
+                "accounts:user_list"
+            )
+
+    else:
+        form = StaffUpdateForm(
+            instance=staff,
         )
 
-    target_user.is_approved = False
-
-    target_user.save(
-        update_fields=[
-            "is_approved",
-        ]
+    return render(
+        request,
+        "accounts/user_form.html",
+        {
+            "form": form,
+            "staff": staff,
+            "title": "직원 정보 수정",
+            "submit_text": "저장",
+        },
     )
+
+
+@login_required
+@staff_manager_required
+@require_POST
+def user_delete(request, pk):
+    staff = get_object_or_404(
+        User,
+        pk=pk,
+        pharmacy=request.user.pharmacy,
+        role=User.Role.STAFF,
+        is_superuser=False,
+    )
+
+    staff_name = staff.name
+    staff.delete()
 
     messages.success(
         request,
-        f"{target_user.name} 사용자의 승인을 취소했습니다.",
+        f"{staff_name} 직원을 삭제했습니다.",
     )
 
-    return redirect(
-        "accounts:user_list"
-    )
+    return redirect("accounts:user_list")

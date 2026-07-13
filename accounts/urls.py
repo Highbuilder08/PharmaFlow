@@ -10,7 +10,6 @@ urlpatterns = [
 
     path("pharmacy/", views.pharmacy_detail, name="pharmacy_detail"),
     path("pharmacy/edit/", views.pharmacy_update, name="pharmacy_update"),
-
     path("pharmacy-search/", views.pharmacy_search, name="pharmacy_search"),
 
     path("pharmacies/", views.pharmacy_list, name="pharmacy_list"),
@@ -18,6 +17,7 @@ urlpatterns = [
     path("pharmacies/<int:pk>/delete/", views.pharmacy_delete, name="pharmacy_delete"),
 
     path("users/", views.user_list, name="user_list"),
-    path("users/<int:pk>/approve/", views.user_approve, name="user_approve"),
-    path("users/<int:pk>/revoke/", views.user_revoke, name="user_revoke"),
+    path("users/create/", views.user_create, name="user_create"),
+    path("users/<int:pk>/update/", views.user_update, name="user_update"),
+    path("users/<int:pk>/delete/", views.user_delete, name="user_delete"),
 ]

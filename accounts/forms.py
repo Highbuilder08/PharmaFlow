@@ -308,3 +308,85 @@ class ApprovedAuthenticationForm(AuthenticationForm):
                 message,
                 code="not_approved",
             )
+
+
+class StaffCreateForm(UserCreationForm):
+
+    class Meta:
+        model = User
+
+        fields = (
+            "username",
+            "password1",
+            "password2",
+            "name",
+            "email",
+            "phone",
+        )
+
+        labels = {
+            "username": "아이디",
+            "name": "이름",
+            "email": "이메일",
+            "phone": "연락처",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs["class"] = "form-control"
+
+        self.order_fields(
+            [
+                "username",
+                "password1",
+                "password2",
+                "name",
+                "email",
+                "phone",
+            ]
+        )
+
+
+class StaffUpdateForm(forms.ModelForm):
+
+    class Meta:
+        model = User
+
+        fields = (
+            "name",
+            "email",
+            "phone",
+            "is_approved",
+        )
+
+        labels = {
+            "name": "이름",
+            "email": "이메일",
+            "phone": "연락처",
+            "is_approved": "근무 승인",
+        }
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "phone": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "is_approved": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input",
+                }
+            ),
+        }

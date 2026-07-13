@@ -6,14 +6,23 @@
 
 {% block content %}
 
-<div class="mb-4">
-    <h2 class="mb-1">
-        직원 관리
-    </h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            직원 관리
+        </h2>
 
-    <div class="text-muted">
-        {{ user.pharmacy.pharmacy_name }}
+        <div class="text-muted">
+            {{ request.user.pharmacy.pharmacy_name }}
+        </div>
     </div>
+
+    <a
+        href="{% url 'accounts:user_create' %}"
+        class="btn btn-success"
+    >
+        직원 추가
+    </a>
 </div>
 
 <div class="card shadow-sm">
@@ -26,7 +35,6 @@
                         <th>아이디</th>
                         <th>이름</th>
                         <th>역할</th>
-                        <th>승인 상태</th>
                         <th class="text-center">관리</th>
                     </tr>
                 </thead>
@@ -34,68 +42,58 @@
                 <tbody>
                     {% for account in users %}
                         <tr>
-                            <td>{{ account.username }}</td>
-                            <td>{{ account.name }}</td>
-                            <td>{{ account.get_role_display }}</td>
+                            <td>
+                                {{ account.username }}
+                            </td>
 
                             <td>
-                                {% if account.is_approved %}
-                                    <span class="badge bg-success">
-                                        승인 완료
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        승인 대기
-                                    </span>
-                                {% endif %}
+                                {{ account.name }}
+                            </td>
+
+                            <td>
+                                {{ account.get_role_display }}
                             </td>
 
                             <td class="text-center">
-                                {% if account.is_approved %}
-                                    <form
-                                        method="post"
-                                        action="{% url 'accounts:user_revoke' account.pk %}"
-                                        class="d-inline"
-                                    >
-                                        {% csrf_token %}
 
-                                        <button
-                                            type="submit"
-                                            class="btn btn-outline-danger btn-sm"
-                                        >
-                                            승인 취소
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <form
-                                        method="post"
-                                        action="{% url 'accounts:user_approve' account.pk %}"
-                                        class="d-inline"
-                                    >
-                                        {% csrf_token %}
+                                <a
+                                    href="{% url 'accounts:user_update' account.pk %}"
+                                    class="btn btn-outline-success btn-sm"
+                                >
+                                    수정
+                                </a>
 
-                                        <button
-                                            type="submit"
-                                            class="btn btn-success btn-sm"
-                                        >
-                                            승인
-                                        </button>
-                                    </form>
-                                {% endif %}
+                                <form
+                                    method="post"
+                                    action="{% url 'accounts:user_delete' account.pk %}"
+                                    class="d-inline"
+                                    onsubmit="return confirm('정말 삭제하시겠습니까?');"
+                                >
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-outline-danger btn-sm"
+                                    >
+                                        삭제
+                                    </button>
+                                </form>
+
                             </td>
                         </tr>
 
                     {% empty %}
                         <tr>
                             <td
-                                colspan="5"
+                                colspan="4"
                                 class="text-center text-muted py-4"
                             >
-                                소속 직원이 없습니다.
+                                등록된 직원이 없습니다.
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
+
             </table>
 
         </div>
