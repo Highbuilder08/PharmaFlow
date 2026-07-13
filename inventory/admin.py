@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import Medicine
-
+from .models import Medicine, InventoryTransaction
 
 
 # Register your models here.
@@ -30,3 +29,29 @@ class MedicineAdmin(admin.ModelAdmin):
         if obj.is_low_stock:
             return "부족"
         return "정상"
+    
+    
+@admin.register(InventoryTransaction)
+class InventoryTransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "medicine",
+        "transaction_type",
+        "quantity",
+        "note",
+        "created_at",
+    )
+
+    list_filter = (
+        "transaction_type",
+        "created_at",
+    )
+
+    search_fields = (
+        "medicine__name",
+        "medicine__manufacturer",
+        "note",
+    )
+
+    autocomplete_fields = (
+        "medicine",
+    )
