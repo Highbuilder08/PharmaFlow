@@ -3,23 +3,38 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 
+from .models import User
 
-def role_required(*allowed_roles):
-    def decorator(view_func):
-        @wraps(view_func)
-        def wrapper(request, *args, **kwargs):
-            if (
-                not request.user.is_superuser
-                and request.user.role not in allowed_roles
-            ):
-                messages.error(
-                    request,
-                    "해당 페이지에 접근할 권한이 없습니다.",
-                )
-                return redirect("core:index")
 
-            return view_func(request, *args, **kwargs)
+def superuser_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_superuser:
+            messages.error(
+                request,
+                "시스템 관리자만 접근할 수 있습니다.",
+            )
+            return redirect("core:index")
 
-        return wrapper
+        return view_func(request, *args, **kwargs)
 
-    return decorator
+    return wrapper
+
+
+def owner_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if (
+            request.user.role != User.Role.OWNER
+            or not request.user.is_approved
+            or request.user.pharmacy_id is None
+        ):
+            messages.error(
+                request,
+                "소속 약국의 점주만 접근할 수 있습니다.",
+            )
+            return redirect("core:index")
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
