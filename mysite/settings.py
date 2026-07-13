@@ -25,11 +25,7 @@ SECRET_KEY = 'django-insecure-tjnh9avp0%gm899n96r%@)j3q4h!_hddy#==&or3^*eom8pg&t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "192.168.32.87",
-]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -45,6 +41,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'prescriptions.apps.PrescriptionsConfig',
     'core.apps.CoreConfig',
+    "inventory.apps.InventoryConfig",
 ]
 
 MIDDLEWARE = [
@@ -128,6 +125,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
+STATIC_URL = 'static/'
+
 #STATIC_URL = 'static/'
 STATIC_URL = '/static/' # 정적 파일 생성
 
@@ -138,4 +137,5 @@ STATICFILES_DIRS = [ # 정적 파일 경로
 # 로그인 경로
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
 LOGIN_URL = "/accounts/login/"

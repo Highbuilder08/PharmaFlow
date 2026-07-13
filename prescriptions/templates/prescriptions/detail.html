@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{{ prescription.patient_name }} 환자 처방전 상세</h2>
+<p>작성자: {{ prescription.writer.username }} | 처방일: {{ prescription.prescription_date }}</p>
+<p>증상: {{ prescription.symptoms }}</p>
+<hr>
+<h3>첨부파일</h3>
+<ul>
+    {% for attachment in prescription.attachments.all %}
+        <li>
+            <!-- 👇 파일 이름은 그냥 출력하고, 다운로드 글자에만 링크를 겁니다 -->
+            {{ attachment.file.name }} 
+            <a href="{{ attachment.file.url }}" target="_blank">[다운로드]</a>
+            
+            {% if request.user == prescription.writer or request.user.is_superuser %}
+            <form action="{% url 'prescriptions:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');">삭제</button>
+            </form>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li>첨부파일이 없습니다.</li>
+    {% endfor %}
+</ul>
+<hr>
+<a href="{% url 'prescriptions:list' %}">목록으로</a>
+{% if request.user == prescription.writer or request.user.is_superuser %}
+    <a href="{% url 'prescriptions:update' prescription.id %}"><button>수정</button></a>
+    <form action="{% url 'prescriptions:delete' prescription.id %}" method="POST" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" onclick="return confirm('처방전을 삭제하시겠습니까?');">삭제</button>
+    </form>
+{% endif %}
+{% endblock %}
