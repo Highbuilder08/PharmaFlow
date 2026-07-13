@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %} <!-- 블록명 확인 필요 -->
+
+<h2>🛡️ 시스템 작업 로그 (관리자 전용)</h2>
+
+<table border="1">
+    <tr>
+        <th>작업시간</th>
+        <th>작업자</th>
+        <th>구분</th>
+        <th>대상</th>
+        <th>상세내용 및 사유</th>
+    </tr>
+    {% for log in logs %}
+    <tr>
+        <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+        <td>{{ log.user.username|default:"알수없음" }}</td>
+        <td style="font-weight: bold; color: {% if log.action == '삭제' %}red{% else %}blue{% endif %};">{{ log.action }}</td>
+        <td>{{ log.target }}</td>
+        <td>{{ log.detail }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">아직 기록된 로그가 없습니다.</td></tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

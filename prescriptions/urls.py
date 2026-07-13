@@ -18,4 +18,6 @@ urlpatterns = [
     path('consultation/<int:pk>/update/', views.consultation_update, name='consultation_update'), # 수정
     path('consultation/<int:pk>/delete/', views.consultation_delete, name='consultation_delete'), # 삭제
     path('comment/<int:pk>/delete/', views.comment_delete, name='comment_delete'), # 댓글 삭제
+    path('prescription/item/<int:pk>/delete/', views.prescription_item_delete, name='item_delete'),
+    path('logs/', views.audit_log_list, name='audit_logs'),
 ]

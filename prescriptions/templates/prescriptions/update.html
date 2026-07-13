@@ -18,23 +18,42 @@
     <!-- 2. 약품 추가 폼셋 영역 -->
     <h3>💊 처방 약품 관리</h3>
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        <!-- 필수: 폼셋 관리 데이터 -->
         {{ formset.management_form }} 
         
-        <!-- 개발자 2님의 DB에 추가 가능한 약이 있는지 검사 -->
         {% if has_stock %}
-            {% for item_form in formset %}
-                <div style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                    {{ item_form.as_p }}
+            <div id="formset-container">
+                {% for item_form in formset %}
+                    <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                        {{ item_form.as_p }}
+                        
+                        <!-- 👇 새로 추가할 부분: 이미 등록된 약품(ID가 있는 경우)에만 삭제 버튼 표시 -->
+                        {% if item_form.instance.pk %}
+                            <div style="margin-top: 10px; padding: 10px; background-color: #ffeeba; border-radius: 5px;">
+                                <label style="color: #856404; font-weight: bold;">이 약품 삭제하기:</label>
+                                
+                                <!-- 🚨 핵심: form="delete-form-아이디" 속성을 써서 바깥에 있는 폼과 연결합니다! -->
+                                <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required style="padding: 5px; width: 200px;">
+                                <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn" style="background-color: #dc3545; padding: 5px 10px; font-size: 12px;">처방 취소</button>
+                            </div>
+                        {% endif %}
+                        <!-- 👆 추가 끝 -->
+                        
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- 추가 버튼과 숨겨진 폼 -->
+            <button type="button" id="add-form-btn" class="btn" style="background-color: #28a745; margin-top: 10px;">+ 약품 칸 추가하기</button>
+            <div id="empty-form" style="display: none;">
+                <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                    {{ formset.empty_form.as_p }}
                 </div>
-            {% endfor %}
+            </div>
         {% else %}
-            <!-- 재고가 하나도 없을 때 보여줄 문구 -->
+            <!-- 재고 없을 때 -->
             <p style="color: #ff4757; font-weight: bold; font-size: 16px; margin: 0;">
                 🚨 현재 추가 가능한 약품(재고)이 없습니다. 개발자 2(재고 관리자)에게 문의하세요.
             </p>
-            
-            <!-- 에러 방지를 위해 폼은 숨겨서 보냅니다 -->
             <div style="display: none;">
                 {% for item_form in formset %}
                     {{ item_form.as_p }}
@@ -47,5 +66,29 @@
     <button type="submit" class="btn">수정 완료</button>
     <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn" style="background-color: #6c757d;">취소</a>
 </form>
+
+{% for item_form in formset %}
+    {% if item_form.instance.pk %}
+        <form id="delete-form-{{ item_form.instance.pk }}" action="{% url 'prescriptions:item_delete' item_form.instance.pk %}" method="POST" style="display:none;">
+            {% csrf_token %}
+        </form>
+    {% endif %}
+{% endfor %}
+<!-- 🚀 업데이트 화면용 자바스크립트 -->
+{% if has_stock %}
+<script>
+    document.getElementById('add-form-btn').addEventListener('click', function() {
+        const container = document.getElementById('formset-container');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS'); 
+        let formCount = parseInt(totalFormsInput.value);
+
+        const emptyFormHtml = document.getElementById('empty-form').innerHTML;
+        const newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+
+        container.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = formCount + 1;
+    });
+</script>
+{% endif %}
 
 {% endblock %}

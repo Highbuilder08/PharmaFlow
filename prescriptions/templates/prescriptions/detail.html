@@ -13,6 +13,7 @@
         <th>복용법</th>
         <th>복용기간</th>
         <th>처방수량</th>
+        <!-- ❌ <th>관리</th> 삭제됨 -->
     </tr>
     {% for item in prescription.items.all %}
     <tr>
@@ -21,6 +22,7 @@
         <td>{{ item.dosage }}</td>
         <td>{{ item.duration }}</td>
         <td>{{ item.total_quantity }}개</td>
+        <!-- ❌ 삭제 폼(form) 부분 삭제됨 -->
     </tr>
     {% empty %}
     <tr><td colspan="5">아직 등록된 약품이 없습니다.</td></tr>

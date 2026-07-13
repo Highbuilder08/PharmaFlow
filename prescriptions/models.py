@@ -49,3 +49,13 @@ class ConsultationComment(models.Model):
     content = models.TextField(verbose_name="댓글 내용")
     created_at = models.DateTimeField(auto_now_add=True)
     
+class AuditLog(models.Model):
+    # 누가(사용자), 어떤 작업을(등록/수정/삭제), 어떤 대상에게(처방전/게시판), 상세내용은 무엇인지 기록합니다.
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="작업자")
+    action = models.CharField(max_length=50, verbose_name="작업구분")
+    target = models.CharField(max_length=100, verbose_name="작업대상")
+    detail = models.TextField(verbose_name="상세내용 및 사유")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="작업시간")
+
+    class Meta:
+        ordering = ['-created_at'] # 최신 로그가 가장 위에 오도록 정렬

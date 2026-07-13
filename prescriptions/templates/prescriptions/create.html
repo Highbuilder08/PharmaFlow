@@ -12,23 +12,56 @@
         <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
     </div>
 
-    <!-- 2. 약품 폼셋 영역 -->
+<!-- 2. 약품 폼셋 영역 -->
     <h3>💊 처방 약품 추가</h3>
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        <!-- 필수: 폼셋을 쓸 때 반드시 들어가야 하는 관리용 숨김 데이터 -->
+        
+        <!-- 필수: 폼셋 관리 데이터 (TOTAL_FORMS 등을 관리) -->
         {{ formset.management_form }} 
         
-        {% for item_form in formset %}
-            {{ item_form.as_p }}
-        {% endfor %}
+        <!-- 약품 입력 칸들이 들어갈 뼈대(Container) -->
+        <div id="formset-container">
+            {% for item_form in formset %}
+                <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                    {{ item_form.as_p }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- 👇 추가 버튼 -->
+        <button type="button" id="add-form-btn" class="btn" style="background-color: #28a745; margin-top: 10px;">+ 약품 칸 추가하기</button>
+
+        <!-- 👇 JS가 복사해갈 숨겨진 원본 폼 (empty_form) -->
+        <div id="empty-form" style="display: none;">
+            <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                {{ formset.empty_form.as_p }}
+            </div>
+        </div>
+
     </div>
 
     <!-- 3. 제출 및 취소 버튼 -->
     <hr>
-    <!-- 클래스(btn)를 입혀서 a 태그를 예쁜 버튼 모양으로 만든 "취소 버튼" -->
-    <button type="submit">처방전 및 약품 등록하기</button>
-    <a href="{% url 'prescriptions:list' %}" class="btn">취소</a>
-
+    <button type="submit" class="btn">처방전 및 약품 등록하기</button>
+    <a href="{% url 'prescriptions:list' %}" class="btn" style="background-color: #6c757d;">취소</a>
 </form>
+
+<!-- 🚀 마법의 자바스크립트 코드 -->
+<script>
+    document.getElementById('add-form-btn').addEventListener('click', function() {
+        const container = document.getElementById('formset-container');
+        // 장고가 폼 개수를 세는 숨겨진 input을 찾습니다 (접두사: items)
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS'); 
+        let formCount = parseInt(totalFormsInput.value);
+
+        // 숨겨둔 empty_form의 HTML을 가져와서 '__prefix__'라는 글자를 현재 폼 번호로 바꿈
+        const emptyFormHtml = document.getElementById('empty-form').innerHTML;
+        const newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+
+        // 컨테이너 맨 밑에 새 폼을 추가하고, 총 개수를 1 늘려줌
+        container.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = formCount + 1;
+    });
+</script>
 
 {% endblock %}

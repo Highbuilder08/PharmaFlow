@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages  # 👈 메시지 띄우기용
 from functools import wraps          # 👈 데코레이터 만들기용
-from .models import Prescription, PrescriptionAttachment, Consultation, ConsultationComment, PrescriptionItem
+from .models import Prescription, PrescriptionAttachment, Consultation, ConsultationComment, PrescriptionItem, AuditLog
 from .forms import PrescriptionForm, ConsultationForm # 폼 가져오기
 from inventory.models import Medicine, InventoryTransaction # 약국 재고 가져오기
 from django.forms import inlineformset_factory 
@@ -232,3 +232,51 @@ def comment_delete(request, pk):
         if request.method == 'POST':
             comment.delete()
     return redirect('prescriptions:consultation_detail', pk=consultation_pk)
+
+@login_message_required
+def prescription_item_delete(request, pk):
+    item = get_object_or_404(PrescriptionItem, pk=pk)
+    prescription_pk = item.prescription.pk
+    
+    if request.user == item.prescription.writer or request.user.is_superuser:
+        if request.method == 'POST':
+            # 🚀 1. HTML에서 날아온 삭제 사유 받기
+            delete_reason = request.POST.get('delete_reason', '').strip()
+            
+            # 백엔드 2차 검증: 사유가 비어있으면 에러 띄우고 삭제 중단
+            if not delete_reason:
+                messages.warning(request, "삭제 사유를 반드시 입력해야 합니다.")
+                return redirect('prescriptions:detail', pk=prescription_pk)
+            
+            medicine = item.medicine
+            medicine.stock += item.total_quantity
+            medicine.save()
+            
+            InventoryTransaction.objects.create(
+                medicine=medicine,
+                transaction_type='IN',
+                quantity=item.total_quantity
+            )
+            
+            # 🚀 2. 관리자용 로그에 삭제 기록 및 사유 남기기
+            AuditLog.objects.create(
+                user=request.user,
+                action='삭제',
+                target='처방 약품',
+                detail=f"[{prescription_pk}번 처방전] 약품 '{medicine.name}' 삭제. (사유: {delete_reason})"
+            )
+            
+            item.delete()
+            messages.success(request, "약품이 삭제되고 재고가 복구되었습니다.")
+            
+    return redirect('prescriptions:update', pk=prescription_pk)
+
+@login_message_required
+def audit_log_list(request):
+    # 관리자(superuser)가 아니면 접근 차단
+    if not request.user.is_superuser:
+        messages.warning(request, "관리자만 접근 가능한 페이지입니다.")
+        return redirect('prescriptions:list')
+    
+    logs = AuditLog.objects.all()
+    return render(request, 'prescriptions/audit_logs.html', {'logs': logs})
