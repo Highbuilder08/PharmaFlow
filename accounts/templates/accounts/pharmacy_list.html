@@ -11,91 +11,100 @@
         약국 목록
     </h2>
 
-    <a
-        href="{% url 'accounts:pharmacy_create' %}"
-        class="btn btn-success"
-    >
-        + 약국 등록
-    </a>
+    {% if user.is_superuser or user.role == "ADMIN" %}
+        <a
+            href="{% url 'accounts:pharmacy_create' %}"
+            class="btn btn-success"
+        >
+            + 약국 등록
+        </a>
+    {% endif %}
 </div>
 
 <div class="card shadow-sm">
     <div class="card-body">
 
-        <table class="table table-hover align-middle">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
 
-            <thead class="table-success">
-                <tr>
-                    <th>약국명</th>
-                    <th>대표자</th>
-                    <th>대표 연락처</th>
-                    <th>상태</th>
-                    <th class="text-center">관리</th>
-                </tr>
-            </thead>
+                <thead class="table-success">
+                    <tr>
+                        <th>약국명</th>
+                        <th>대표자</th>
+                        <th>대표 연락처</th>
+                        <th>상태</th>
+                        <th class="text-center">관리</th>
+                    </tr>
+                </thead>
 
-            <tbody>
+                <tbody>
+                    {% for pharmacy in pharmacies %}
+                        <tr>
+                            <td>
+                                {{ pharmacy.pharmacy_name }}
+                            </td>
 
-                {% for pharmacy in pharmacies %}
+                            <td>
+                                {{ pharmacy.owner_name|default:"-" }}
+                            </td>
 
-                <tr>
+                            <td>
+                                {{ pharmacy.phone|default:"-" }}
+                            </td>
 
-                    <td>
-                        {{ pharmacy.pharmacy_name }}
-                    </td>
+                            <td>
+                                {% if pharmacy.status == "ACTIVE" %}
+                                    <span class="badge bg-success">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+                                {% elif pharmacy.status == "SUSPENDED" %}
+                                    <span class="badge bg-warning text-dark">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
 
-                    <td>
-                        {{ pharmacy.owner_name }}
-                    </td>
+                            <td class="text-center">
+                                {% if user.is_superuser or user.role == "ADMIN" %}
+                                    <a
+                                        href="{% url 'accounts:pharmacy_update' pharmacy.pk %}"
+                                        class="btn btn-outline-primary btn-sm"
+                                    >
+                                        수정
+                                    </a>
 
-                    <td>
-                        {{ pharmacy.phone }}
-                    </td>
+                                    <a
+                                        href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
+                                        class="btn btn-outline-danger btn-sm"
+                                    >
+                                        삭제
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted small">
+                                        조회 전용
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
 
-                    <td>
-                        <span class="badge bg-success">
-                            {{ pharmacy.get_status_display }}
-                        </span>
-                    </td>
+                    {% empty %}
+                        <tr>
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4"
+                            >
+                                등록된 약국이 없습니다.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
 
-                    <td class="text-center">
-
-                        <a
-                            href="{% url 'accounts:pharmacy_update' pharmacy.pk %}"
-                            class="btn btn-outline-primary btn-sm"
-                        >
-                            수정
-                        </a>
-
-                        <a
-                            href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
-                            class="btn btn-outline-danger btn-sm"
-                        >
-                            삭제
-                        </a>
-
-                    </td>
-
-                </tr>
-
-                {% empty %}
-
-                <tr>
-
-                    <td
-                        colspan="5"
-                        class="text-center text-muted py-4"
-                    >
-                        등록된 약국이 없습니다.
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
+            </table>
+        </div>
 
     </div>
 </div>
