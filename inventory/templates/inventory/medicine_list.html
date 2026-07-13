@@ -65,15 +65,26 @@
                             <td>
                                 {{ medicine.updated_at|date:"Y-m-d H:i" }}
                             </td>
-
+                            
+                            <!-- ========== 관리 ============ -->
                             <td>
-                                <a
-                                    href="{% url 'inventory:medicine_update' medicine.pk %}"
-                                    class="btn btn-sm btn-outline-primary"
-                                >
-                                    수정
-                                </a>
+                                <div class="d-flex gap-2">
+                                    <a
+                                        href="{% url 'inventory:medicine_update' medicine.pk %}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        수정
+                                    </a>
+
+                                    <a
+                                        href="{% url 'inventory:medicine_delete' medicine.pk %}"
+                                        class="btn btn-sm btn-outline-danger"
+                                    >
+                                        삭제
+                                    </a>
+                                </div>
                             </td>
+
                         </tr>
                     {% empty %}
                         <tr>

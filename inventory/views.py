@@ -1,10 +1,12 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
+# Create your views here.
+
+
+# ============ 의약품 (Medicine) ==============
 from .forms import MedicineForm
 from .models import Medicine
 
-
-# Create your views here.
 def medicine_list(request):
     medicines = Medicine.objects.all()
 
@@ -62,3 +64,24 @@ def medicine_update(request, pk):
         "inventory/medicine_form.html",
         context,
     )
+    
+def medicine_delete(request, pk):
+    medicine = get_object_or_404(Medicine, pk=pk)
+
+    if request.method == "POST":
+        medicine.delete()
+        return redirect("inventory:medicine_list")
+
+    return render(
+        request,
+        "inventory/medicine_confirm_delete.html",
+        {
+            "medicine": medicine,
+        },
+    )
+    
+    
+# ============ 입출고 (Transaction) ==============
+
+
+# ============ 발주 (PurchaseOrder) ==============
