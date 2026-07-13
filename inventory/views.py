@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
 # Create your views here.
+from .forms import MedicineForm
+from .models import Medicine, InventoryTransaction
 
 
 # ============ 의약품 (Medicine) ==============
-from .forms import MedicineForm
-from .models import Medicine
 
 def medicine_list(request):
     medicines = Medicine.objects.all()
@@ -82,6 +82,21 @@ def medicine_delete(request, pk):
     
     
 # ============ 입출고 (Transaction) ==============
+def transaction_list(request):
+    transactions = InventoryTransaction.objects.select_related(
+        "medicine",
+    ).all()
 
+    context = {
+        "transactions": transactions,
+    }
+
+    return render(
+        request,
+        "inventory/transaction_list.html",
+        context,
+    )
+    
+    
 
 # ============ 발주 (PurchaseOrder) ==============

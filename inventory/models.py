@@ -41,24 +41,55 @@ class Medicine(models.Model):
     def is_low_stock(self):
         return self.stock <= self.minimum_stock
     
+from django.core.validators import MinValueValidator    
+
 #입출고
 class InventoryTransaction(models.Model):
 
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE)
+    class TransactionType(models.TextChoices):
+        IN = "IN", "입고"
+        OUT = "OUT", "출고"
 
-    TYPE = (
-        ("IN", "입고"),
-        ("OUT", "출고"),
+    medicine = models.ForeignKey( #Medicine 테이블 외래키
+        Medicine, 
+        on_delete=models.PROTECT, # 입출고 기록이 있는 약품을 실수로 삭제하지 못하게 막는다.
+        related_name="transactions", # 의약품에서 입출고 기록을 ( medicine.transactions.all() )처럼 조회할 수 있다.
+        verbose_name="의약품",
     )
 
     transaction_type = models.CharField(
         max_length=3,
-        choices=TYPE
+        choices=TransactionType.choices,
+        verbose_name="입출고 구분",
     )
 
-    quantity = models.IntegerField()
+    quantity = models.PositiveIntegerField( #최소값 검사 -> 0이나 음수는 불가
+        validators=[MinValueValidator(1)],
+        verbose_name="수량",
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    note = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="비고",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="처리일시",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "입출고 내역"
+        verbose_name_plural = "입출고 내역"
+
+    def __str__(self):
+        return (
+            f"{self.medicine.name} "
+            f"{self.get_transaction_type_display()} "
+            f"{self.quantity}개"
+        )
 
 #발주
 class PurchaseOrder(models.Model):
