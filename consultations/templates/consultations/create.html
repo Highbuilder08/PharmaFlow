@@ -5,6 +5,6 @@
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">작성완료</button>
-    <a href="{% url 'prescriptions:consultation_list' %}" class="btn">취소</a>
+    <a href="{% url 'consultations:list' %}" class="btn">취소</a>
 </form>
 {% endblock %}

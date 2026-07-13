@@ -1,11 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages  # 👈 메시지 띄우기용
 from functools import wraps          # 👈 데코레이터 만들기용
-from .models import Prescription, PrescriptionAttachment, Consultation, ConsultationComment, PrescriptionItem, AuditLog
-from .forms import PrescriptionForm, ConsultationForm # 폼 가져오기
+from .models import Prescription, PrescriptionAttachment, PrescriptionItem, AuditLog
 from inventory.models import Medicine, InventoryTransaction # 약국 재고 가져오기
 from django.forms import inlineformset_factory 
-from .forms import PrescriptionForm, ConsultationForm, PrescriptionItemForm 
+from .forms import PrescriptionForm, PrescriptionItemForm 
 
 def login_message_required(view_func):
     @wraps(view_func)
@@ -14,11 +13,11 @@ def login_message_required(view_func):
         if not request.user.is_authenticated:
             # 경고 메시지를 담아두고
             messages.warning(request, '로그인 전엔 글 목록만 확인 가능합니다.')
-            # 👇 사용자가 접속하려던 주소에 'consultation'이 포함되어 있다면?
+            
             if 'consultation' in request.path:
-                return redirect('prescriptions:consultation_list') # 상담 게시판 목록으로!
+                return redirect('consultations:list') 
             else:
-                return redirect('prescriptions:list') # 아니면 처방전 목록으로!
+                return redirect('prescriptions:list')
                 
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -164,74 +163,6 @@ def attachment_delete(request, pk):
         if request.method == 'POST':
             attachment.delete()
     return redirect('prescriptions:detail', pk=prescription_pk)
-
-
-# ==========================================
-# 2. 복약 상담 게시판 (Consultation) CRUD
-# ==========================================
-def consultation_list(request):
-    consultations = Consultation.objects.all().order_by('-created_at')
-    return render(request, 'consultation/list.html', {'consultations': consultations})
-
-@login_message_required
-def consultation_detail(request, pk):
-    consultation = get_object_or_404(Consultation, pk=pk)
-    if request.method == 'GET':
-        consultation.views += 1
-        consultation.save()
-
-    if request.method == 'POST':
-        comment_content = request.POST.get('content')
-        if comment_content:
-            ConsultationComment.objects.create(consultation=consultation, writer=request.user, content=comment_content)
-            return redirect('prescriptions:consultation_detail', pk=pk)
-    return render(request, 'consultation/detail.html', {'consultation': consultation})
-
-@login_message_required
-def consultation_create(request):
-    if request.method == 'POST':
-        form = ConsultationForm(request.POST)
-        if form.is_valid():
-            consultation = form.save(commit=False)
-            consultation.writer = request.user
-            consultation.save()
-            return redirect('prescriptions:consultation_list')
-    else:
-        form = ConsultationForm()
-    return render(request, 'consultation/create.html', {'form': form})
-
-@login_message_required
-def consultation_update(request, pk):
-    consultation = get_object_or_404(Consultation, pk=pk)
-    if request.user != consultation.writer and not request.user.is_superuser:
-        return redirect('prescriptions:consultation_detail', pk=pk)
-
-    if request.method == 'POST':
-        form = ConsultationForm(request.POST, instance=consultation)
-        if form.is_valid():
-            form.save()
-            return redirect('prescriptions:consultation_detail', pk=pk)
-    else:
-        form = ConsultationForm(instance=consultation)
-    return render(request, 'consultation/update.html', {'form': form, 'consultation': consultation})
-
-@login_message_required
-def consultation_delete(request, pk):
-    consultation = get_object_or_404(Consultation, pk=pk)
-    if request.user == consultation.writer or request.user.is_superuser:
-        if request.method == 'POST':
-            consultation.delete()
-            return redirect('prescriptions:consultation_list')
-    return redirect('prescriptions:consultation_detail', pk=pk)
-
-@login_message_required
-def comment_delete(request, pk):
-    comment = get_object_or_404(ConsultationComment, pk=pk)
-    consultation_pk = comment.consultation.pk
-    if request.user == comment.writer or request.user.is_superuser:
-        if request.method == 'POST':
-            comment.delete()
-    return redirect('prescriptions:consultation_detail', pk=consultation_pk)
 
 @login_message_required
 def prescription_item_delete(request, pk):
