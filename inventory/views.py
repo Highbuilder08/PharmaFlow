@@ -1,5 +1,6 @@
 from django.shortcuts import render
 
+from django.http import HttpResponse
 from .models import Medicine
 
 
@@ -10,5 +11,7 @@ def medicine_list(request):
     return render(
         request,
         "inventory/medicine_list.html",
-        { "medicines": medicines }
+        {
+            "medicines": medicines,
+        },
     )
