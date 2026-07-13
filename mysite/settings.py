@@ -141,4 +141,5 @@ STATICFILES_DIRS = [ # 정적 파일 경로
 # 로그인 경로
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
 LOGIN_URL = "/accounts/login/"
