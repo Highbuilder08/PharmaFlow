@@ -34,6 +34,12 @@
 
                             {{ field }}
 
+                            {% if field.help_text %}
+                                <div class="form-text">
+                                    {{ field.help_text }}
+                                </div>
+                            {% endif %}
+
                             {% for error in field.errors %}
                                 <div class="text-danger small mt-1">
                                     {{ error }}
@@ -54,7 +60,7 @@
                             type="submit"
                             class="btn btn-success"
                         >
-                            등록
+                            {{ submit_text|default:"저장" }}
                         </button>
                     </div>
                 </form>

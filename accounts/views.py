@@ -1,10 +1,11 @@
 from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 
+from .decorators import role_required
 from .forms import PharmacyForm, SignUpForm
-from .models import Pharmacy
+from .models import Pharmacy, User
 
 
 def signup(request):
@@ -15,16 +16,21 @@ def signup(request):
         form = SignUpForm(request.POST)
 
         if form.is_valid():
-            user = form.save()
-
-            login(request, user)
-
+            user = form.save(commit=False)
+            
+            user.is_approved = False
+            
+            user.save()
+        
             messages.success(
-                request,
-                "회원가입이 완료되었습니다.",
+                request,(
+                "회원가입이 완료되었습니다.\n"
+                 "관리자 승인 후 로그인할 수 있습니다."
+                ),
             )
 
-            return redirect("core:index")
+            return redirect("login")
+
     else:
         form = SignUpForm()
 
@@ -38,6 +44,10 @@ def signup(request):
 
 
 @login_required
+@role_required(
+    User.Role.ADMIN,
+    User.Role.PHARMACIST,
+)
 def pharmacy_list(request):
     pharmacies = Pharmacy.objects.all().order_by("pharmacy_name")
 
@@ -51,6 +61,7 @@ def pharmacy_list(request):
 
 
 @login_required
+@role_required(User.Role.ADMIN)
 def pharmacy_create(request):
     if request.method == "POST":
         form = PharmacyForm(request.POST)
@@ -73,13 +84,18 @@ def pharmacy_create(request):
         {
             "form": form,
             "title": "약국 등록",
+            "submit_text": "등록",
         },
     )
 
 
 @login_required
+@role_required(User.Role.ADMIN)
 def pharmacy_update(request, pk):
-    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+    pharmacy = get_object_or_404(
+        Pharmacy,
+        pk=pk,
+    )
 
     if request.method == "POST":
         form = PharmacyForm(
@@ -107,21 +123,32 @@ def pharmacy_update(request, pk):
         {
             "form": form,
             "title": "약국 수정",
+            "submit_text": "수정",
         },
     )
 
 
 @login_required
+@role_required(User.Role.ADMIN)
 def pharmacy_delete(request, pk):
-    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+    pharmacy = get_object_or_404(
+        Pharmacy,
+        pk=pk,
+    )
 
     if request.method == "POST":
-        pharmacy.delete()
+        try:
+            pharmacy.delete()
 
-        messages.success(
-            request,
-            "약국이 삭제되었습니다.",
-        )
+            messages.success(
+                request,
+                "약국이 삭제되었습니다.",
+            )
+        except ProtectedError:
+            messages.error(
+                request,
+                "소속 사용자가 존재하는 약국은 삭제할 수 없습니다.",
+            )
 
         return redirect("accounts:pharmacy_list")
 
@@ -132,4 +159,3 @@ def pharmacy_delete(request, pk):
             "pharmacy": pharmacy,
         },
     )
-

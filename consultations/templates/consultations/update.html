@@ -1,9 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>상담 글 수정</h2>
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
+
+    <p>
+        <label>첨부파일:</label> 
+        <input type="file" name="attachments" multiple>
+    </p>
+    
     <button type="submit">수정완료</button>
     <a href="{% url 'consultations:list' %}" class="btn">취소</a>
 </form>

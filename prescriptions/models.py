@@ -2,6 +2,7 @@ import os
 from django.db import models
 from django.conf import settings
 from inventory.models import Medicine, InventoryTransaction 
+from django.utils import timezone
 
 # 1. 처방전 모델
 class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Model)
@@ -11,6 +12,23 @@ class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Mod
     phone = models.CharField(max_length=20, verbose_name="연락처")
     symptoms = models.TextField(verbose_name="증상")
     prescription_date = models.DateField(verbose_name="처방일")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="작성일", null=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+    @property
+    def smart_date(self):
+        if not self.created_at:
+            return ""
+        
+        # DB의 시간(UTC)을 한국 시간으로 변환해서 정확하게 비교합니다.
+        local_created = timezone.localtime(self.created_at)
+        local_now = timezone.localtime(timezone.now())
+        
+        if local_created.date() == local_now.date():
+            return local_created.strftime("%H:%M") # 오늘이면 시간만 (예: 14:30)
+        elif local_created.year == local_now.year:
+            return local_created.strftime("%m/%d") # 올해면 월/일 (예: 07/13)
+        else:
+            return local_created.strftime("%Y/%m/%d") # 해가 지났으면 년/월/일 (예: 2025/12/25)
 
 # 2. 처방전 약품 목록 (1:N 관계)
 class PrescriptionItem(models.Model):

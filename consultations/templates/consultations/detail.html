@@ -1,10 +1,37 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>{{ consultation.title }}</h2>
-<p>작성자: {{ consultation.writer.username }} | 조회수: {{ consultation.views }}</p>
+<p style="color: #666; font-size: 14px;">
+    작성자: {{ consultation.writer.username }} | 조회수: {{ consultation.views }} | 
+    작성일: {{ consultation.created_at|date:"Y-m-d H:i" }}
+    {% if consultation.created_at|date:"YmdHi" != consultation.updated_at|date:"YmdHi" %}
+        <span style="color: #0056b3;">(수정됨: {{ consultation.updated_at|date:"Y-m-d H:i" }})</span>
+    {% endif %}
+</p>
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
 <hr>
+
+<h3>📁 첨부파일</h3>
+<ul>
+    {% for attachment in consultation.attachments.all %}
+        <li>
+            {{ attachment.filename }} 
+            <a href="{{ attachment.file.url }}" target="_blank">[다운로드]</a>
+            
+            {% if request.user == consultation.writer or request.user.is_superuser %}
+            <form action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');" class="btn" style="background-color: #dc3545; padding: 2px 5px; font-size: 11px;">삭제</button>
+            </form>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li style="color: #888;">첨부파일이 없습니다.</li>
+    {% endfor %}
+</ul>
+<hr>
+
 <a href="{% url 'consultations:list' %}" class="btn">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
     <!-- 수정: button 태그를 없애고 a 태그에 btn 클래스 부여 -->
@@ -17,23 +44,188 @@
     </form>
 {% endif %}
 <hr>
-<h3>답변</h3>
+<h3>💬 답변</h3>
 <ul>
     {% for comment in consultation.comments.all %}
-        <li>
-            <strong>{{ comment.writer.username }}</strong>: {{ comment.content }}
-            {% if request.user == comment.writer or request.user.is_superuser %}
-            <form action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
+        <!-- 💡 data-raw 속성에 원본 텍스트를 숨겨둡니다 -->
+        <li class="comment-item" data-author="{{ comment.writer.username }}" data-raw="{{ comment.content }}" style="margin-bottom: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+            
+            <strong>{{ comment.writer.username }}</strong>: 
+            
+            <!-- 1. 평소에 보이는 댓글 내용 -->
+            <span class="comment-text" id="comment-text-{{ comment.id }}">{{ comment.content }}</span> 
+            
+            <!-- 🚀 2. 업그레이드된 인라인 수정 폼 -->
+            <form method="POST" action="{% url 'consultations:comment_update' comment.id %}" id="edit-form-{{ comment.id }}" class="edit-form" style="display: none; margin-top: 10px; align-items: center;">
                 {% csrf_token %}
-                <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?');" style="font-size:12px; color:red;">삭제</button>
+                
+                <!-- @태그가 예쁘게 표시될 배지 (클릭하면 삭제됨) -->
+                <span id="reply-badge-{{ comment.id }}" style="display: none; background-color: #e2e3e5; color: #0056b3; padding: 4px 8px; border-radius: 15px; font-size: 12px; margin-right: 5px; cursor: pointer; font-weight: bold;" title="클릭하면 답글 해제">
+                    <span class="badge-text"></span> <span style="color: #dc3545; margin-left: 3px;">✕</span>
+                </span>
+                
+                <!-- 서버로 몰래 보낼 태그 저장소 -->
+                <input type="hidden" id="reply-target-{{ comment.id }}" value="">
+                
+                <!-- 실제 내용 입력창 -->
+                <input type="text" name="content" id="edit-input-{{ comment.id }}" required style="width: 50%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;">
+                
+                <button type="submit" class="btn" style="padding: 3px 10px; font-size: 11px;">저장</button>
+                <button type="button" class="btn cancel-edit-btn" data-id="{{ comment.id }}" style="padding: 3px 10px; font-size: 11px; background-color: #6c757d;">취소</button>
+            </form>
+
+            <!-- 시간 표시 -->
+            <small style="color: #999; margin-left: 10px;">
+                ({{ comment.created_at|date:"Y-m-d H:i" }}
+                {% if comment.created_at|date:"YmdHi" != comment.updated_at|date:"YmdHi" %}
+                    / 수정됨: {{ comment.updated_at|date:"Y-m-d H:i" }}
+                {% endif %})
+            </small>
+
+            <!-- 버튼들 -->
+            <button type="button" id="reply-btn-{{ comment.id }}" class="btn reply-btn" data-username="{{ comment.writer.username }}" style="padding: 2px 8px; font-size: 11px; margin-left: 10px; background-color: #6c757d;">답글</button>
+
+            {% if request.user == comment.writer %}
+                <button type="button" id="edit-btn-{{ comment.id }}" class="btn edit-btn" data-id="{{ comment.id }}" style="padding: 2px 8px; font-size: 11px; background-color: #ffc107; color: #000;">수정</button>
+            {% endif %}
+
+            {% if request.user == comment.writer or request.user.is_superuser %}
+            <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn" style="padding: 2px 8px; font-size: 11px; background-color: #dc3545;">삭제</button>
             </form>
             {% endif %}
         </li>
+    {% empty %}
+        <li>아직 답변이 없습니다.</li>
     {% endfor %}
 </ul>
+
+<!-- 👇 댓글 입력창에 id="comment-input" 추가 -->
 <form method="POST">
     {% csrf_token %}
-    <input type="text" name="content" required>
-    <button type="submit">답변 등록</button>
+    <input type="text" name="content" id="comment-input" placeholder="답변을 입력하세요" required style="width: 70%; padding: 10px;">
+    <button type="submit" class="btn">답변 달기</button>
 </form>
+
+<script>
+    // 1. 답글 버튼 클릭 시
+    document.querySelectorAll('.reply-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const username = this.getAttribute('data-username');
+            const inputField = document.getElementById('comment-input');
+            inputField.value = '@' + username + ' ';
+            inputField.focus();
+        });
+    });
+
+    // 2. 대댓글 계단식 들여쓰기
+    let previousComments = [];
+    document.querySelectorAll('.comment-item').forEach(item => {
+        const author = item.getAttribute('data-author');
+        const textSpan = item.querySelector('.comment-text');
+        const rawContent = item.getAttribute('data-raw'); // 원본 텍스트
+        let depth = 0;
+
+        const replyMatch = rawContent.match(/^@(\S+)\s+(.*)/);
+        
+        if (replyMatch) {
+            const targetUser = replyMatch[1];
+            const actualMessage = replyMatch[2];
+
+            let parentDepth = 0;
+            for (let i = previousComments.length - 1; i >= 0; i--) {
+                if (previousComments[i].author === targetUser) {
+                    parentDepth = previousComments[i].depth;
+                    break;
+                }
+            }
+            depth = parentDepth + 1;
+
+            const margin = Math.min(depth * 30, 150);
+            item.style.marginLeft = margin + 'px';
+            item.style.backgroundColor = '#e9ecef';
+            
+            textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold; margin-right: 5px;">↳</span><span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
+        }
+        previousComments.push({ author: author, depth: depth });
+    });
+
+    // 🚀 3. [수정] 버튼 클릭 시 (태그 분리 마법)
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.getAttribute('data-id');
+            const listItem = this.closest('.comment-item');
+            const rawContent = listItem.getAttribute('data-raw'); // 원본 텍스트 가져오기
+            
+            const editInput = document.getElementById('edit-input-' + commentId);
+            const replyBadge = document.getElementById('reply-badge-' + commentId);
+            const replyTarget = document.getElementById('reply-target-' + commentId);
+
+            // 정규식으로 @태그와 실제 내용을 분리합니다
+            const match = rawContent.match(/^@(\S+)\s+(.*)/);
+            
+            if (match) {
+                // 답글인 경우: 배지에 태그를 넣고, 입력창에는 내용만 넣음
+                replyBadge.style.display = 'inline-block';
+                replyBadge.querySelector('.badge-text').textContent = '@' + match[1];
+                replyTarget.value = '@' + match[1];
+                editInput.value = match[2];
+            } else {
+                // 일반 댓글인 경우
+                replyBadge.style.display = 'none';
+                replyTarget.value = '';
+                editInput.value = rawContent;
+            }
+
+            // UI 전환 (기존 요소 숨기고 폼 보여주기)
+            document.getElementById('comment-text-' + commentId).style.display = 'none';
+            this.style.display = 'none'; 
+            const replyBtn = document.getElementById('reply-btn-' + commentId);
+            if (replyBtn) replyBtn.style.display = 'none';
+            const deleteForm = document.getElementById('delete-form-' + commentId);
+            if (deleteForm) deleteForm.style.display = 'none';
+            
+            // 폼을 flex로 보여줘서 버튼들이 한 줄에 예쁘게 나오게 함
+            document.getElementById('edit-form-' + commentId).style.display = 'flex';
+        });
+    });
+
+    // 🚀 4. [배지 ✕] 클릭 시 (답글 해제)
+    document.querySelectorAll('[id^="reply-badge-"]').forEach(badge => {
+        badge.addEventListener('click', function() {
+            this.style.display = 'none'; // 배지 숨기기
+            const commentId = this.id.replace('reply-badge-', '');
+            document.getElementById('reply-target-' + commentId).value = ''; // 태그 데이터 삭제
+        });
+    });
+
+    // 🚀 5. [저장] 버튼 누를 때 (태그와 내용 다시 합치기)
+    document.querySelectorAll('.edit-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const commentId = this.id.replace('edit-form-', '');
+            const target = document.getElementById('reply-target-' + commentId).value;
+            const input = document.getElementById('edit-input-' + commentId);
+            
+            // 배지가 살아있다면(태그가 있다면) 내용 앞에 다시 붙여서 서버로 전송!
+            if (target) {
+                input.value = target + ' ' + input.value;
+            }
+        });
+    });
+
+    // 6. [취소] 버튼 클릭 시 복구
+    document.querySelectorAll('.cancel-edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.getAttribute('data-id');
+            document.getElementById('edit-form-' + commentId).style.display = 'none';
+            document.getElementById('comment-text-' + commentId).style.display = 'inline';
+            document.getElementById('edit-btn-' + commentId).style.display = 'inline-block';
+            const replyBtn = document.getElementById('reply-btn-' + commentId);
+            if (replyBtn) replyBtn.style.display = 'inline-block';
+            const deleteForm = document.getElementById('delete-form-' + commentId);
+            if (deleteForm) deleteForm.style.display = 'inline';
+        });
+    });
+</script>
 {% endblock %}

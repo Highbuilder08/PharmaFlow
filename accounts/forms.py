@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .models import Pharmacy, User
 
@@ -119,3 +119,28 @@ class PharmacyForm(forms.ModelForm):
             )
 
         self.fields["status"].widget.attrs["class"] = "form-select"
+
+
+class ApprovedAuthenticationForm(AuthenticationForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs.update(
+                {
+                    "class": "form-control",
+                }
+            )
+            
+        self.fields["username"].widget.attrs["placeholder"] = "아이디"
+        self.fields["password"].widget.attrs["placeholder"] = "비밀번호"
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+
+        if not user.is_superuser and not user.is_approved:
+            raise forms.ValidationError(
+                "관리자 승인 대기 중인 계정입니다.",
+                code="not_approved",
+            )

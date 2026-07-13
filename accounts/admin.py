@@ -144,3 +144,28 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
+    
+    actions = (
+    "approve_users",
+    "cancel_approval",
+    )
+    
+    @admin.action(description="선택한 사용자를 승인")
+    def approve_users(self, request, queryset):
+        updated = queryset.update(is_approved=True)
+        
+        self.message_user(
+            request,
+            f"{updated}명의 사용자를 승인했습니다.",
+            )
+    
+    
+    @admin.action(description="선택한 사용자의 승인을 취소")
+    def cancel_approval(self, request, queryset):
+        updated = queryset.update(is_approved=False)
+        
+        self.message_user(
+            request,
+            f"{updated}명의 사용자 승인을 취소했습니다.",
+            )
+

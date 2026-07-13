@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>{{ prescription.patient_name }} 환자 처방전 상세</h2>
-<p>작성자: {{ prescription.writer.username }} | 처방일: {{ prescription.prescription_date }}</p>
-<p>증상: {{ prescription.symptoms }}</p>
+<p style="color: #666; font-size: 14px;">
+    <strong>작성자:</strong> {{ prescription.writer.username }} | 
+    <strong>작성일:</strong> {{ prescription.created_at|date:"Y-m-d H:i" }} 
+    {% if prescription.created_at|date:"YmdHi" != prescription.updated_at|date:"YmdHi" %}
+        <span style="color: #0056b3;">(수정됨: {{ prescription.updated_at|date:"Y-m-d H:i" }})</span>
+    {% endif %}
+</p>
+<p><strong>처방일:</strong> {{ prescription.prescription_date }}</p>
+<p><strong>증상:</strong> {{ prescription.symptoms }}</p>
 
 <h3>💊 처방 약품 목록</h3>
 
