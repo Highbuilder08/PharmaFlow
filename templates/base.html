@@ -1,32 +1,33 @@
 {% load static %}
 
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
 
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+    <meta
+    name="referrer"
+    content="strict-origin-when-cross-origin"
+    >
 
-<title>
-    {% block title %}PharmaFlow{% endblock %}
-</title>
+    <title>
+        {% block title %}PharmaFlow{% endblock %}
+    </title>
 
-<link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-    rel="stylesheet"
->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
 
-<link
-    rel="stylesheet"
-    href="{% static 'css/style.css' %}"
->
-
-
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
 </head>
 
 <body>
@@ -34,168 +35,166 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-success">
     <div class="container">
 
-
-    <a
-        class="navbar-brand fw-bold"
-        href="{% url 'core:index' %}"
-    >
-        PharmaFlow
-    </a>
-
-    {% if user.is_authenticated %}
-
-        <button
-            class="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="메뉴 열기"
+        <a
+            class="navbar-brand fw-bold"
+            href="{% url 'core:index' %}"
         >
-            <span class="navbar-toggler-icon"></span>
-        </button>
+            PharmaFlow
+        </a>
 
-        <div
-            class="collapse navbar-collapse"
-            id="navbarNav"
-        >
+        {% if user.is_authenticated %}
 
-            <!-- 좌측 메뉴 -->
-            <ul class="navbar-nav ms-lg-4">
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav"
+                aria-controls="navbarNav"
+                aria-expanded="false"
+                aria-label="메뉴 열기"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-                {% if user.is_superuser or user.role == "OWNER" %}
+            <div
+                class="collapse navbar-collapse"
+                id="navbarNav"
+            >
+
+                <ul class="navbar-nav ms-lg-4">
+
+                    {% if user.is_superuser %}
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'accounts:pharmacy_list' %}"
+                            >
+                                전체 약국 관리
+                            </a>
+                        </li>
+
+                    {% elif user.pharmacy_id %}
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'accounts:pharmacy_list' %}"
+                            >
+                                소속 약국
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if user.role == "OWNER" and user.is_approved %}
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'accounts:user_list' %}"
+                            >
+                                직원 관리
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {# 추후 기능 구현 후 주석 해제 #}
+
+                    {#
+                    {% if user.is_superuser %}
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'accounts:ownership_request_list' %}"
+                            >
+                                점주 승인
+                            </a>
+                        </li>
+                    {% endif %}
+                    #}
+
+                    {#
                     <li class="nav-item">
                         <a
                             class="nav-link"
-                            href="{% url 'accounts:pharmacy_list' %}"
+                            href="{% url 'inventory:medicine_list' %}"
                         >
-                            약국 관리
+                            재고 관리
                         </a>
                     </li>
-                {% endif %}
+                    #}
 
-                {% if user.role == "OWNER" %}
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'accounts:user_list' %}"
+                </ul>
+
+                <div class="ms-auto d-flex align-items-center gap-2 mt-3 mt-lg-0">
+
+                    <span class="text-white">
+                        {{ user.name|default:user.username }}님
+                    </span>
+
+                    <form
+                        method="post"
+                        action="{% url 'logout' %}"
+                        class="d-inline"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline-light btn-sm"
                         >
-                            직원 승인
-                        </a>
-                    </li>
-                {% endif %}
+                            로그아웃
+                        </button>
+                    </form>
 
-                {% if user.is_superuser %}
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'accounts:ownership_request_list' %}"
-                        >
-                            점주 승인
-                        </a>
-                    </li>
-                {% endif %}
-
-                {#
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="{% url 'inventory:medicine_list' %}"
-                    >
-                        재고 관리
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="#"
-                    >
-                        처방 관리
-                    </a>
-                </li>
-                #}
-
-            </ul>
-
-            <!-- 우측 메뉴 -->
-            <div class="ms-auto d-flex align-items-center gap-2 mt-3 mt-lg-0">
-
-                <span class="text-white">
-                    {{ user.name|default:user.username }}님
-                </span>
-
-                <form
-                    method="post"
-                    action="{% url 'logout' %}"
-                    class="d-inline"
-                >
-                    {% csrf_token %}
-
-                    <button
-                        type="submit"
-                        class="btn btn-outline-light btn-sm"
-                    >
-                        로그아웃
-                    </button>
-                </form>
+                </div>
 
             </div>
 
-        </div>
+        {% else %}
 
-    {% else %}
+            <div class="ms-auto">
 
-        <div class="ms-auto">
+                <a
+                    href="{% url 'login' %}"
+                    class="btn btn-light btn-sm me-2"
+                >
+                    로그인
+                </a>
 
-            <a
-                href="{% url 'login' %}"
-                class="btn btn-light btn-sm me-2"
-            >
-                로그인
-            </a>
+                <a
+                    href="{% url 'accounts:signup' %}"
+                    class="btn btn-outline-light btn-sm"
+                >
+                    회원가입
+                </a>
 
-            <a
-                href="{% url 'accounts:signup' %}"
-                class="btn btn-outline-light btn-sm"
-            >
-                회원가입
-            </a>
+            </div>
 
-        </div>
+        {% endif %}
 
-    {% endif %}
-
-</div>
-
-
+    </div>
 </nav>
 
 <main class="container mt-4">
 
+    {% if messages %}
+        {% for message in messages %}
+            <div
+                class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
 
-{% if messages %}
-    {% for message in messages %}
-        <div
-            class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
-            role="alert"
-        >
-            {{ message }}
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="알림 닫기"
+                ></button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="알림 닫기"
-            ></button>
-        </div>
-    {% endfor %}
-{% endif %}
-
-{% block content %}
-{% endblock %}
-
+    {% block content %}
+    {% endblock %}
 
 </main>
 

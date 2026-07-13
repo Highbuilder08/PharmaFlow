@@ -6,9 +6,13 @@
 
 {% block content %}
 
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-7">
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
 
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
         <div class="card shadow-sm">
             <div class="card-body p-4">
 
@@ -19,105 +23,187 @@
                 <form method="post" id="signup-form">
                     {% csrf_token %}
 
-                    {% for hidden in form.hidden_fields %}
-                        {{ hidden }}
-
-                        {% for error in hidden.errors %}
-                            <div class="text-danger small">
-                                {{ error }}
-                            </div>
-                        {% endfor %}
-                    {% endfor %}
-
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                <div>{{ error }}</div>
-                            {% endfor %}
+                            {{ form.non_field_errors }}
                         </div>
                     {% endif %}
 
-                    {% for field in form.visible_fields %}
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.username.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.username.label }}
+                        </label>
 
-                        <div class="mb-3">
-                            <label
-                                for="{{ field.id_for_label }}"
-                                class="form-label"
-                            >
-                                {{ field.label }}
-                            </label>
+                        {{ form.username }}
 
-                            {{ field }}
-
-                            {% if field.help_text %}
-                                <div class="form-text">
-                                    {{ field.help_text|safe }}
-                                </div>
-                            {% endif %}
-
-                            {% for error in field.errors %}
-                                <div class="text-danger small mt-1">
-                                    {{ error }}
-                                </div>
-                            {% endfor %}
-                        </div>
-
-                        {% if field.name == "requested_role" %}
-
-                            <div class="mb-3">
-                                <label
-                                    for="pharmacy-search-input"
-                                    class="form-label"
-                                >
-                                    소속 약국 검색
-                                </label>
-
-                                <div class="input-group">
-                                    <input
-                                        type="text"
-                                        id="pharmacy-search-input"
-                                        class="form-control"
-                                        placeholder="약국명을 두 글자 이상 입력하세요"
-                                    >
-
-                                    <button
-                                        type="button"
-                                        id="pharmacy-search-button"
-                                        class="btn btn-outline-success"
-                                    >
-                                        검색
-                                    </button>
-                                </div>
-
-                                <div
-                                    id="pharmacy-search-message"
-                                    class="form-text"
-                                >
-                                    검색 결과에서 소속 약국을 선택하세요.
-                                </div>
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
                             </div>
+                        {% endfor %}
+                    </div>
 
-                            <div
-                                id="pharmacy-search-results"
-                                class="list-group mb-3"
-                            ></div>
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.password1.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.password1.label }}
+                        </label>
 
-                            <div
-                                id="selected-pharmacy"
-                                class="alert alert-success d-none"
-                            >
-                                <strong>선택한 약국</strong>
+                        {{ form.password1 }}
 
-                                <div id="selected-pharmacy-name"></div>
-                                <div
-                                    id="selected-pharmacy-address"
-                                    class="small"
-                                ></div>
+                        {% for error in form.password1.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
                             </div>
+                        {% endfor %}
+                    </div>
 
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.password2.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.password2.label }}
+                        </label>
+
+                        {{ form.password2 }}
+
+                        {% for error in form.password2.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.name.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.name.label }}
+                        </label>
+
+                        {{ form.name }}
+
+                        {% for error in form.name.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.email.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.email.label }}
+                        </label>
+
+                        {{ form.email }}
+
+                        {% for error in form.email.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.requested_role.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.requested_role.label }}
+                        </label>
+
+                        {{ form.requested_role }}
+                    </div>
+
+                    <div
+                        class="mb-3 d-none"
+                        id="business-number-area"
+                    >
+                        <label
+                            for="{{ form.business_number.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.business_number.label }}
+                        </label>
+
+                        {{ form.business_number }}
+
+                        {% if form.business_number.help_text %}
+                            <div class="form-text">
+                                {{ form.business_number.help_text }}
+                            </div>
                         {% endif %}
 
-                    {% endfor %}
+                        {% for error in form.business_number.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="pharmacy-query"
+                            class="form-label"
+                        >
+                            소속 약국 검색
+                        </label>
+
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="pharmacy-query"
+                                class="form-control"
+                                placeholder="약국명을 입력하세요"
+                            >
+
+                            <button
+                                type="button"
+                                id="pharmacy-search-button"
+                                class="btn btn-outline-success"
+                            >
+                                검색
+                            </button>
+                        </div>
+
+                        <div
+                            id="pharmacy-search-error"
+                            class="text-danger small mt-2"
+                        ></div>
+
+                        <div
+                            id="pharmacy-results"
+                            class="list-group mt-2"
+                        ></div>
+                    </div>
+
+                    <div
+                        id="selected-pharmacy"
+                        class="alert alert-success d-none"
+                    ></div>
+
+                    <div
+                        id="pharmacy-map"
+                        class="mb-4"
+                        style="height: 320px;"
+                    ></div>
+
+                    {{ form.pharmacy_external_id }}
+                    {{ form.pharmacy_name }}
+                    {{ form.pharmacy_address }}
+                    {{ form.pharmacy_phone }}
+                    {{ form.pharmacy_latitude }}
+                    {{ form.pharmacy_longitude }}
 
                     <button
                         type="submit"
@@ -127,93 +213,206 @@
                     </button>
                 </form>
 
-                <div class="text-center mt-3">
-                    이미 계정이 있으신가요?
-
-                    <a href="{% url 'login' %}">
-                        로그인
-                    </a>
-                </div>
-
             </div>
         </div>
-
     </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("pharmacy-search-input");
-    const searchButton = document.getElementById("pharmacy-search-button");
-    const searchResults = document.getElementById("pharmacy-search-results");
-    const searchMessage = document.getElementById("pharmacy-search-message");
-
-    const selectedPharmacy = document.getElementById("selected-pharmacy");
-    const selectedName = document.getElementById("selected-pharmacy-name");
-    const selectedAddress = document.getElementById(
-        "selected-pharmacy-address"
+    const roleSelect = document.getElementById("id_requested_role");
+    const businessNumberArea = document.getElementById(
+        "business-number-area"
     );
 
-    const placeIdInput = document.getElementById(
-        "id_pharmacy_place_id"
+    const searchInput = document.getElementById("pharmacy-query");
+    const searchButton = document.getElementById(
+        "pharmacy-search-button"
     );
-    const pharmacyNameInput = document.getElementById(
-        "id_pharmacy_name"
+
+    const resultsArea = document.getElementById("pharmacy-results");
+    const errorArea = document.getElementById(
+        "pharmacy-search-error"
     );
-    const pharmacyAddressInput = document.getElementById(
-        "id_pharmacy_address"
+
+    const selectedArea = document.getElementById(
+        "selected-pharmacy"
     );
-    const pharmacyPhoneInput = document.getElementById(
-        "id_pharmacy_phone"
+
+    const map = L.map("pharmacy-map").setView(
+        [37.5665, 126.9780],
+        12
     );
-    const latitudeInput = document.getElementById(
-        "id_pharmacy_latitude"
+
+    const ReferrerTileLayer = L.TileLayer.extend({
+        createTile: function (coords, done) {
+            const tile = document.createElement("img");
+
+            L.DomEvent.on(
+                tile,
+                "load",
+                L.Util.bind(this._tileOnLoad, this, done, tile)
+            );
+
+            L.DomEvent.on(
+                tile,
+                "error",
+                L.Util.bind(this._tileOnError, this, done, tile)
+            );
+
+            if (this.options.crossOrigin) {
+                tile.crossOrigin =
+                    this.options.crossOrigin === true
+                        ? ""
+                        : this.options.crossOrigin;
+            }
+
+            tile.alt = "";
+            tile.setAttribute("role", "presentation");
+            tile.referrerPolicy = "strict-origin-when-cross-origin";
+            tile.src = this.getTileUrl(coords);
+
+            return tile;
+        }
+    });
+
+    const tileLayer = new ReferrerTileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            subdomains: "abc",
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">'
+                + "OpenStreetMap</a> contributors"
+        }
     );
-    const longitudeInput = document.getElementById(
-        "id_pharmacy_longitude"
-    );
+
+    tileLayer.addTo(map);
+
+    let marker = null;
+
+    function updateBusinessNumberVisibility() {
+        if (roleSelect.value === "OWNER") {
+            businessNumberArea.classList.remove("d-none");
+        } else {
+            businessNumberArea.classList.add("d-none");
+        }
+    }
+
+    function selectPharmacy(pharmacy) {
+        document.getElementById(
+            "id_pharmacy_external_id"
+        ).value = pharmacy.external_id;
+
+        document.getElementById(
+            "id_pharmacy_name"
+        ).value = pharmacy.name;
+
+        document.getElementById(
+            "id_pharmacy_address"
+        ).value = pharmacy.address;
+
+        document.getElementById(
+            "id_pharmacy_phone"
+        ).value = pharmacy.phone || "";
+
+        document.getElementById(
+            "id_pharmacy_latitude"
+        ).value = pharmacy.latitude || "";
+
+        document.getElementById(
+            "id_pharmacy_longitude"
+        ).value = pharmacy.longitude || "";
+
+        selectedArea.replaceChildren();
+
+        const title = document.createElement("strong");
+        title.textContent = "선택한 약국";
+
+        const nameLine = document.createElement("div");
+        nameLine.textContent = pharmacy.name;
+
+        const addressLine = document.createElement("small");
+        addressLine.textContent = pharmacy.address || "주소 정보 없음";
+
+        selectedArea.appendChild(title);
+        selectedArea.appendChild(document.createElement("br"));
+        selectedArea.appendChild(nameLine);
+        selectedArea.appendChild(addressLine);
+
+        selectedArea.classList.remove("d-none");
+        resultsArea.replaceChildren();
+
+        const latitude = Number(pharmacy.latitude);
+        const longitude = Number(pharmacy.longitude);
+
+        if (
+            Number.isFinite(latitude)
+            && Number.isFinite(longitude)
+        ) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            marker = L.marker(
+                [
+                    latitude,
+                    longitude,
+                ]
+            ).addTo(map);
+
+            marker
+                .bindPopup(pharmacy.name)
+                .openPopup();
+
+            map.setView(
+                [
+                    latitude,
+                    longitude,
+                ],
+                16
+            );
+        }
+    }
 
     async function searchPharmacies() {
         const query = searchInput.value.trim();
 
-        searchResults.innerHTML = "";
-        selectedPharmacy.classList.add("d-none");
+        resultsArea.replaceChildren();
+        errorArea.textContent = "";
 
         if (query.length < 2) {
-            searchMessage.textContent =
+            errorArea.textContent =
                 "검색어를 두 글자 이상 입력하세요.";
-            searchMessage.classList.add("text-danger");
+
             return;
         }
 
         searchButton.disabled = true;
         searchButton.textContent = "검색 중...";
-        searchMessage.textContent = "약국을 검색하고 있습니다.";
-        searchMessage.classList.remove("text-danger");
 
         try {
-            const url =
-                "{% url 'accounts:pharmacy_search' %}" +
-                "?q=" +
-                encodeURIComponent(query);
+            const response = await fetch(
+                "{% url 'accounts:pharmacy_search' %}?q="
+                + encodeURIComponent(query)
+            );
 
-            const response = await fetch(url);
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(
-                    data.error || "약국 검색에 실패했습니다."
-                );
-            }
+                errorArea.textContent =
+                    data.error || "검색에 실패했습니다.";
 
-            if (!data.results || data.results.length === 0) {
-                searchMessage.textContent =
-                    "검색 결과가 없습니다.";
                 return;
             }
 
-            searchMessage.textContent =
-                `${data.results.length}개의 약국을 찾았습니다.`;
+            if (data.results.length === 0) {
+                errorArea.textContent =
+                    "검색된 약국이 없습니다.";
+
+                return;
+            }
 
             data.results.forEach(function (pharmacy) {
                 const button = document.createElement("button");
@@ -222,64 +421,68 @@ document.addEventListener("DOMContentLoaded", function () {
                 button.className =
                     "list-group-item list-group-item-action";
 
-                button.innerHTML = `
-                    <div class="fw-bold"></div>
-                    <div class="small text-muted"></div>
-                    <div class="small"></div>
-                `;
+                const name = document.createElement("strong");
+                name.textContent = pharmacy.name;
 
-                button.querySelector(".fw-bold").textContent =
-                    pharmacy.name;
-
-                button.querySelector(".text-muted").textContent =
+                const address = document.createElement("small");
+                address.className = "d-block";
+                address.textContent =
                     pharmacy.address || "주소 정보 없음";
 
-                button.querySelectorAll(".small")[1].textContent =
-                    pharmacy.phone || "";
+                const phone = document.createElement("small");
+                phone.className = "d-block text-muted";
+                phone.textContent =
+                    pharmacy.phone || "전화번호 정보 없음";
 
-                button.addEventListener("click", function () {
-                    placeIdInput.value = pharmacy.place_id;
-                    pharmacyNameInput.value = pharmacy.name;
-                    pharmacyAddressInput.value =
-                        pharmacy.address || "";
-                    pharmacyPhoneInput.value =
-                        pharmacy.phone || "";
-                    latitudeInput.value = pharmacy.latitude;
-                    longitudeInput.value = pharmacy.longitude;
+                button.appendChild(name);
+                button.appendChild(address);
+                button.appendChild(phone);
 
-                    selectedName.textContent = pharmacy.name;
-                    selectedAddress.textContent =
-                        pharmacy.address || "주소 정보 없음";
+                button.addEventListener(
+                    "click",
+                    function () {
+                        selectPharmacy(pharmacy);
+                    }
+                );
 
-                    selectedPharmacy.classList.remove("d-none");
-                    searchResults.innerHTML = "";
-
-                    searchMessage.textContent =
-                        "소속 약국이 선택되었습니다.";
-                    searchMessage.classList.remove("text-danger");
-                });
-
-                searchResults.appendChild(button);
+                resultsArea.appendChild(button);
             });
 
         } catch (error) {
-            searchMessage.textContent = error.message;
-            searchMessage.classList.add("text-danger");
+            errorArea.textContent =
+                "약국 검색 중 오류가 발생했습니다.";
+
         } finally {
             searchButton.disabled = false;
             searchButton.textContent = "검색";
         }
     }
 
-    searchButton.addEventListener("click", searchPharmacies);
+    roleSelect.addEventListener(
+        "change",
+        updateBusinessNumberVisibility
+    );
 
-    searchInput.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            searchPharmacies();
+    searchButton.addEventListener(
+        "click",
+        searchPharmacies
+    );
+
+    searchInput.addEventListener(
+        "keydown",
+        function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchPharmacies();
+            }
         }
-    });
-});
+    );
+
+    updateBusinessNumberVisibility();
+
+    setTimeout(function () {
+        map.invalidateSize();
+    }, 100);
 </script>
 
 {% endblock %}

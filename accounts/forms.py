@@ -1,5 +1,4 @@
 from django import forms
-from django.db import models
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .models import Pharmacy, User
@@ -7,18 +6,17 @@ from .models import Pharmacy, User
 
 class SignUpForm(UserCreationForm):
 
-    class RequestedRole(models.TextChoices):
-        OWNER = User.Role.OWNER, "점주"
-        PHARMACIST = User.Role.PHARMACIST, "약사"
-        STAFF = User.Role.STAFF, "직원"
-
     email = forms.EmailField(
         required=True,
         label="이메일",
     )
 
     requested_role = forms.ChoiceField(
-        choices=RequestedRole.choices,
+        choices=(
+            (User.Role.OWNER, "점주"),
+            (User.Role.PHARMACIST, "약사"),
+            (User.Role.STAFF, "직원"),
+        ),
         label="가입 유형",
     )
 
@@ -26,36 +24,41 @@ class SignUpForm(UserCreationForm):
         required=False,
         max_length=20,
         label="사업자등록번호",
-        help_text="점주 신청을 선택한 경우 입력하세요.",
+        help_text="점주로 가입하는 경우에만 입력하세요.",
     )
 
-    pharmacy_place_id = forms.CharField(
+    pharmacy_external_id = forms.CharField(
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     pharmacy_name = forms.CharField(
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     pharmacy_address = forms.CharField(
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     pharmacy_phone = forms.CharField(
-        required=False,
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     pharmacy_latitude = forms.DecimalField(
         max_digits=10,
         decimal_places=7,
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     pharmacy_longitude = forms.DecimalField(
         max_digits=10,
         decimal_places=7,
         widget=forms.HiddenInput(),
+        required=False,
     )
 
     class Meta:
@@ -93,7 +96,7 @@ class SignUpForm(UserCreationForm):
                 "email",
                 "requested_role",
                 "business_number",
-                "pharmacy_place_id",
+                "pharmacy_external_id",
                 "pharmacy_name",
                 "pharmacy_address",
                 "pharmacy_phone",
@@ -106,13 +109,13 @@ class SignUpForm(UserCreationForm):
         cleaned_data = super().clean()
 
         requested_role = cleaned_data.get("requested_role")
-        place_id = cleaned_data.get("pharmacy_place_id")
+        external_id = cleaned_data.get("pharmacy_external_id")
         pharmacy_name = cleaned_data.get("pharmacy_name")
         business_number = cleaned_data.get("business_number")
 
-        if not place_id or not pharmacy_name:
+        if not external_id or not pharmacy_name:
             raise forms.ValidationError(
-                "검색 결과에서 소속 약국을 선택해 주세요."
+                "약국 검색 결과에서 소속 약국을 선택해 주세요."
             )
 
         if (
@@ -145,25 +148,39 @@ class PharmacyForm(forms.ModelForm):
 
         widgets = {
             "business_number": forms.TextInput(
-                attrs={"placeholder": "예: 123-45-67890"}
+                attrs={
+                    "placeholder": "예: 123-45-67890",
+                }
             ),
             "business_name": forms.TextInput(
-                attrs={"placeholder": "사업자명을 입력하세요"}
+                attrs={
+                    "placeholder": "사업자명을 입력하세요",
+                }
             ),
             "pharmacy_name": forms.TextInput(
-                attrs={"placeholder": "약국명을 입력하세요"}
+                attrs={
+                    "placeholder": "약국명을 입력하세요",
+                }
             ),
             "owner_name": forms.TextInput(
-                attrs={"placeholder": "대표자명을 입력하세요"}
+                attrs={
+                    "placeholder": "대표자명을 입력하세요",
+                }
             ),
             "address": forms.TextInput(
-                attrs={"placeholder": "주소를 입력하세요"}
+                attrs={
+                    "placeholder": "주소를 입력하세요",
+                }
             ),
             "phone": forms.TextInput(
-                attrs={"placeholder": "예: 02-1234-5678"}
+                attrs={
+                    "placeholder": "예: 02-1234-5678",
+                }
             ),
             "email": forms.EmailInput(
-                attrs={"placeholder": "example@example.com"}
+                attrs={
+                    "placeholder": "example@example.com",
+                }
             ),
         }
 
@@ -202,7 +219,7 @@ class ApprovedAuthenticationForm(AuthenticationForm):
                 )
             else:
                 message = (
-                    "소속 약국 관리자 승인 대기 중입니다.\n\n"
+                    "소속 약국 점주의 승인 대기 중입니다.\n\n"
                     "해당 약국 점주의 승인 후 로그인할 수 있습니다."
                 )
 

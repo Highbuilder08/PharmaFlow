@@ -10,7 +10,7 @@ class Pharmacy(models.Model):
         CLOSED = "CLOSED", "폐업"
 
     class DataSource(models.TextChoices):
-        KAKAO = "KAKAO", "카카오 지도"
+        HIRA = "HIRA", "건강보험심사평가원"
         MANUAL = "MANUAL", "직접 등록"
 
     business_number = models.CharField(
@@ -83,7 +83,7 @@ class Pharmacy(models.Model):
         unique=True,
         null=True,
         blank=True,
-        verbose_name="외부 장소 ID",
+        verbose_name="외부 약국 식별값",
     )
 
     data_source = models.CharField(
@@ -95,7 +95,7 @@ class Pharmacy(models.Model):
 
     is_verified = models.BooleanField(
         default=False,
-        verbose_name="위치 정보 확인",
+        verbose_name="공식 데이터 확인",
     )
 
     created_at = models.DateTimeField(
@@ -227,12 +227,16 @@ class PharmacyOwnershipRequest(models.Model):
         db_table = "pharmacy_ownership_request"
         verbose_name = "점주 권한 신청"
         verbose_name_plural = "점주 권한 신청"
+
         constraints = [
             models.UniqueConstraint(
-                fields=("user", "pharmacy"),
+                fields=(
+                    "user",
+                    "pharmacy",
+                ),
                 name="unique_user_pharmacy_ownership_request",
             ),
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.pharmacy}"
+        return f"{self.user.username} - {self.pharmacy.pharmacy_name}"

@@ -14,6 +14,7 @@ def superuser_required(view_func):
                 request,
                 "시스템 관리자만 접근할 수 있습니다.",
             )
+
             return redirect("core:index")
 
         return view_func(request, *args, **kwargs)
@@ -33,6 +34,7 @@ def owner_required(view_func):
                 request,
                 "소속 약국의 점주만 접근할 수 있습니다.",
             )
+
             return redirect("core:index")
 
         return view_func(request, *args, **kwargs)

@@ -1,3 +1,5 @@
+import xml.etree.ElementTree as ET
+
 import requests
 
 from django.conf import settings
@@ -26,14 +28,18 @@ def signup(request):
 
             with transaction.atomic():
                 pharmacy, created = Pharmacy.objects.update_or_create(
-                    external_place_id=data["pharmacy_place_id"],
+                    external_place_id=data["pharmacy_external_id"],
                     defaults={
                         "pharmacy_name": data["pharmacy_name"],
                         "address": data["pharmacy_address"],
                         "phone": data.get("pharmacy_phone", ""),
-                        "latitude": data["pharmacy_latitude"],
-                        "longitude": data["pharmacy_longitude"],
-                        "data_source": Pharmacy.DataSource.KAKAO,
+                        "latitude": (
+                            data.get("pharmacy_latitude") or None
+                        ),
+                        "longitude": (
+                            data.get("pharmacy_longitude") or None
+                        ),
+                        "data_source": Pharmacy.DataSource.HIRA,
                         "is_verified": True,
                     },
                 )
@@ -57,17 +63,22 @@ def signup(request):
                     )
 
             if user.role == User.Role.OWNER:
-                message = (
-                    "회원가입과 점주 권한 신청이 완료되었습니다. "
-                    "시스템 관리자 승인 후 로그인할 수 있습니다."
+                messages.success(
+                    request,
+                    (
+                        "회원가입과 점주 권한 신청이 완료되었습니다. "
+                        "시스템 관리자 승인 후 로그인할 수 있습니다."
+                    ),
                 )
             else:
-                message = (
-                    "회원가입이 완료되었습니다. "
-                    "소속 약국 점주의 승인 후 로그인할 수 있습니다."
+                messages.success(
+                    request,
+                    (
+                        "회원가입이 완료되었습니다. "
+                        "소속 약국 점주의 승인 후 로그인할 수 있습니다."
+                    ),
                 )
 
-            messages.success(request, message)
             return redirect("login")
     else:
         form = SignUpForm()
@@ -79,6 +90,16 @@ def signup(request):
             "form": form,
         },
     )
+
+
+def get_xml_text(item, *names):
+    for name in names:
+        value = item.findtext(name)
+
+        if value:
+            return value.strip()
+
+    return ""
 
 
 @require_GET
@@ -94,56 +115,131 @@ def pharmacy_search(request):
             status=400,
         )
 
-    if not settings.KAKAO_REST_API_KEY:
+    if not settings.HIRA_SERVICE_KEY:
         return JsonResponse(
             {
                 "results": [],
-                "error": "카카오 REST API 키가 설정되지 않았습니다.",
+                "error": "HIRA API 인증키가 설정되지 않았습니다.",
             },
             status=500,
         )
 
     try:
         response = requests.get(
-            "https://dapi.kakao.com/v2/local/search/keyword.json",
-            headers={
-                "Authorization": (
-                    f"KakaoAK {settings.KAKAO_REST_API_KEY}"
-                ),
-            },
+            (
+                "http://apis.data.go.kr/"
+                "B551182/pharmacyInfoService/"
+                "getParmacyBasisList"
+            ),
             params={
-                "query": query,
-                "category_group_code": "PM9",
-                "size": 15,
+                "ServiceKey": settings.HIRA_SERVICE_KEY,
+                "pageNo": 1,
+                "numOfRows": 20,
+                "yadmNm": query,
             },
-            timeout=5,
+            timeout=10,
         )
 
         response.raise_for_status()
+
+    except requests.Timeout:
+        return JsonResponse(
+            {
+                "results": [],
+                "error": "약국 검색 요청 시간이 초과되었습니다.",
+            },
+            status=504,
+        )
+
     except requests.RequestException:
         return JsonResponse(
             {
                 "results": [],
-                "error": "약국 검색 서비스에 연결할 수 없습니다.",
+                "error": "HIRA 약국 검색 서비스에 연결할 수 없습니다.",
+            },
+            status=502,
+        )
+
+    try:
+        root = ET.fromstring(response.content)
+
+    except ET.ParseError:
+        return JsonResponse(
+            {
+                "results": [],
+                "error": "약국 검색 응답을 해석할 수 없습니다.",
+            },
+            status=502,
+        )
+
+    result_code = root.findtext(".//resultCode", default="")
+
+    if result_code not in ("00", "0"):
+        result_message = root.findtext(
+            ".//resultMsg",
+            default="약국 검색에 실패했습니다.",
+        )
+
+        return JsonResponse(
+            {
+                "results": [],
+                "error": result_message,
             },
             status=502,
         )
 
     results = []
 
-    for document in response.json().get("documents", []):
+    for item in root.findall(".//item"):
+        external_id = get_xml_text(
+            item,
+            "ykiho",
+            "YKIHO",
+        )
+
+        pharmacy_name = get_xml_text(
+            item,
+            "yadmNm",
+            "YADMNM",
+        )
+
+        address = get_xml_text(
+            item,
+            "addr",
+            "ADDR",
+        )
+
+        phone = get_xml_text(
+            item,
+            "telno",
+            "TELNO",
+        )
+
+        longitude = get_xml_text(
+            item,
+            "XPos",
+            "xPos",
+            "xpos",
+        )
+
+        latitude = get_xml_text(
+            item,
+            "YPos",
+            "yPos",
+            "ypos",
+        )
+
+        if not external_id or not pharmacy_name:
+            continue
+
         results.append(
             {
-                "place_id": document["id"],
-                "name": document["place_name"],
-                "address": (
-                    document.get("road_address_name")
-                    or document.get("address_name")
-                    or ""
-                ),
-                "phone": document.get("phone", ""),
-                "longitude": document["x"],
-                "latitude": document["y"],
+                "external_id": external_id,
+                "name": pharmacy_name,
+                "address": address,
+                "phone": phone,
+                "longitude": longitude,
+                "latitude": latitude,
             }
         )
 
@@ -158,10 +254,12 @@ def pharmacy_search(request):
 def pharmacy_list(request):
     if request.user.is_superuser:
         pharmacies = Pharmacy.objects.all()
+
     elif request.user.pharmacy_id:
         pharmacies = Pharmacy.objects.filter(
-            pk=request.user.pharmacy_id
+            pk=request.user.pharmacy_id,
         )
+
     else:
         pharmacies = Pharmacy.objects.none()
 
@@ -189,6 +287,7 @@ def pharmacy_create(request):
                 request,
                 "약국이 등록되었습니다.",
             )
+
             return redirect("accounts:pharmacy_list")
     else:
         form = PharmacyForm()
@@ -206,20 +305,26 @@ def pharmacy_create(request):
 
 @login_required
 def pharmacy_update(request, pk):
-    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+    pharmacy = get_object_or_404(
+        Pharmacy,
+        pk=pk,
+    )
 
-    if not (
+    can_update = (
         request.user.is_superuser
         or (
             request.user.role == User.Role.OWNER
             and request.user.is_approved
             and request.user.pharmacy_id == pharmacy.pk
         )
-    ):
+    )
+
+    if not can_update:
         messages.error(
             request,
             "해당 약국을 수정할 권한이 없습니다.",
         )
+
         return redirect("accounts:pharmacy_list")
 
     if request.method == "POST":
@@ -235,9 +340,12 @@ def pharmacy_update(request, pk):
                 request,
                 "약국 정보가 수정되었습니다.",
             )
+
             return redirect("accounts:pharmacy_list")
     else:
-        form = PharmacyForm(instance=pharmacy)
+        form = PharmacyForm(
+            instance=pharmacy,
+        )
 
     return render(
         request,
@@ -253,7 +361,10 @@ def pharmacy_update(request, pk):
 @login_required
 @superuser_required
 def pharmacy_delete(request, pk):
-    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+    pharmacy = get_object_or_404(
+        Pharmacy,
+        pk=pk,
+    )
 
     if request.method == "POST":
         try:
@@ -263,6 +374,7 @@ def pharmacy_delete(request, pk):
                 request,
                 "약국이 삭제되었습니다.",
             )
+
         except ProtectedError:
             messages.error(
                 request,
@@ -289,7 +401,11 @@ def user_list(request):
         )
         .exclude(pk=request.user.pk)
         .exclude(is_superuser=True)
-        .order_by("is_approved", "name", "username")
+        .order_by(
+            "is_approved",
+            "name",
+            "username",
+        )
     )
 
     return render(
@@ -315,12 +431,17 @@ def user_approve(request, pk):
     if target_user.role == User.Role.OWNER:
         messages.error(
             request,
-            "다른 점주 계정은 이 화면에서 승인할 수 없습니다.",
+            "점주 계정은 이 화면에서 승인할 수 없습니다.",
         )
+
         return redirect("accounts:user_list")
 
     target_user.is_approved = True
-    target_user.save(update_fields=["is_approved"])
+    target_user.save(
+        update_fields=[
+            "is_approved",
+        ]
+    )
 
     messages.success(
         request,
@@ -344,12 +465,17 @@ def user_revoke(request, pk):
     if target_user.role == User.Role.OWNER:
         messages.error(
             request,
-            "다른 점주 계정은 이 화면에서 처리할 수 없습니다.",
+            "점주 계정은 이 화면에서 처리할 수 없습니다.",
         )
+
         return redirect("accounts:user_list")
 
     target_user.is_approved = False
-    target_user.save(update_fields=["is_approved"])
+    target_user.save(
+        update_fields=[
+            "is_approved",
+        ]
+    )
 
     messages.success(
         request,
@@ -357,95 +483,3 @@ def user_revoke(request, pk):
     )
 
     return redirect("accounts:user_list")
-
-
-@login_required
-@superuser_required
-def ownership_request_list(request):
-    ownership_requests = (
-        PharmacyOwnershipRequest.objects
-        .select_related("user", "pharmacy")
-        .order_by("status", "-id")
-    )
-
-    return render(
-        request,
-        "accounts/ownership_request_list.html",
-        {
-            "ownership_requests": ownership_requests,
-        },
-    )
-
-
-@login_required
-@superuser_required
-@require_POST
-def ownership_request_approve(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest,
-        pk=pk,
-    )
-
-    if ownership_request.status != PharmacyOwnershipRequest.Status.PENDING:
-        messages.error(
-            request,
-            "이미 처리된 점주 권한 신청입니다.",
-        )
-        return redirect("accounts:ownership_request_list")
-
-    with transaction.atomic():
-        ownership_request.status = (
-            PharmacyOwnershipRequest.Status.APPROVED
-        )
-        ownership_request.save(update_fields=["status"])
-
-        user = ownership_request.user
-        user.role = User.Role.OWNER
-        user.pharmacy = ownership_request.pharmacy
-        user.is_approved = True
-        user.save(
-            update_fields=[
-                "role",
-                "pharmacy",
-                "is_approved",
-            ]
-        )
-
-    messages.success(
-        request,
-        f"{user.name} 사용자의 점주 권한을 승인했습니다.",
-    )
-
-    return redirect("accounts:ownership_request_list")
-
-
-@login_required
-@superuser_required
-@require_POST
-def ownership_request_reject(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest,
-        pk=pk,
-    )
-
-    if ownership_request.status != PharmacyOwnershipRequest.Status.PENDING:
-        messages.error(
-            request,
-            "이미 처리된 점주 권한 신청입니다.",
-        )
-        return redirect("accounts:ownership_request_list")
-
-    ownership_request.status = (
-        PharmacyOwnershipRequest.Status.REJECTED
-    )
-    ownership_request.save(update_fields=["status"])
-
-    messages.success(
-        request,
-        f"{ownership_request.user.name} 사용자의 "
-        "점주 권한 신청을 거절했습니다.",
-    )
-
-    return redirect("accounts:ownership_request_list")
-
-
