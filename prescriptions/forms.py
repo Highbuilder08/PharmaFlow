@@ -24,10 +24,12 @@ class PrescriptionItemForm(forms.ModelForm):
         available_medicines = Medicine.objects.filter(stock__gt=0)
         self.fields['medicine'].queryset = available_medicines
         
-        # 2. 만약 선택 가능한 약품이 0개라면?
+        # 🚀 2. [핵심 추가] 드롭다운(Select)에 표시될 글자를 내 마음대로 바꿉니다!
+        self.fields['medicine'].label_from_instance = lambda obj: f"{obj.name} (남은 재고: {obj.stock}개)"
+        
+        # 3. 만약 선택 가능한 약품이 0개라면?
         if not available_medicines.exists():
             self.fields['medicine'].empty_label = "선택 가능한 약품이 없습니다"
-            # 입력을 못 하도록 비활성화(disabled) 처리
             self.fields['medicine'].widget.attrs['disabled'] = 'disabled' 
         else:
             self.fields['medicine'].empty_label = "약을 선택하세요"
