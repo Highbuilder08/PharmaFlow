@@ -9,6 +9,10 @@ class Pharmacy(models.Model):
         SUSPENDED = "SUSPENDED", "휴업"
         CLOSED = "CLOSED", "폐업"
 
+    class DataSource(models.TextChoices):
+        KAKAO = "KAKAO", "카카오 지도"
+        MANUAL = "MANUAL", "직접 등록"
+
     business_number = models.CharField(
         max_length=20,
         unique=True,
@@ -82,6 +86,18 @@ class Pharmacy(models.Model):
         verbose_name="외부 장소 ID",
     )
 
+    data_source = models.CharField(
+        max_length=20,
+        choices=DataSource.choices,
+        default=DataSource.MANUAL,
+        verbose_name="데이터 출처",
+    )
+
+    is_verified = models.BooleanField(
+        default=False,
+        verbose_name="위치 정보 확인",
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="등록일",
@@ -100,14 +116,14 @@ class Pharmacy(models.Model):
     def __str__(self):
         return self.pharmacy_name
 
+
 class User(AbstractUser):
 
     class Role(models.TextChoices):
-        ADMIN = "ADMIN", "관리자"
+        OWNER = "OWNER", "점주"
         PHARMACIST = "PHARMACIST", "약사"
         STAFF = "STAFF", "직원"
 
-    # AbstractUser의 기본 이름 필드 제거
     first_name = None
     last_name = None
 
@@ -145,7 +161,7 @@ class User(AbstractUser):
     )
 
     is_approved = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name="승인 여부",
     )
 
@@ -161,3 +177,62 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class PharmacyOwnershipRequest(models.Model):
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "승인 대기"
+        APPROVED = "APPROVED", "승인 완료"
+        REJECTED = "REJECTED", "거절"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="ownership_requests",
+        verbose_name="신청자",
+    )
+
+    pharmacy = models.ForeignKey(
+        Pharmacy,
+        on_delete=models.CASCADE,
+        related_name="ownership_requests",
+        verbose_name="신청 약국",
+    )
+
+    business_number = models.CharField(
+        max_length=20,
+        verbose_name="사업자등록번호",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name="처리 상태",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="신청일",
+    )
+
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="처리일",
+    )
+
+    class Meta:
+        db_table = "pharmacy_ownership_request"
+        verbose_name = "점주 권한 신청"
+        verbose_name_plural = "점주 권한 신청"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "pharmacy"),
+                name="unique_user_pharmacy_ownership_request",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.pharmacy}"
