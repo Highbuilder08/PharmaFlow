@@ -1,11 +1,51 @@
 {% extends 'base.html' %}
-{% block content %}
-<h2>처방전 수정</h2>
+
+<!-- 본인 프로젝트의 base.html에 맞춰 block 이름을 'content' 또는 'main_content'로 꼭 확인하세요! -->
+{% block content %} 
+
+<h2>처방전 수정 및 약품 추가</h2>
+
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
-    <p><label>추가 첨부파일:</label> <input type="file" name="attachments" multiple></p>
-    <button type="submit">수정완료</button>
-    <a href="{% url 'prescriptions:detail' prescription.id %}">취소</a>
+    
+    <!-- 1. 기본 처방전 폼 영역 -->
+    <h3>📝 환자 기본 정보</h3>
+    <div style="background-color: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+        {{ form.as_p }}
+        <p><label>추가 첨부파일:</label> <input type="file" name="attachments" multiple></p>
+    </div>
+
+    <!-- 2. 약품 추가 폼셋 영역 -->
+    <h3>💊 처방 약품 관리</h3>
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <!-- 필수: 폼셋 관리 데이터 -->
+        {{ formset.management_form }} 
+        
+        <!-- 개발자 2님의 DB에 추가 가능한 약이 있는지 검사 -->
+        {% if has_stock %}
+            {% for item_form in formset %}
+                <div style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                    {{ item_form.as_p }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <!-- 재고가 하나도 없을 때 보여줄 문구 -->
+            <p style="color: #ff4757; font-weight: bold; font-size: 16px; margin: 0;">
+                🚨 현재 추가 가능한 약품(재고)이 없습니다. 개발자 2(재고 관리자)에게 문의하세요.
+            </p>
+            
+            <!-- 에러 방지를 위해 폼은 숨겨서 보냅니다 -->
+            <div style="display: none;">
+                {% for item_form in formset %}
+                    {{ item_form.as_p }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <hr>
+    <button type="submit" class="btn">수정 완료</button>
+    <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn" style="background-color: #6c757d;">취소</a>
 </form>
+
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block main_content %} <!-- 본인 블록 이름에 맞게 수정 -->
+
+<h2>{{ prescription.patient_name }} 환자 - 처방 약품 추가</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    
+    <p>
+        <label>약품 선택:</label>
+        <select name="medicine" required style="padding: 5px; width: 100%;">
+            <option value="">약을 선택하세요</option>
+            <!-- DB에 있는 모든 약(개발자 2가 등록한 약)을 드롭다운으로 보여줌 -->
+            {% for med in medicines %}
+                <!-- 재고가 0보다 작으면 선택 못하게 막는 센스! -->
+                <option value="{{ med.id }}" {% if med.stock < 1 %}disabled{% endif %}>
+                    {{ med.name }} (제조사: {{ med.manufacturer }} | 현재 재고: {{ med.stock }}개)
+                </option>
+            {% endfor %}
+        </select>
+    </p>
+
+    <p><label>복용법:</label> <input type="text" name="dosage" placeholder="예: 1일 3회 식후 30분" required></p>
+    <p><label>복용기간:</label> <input type="text" name="duration" placeholder="예: 3일" required></p>
+    <p><label>총 처방 수량(알):</label> <input type="number" name="total_quantity" min="1" required></p>
+
+    <button type="submit">처방 약 추가하기</button>
+    <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn">취소</a>
+</form>
+{% endblock %}

@@ -1,11 +1,34 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>처방전 등록</h2>
+<h2>새 처방전 등록</h2>
+
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
-    <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
-    <button type="submit">등록하기</button>
-    <a href="{% url 'prescriptions:list' %}">취소</a>
+    
+    <!-- 1. 기본 처방전 폼 영역 -->
+    <h3>📝 환자 기본 정보</h3>
+    <div style="background-color: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+        {{ form.as_p }}
+        <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
+    </div>
+
+    <!-- 2. 약품 폼셋 영역 -->
+    <h3>💊 처방 약품 추가</h3>
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <!-- 필수: 폼셋을 쓸 때 반드시 들어가야 하는 관리용 숨김 데이터 -->
+        {{ formset.management_form }} 
+        
+        {% for item_form in formset %}
+            {{ item_form.as_p }}
+        {% endfor %}
+    </div>
+
+    <!-- 3. 제출 및 취소 버튼 -->
+    <hr>
+    <!-- 클래스(btn)를 입혀서 a 태그를 예쁜 버튼 모양으로 만든 "취소 버튼" -->
+    <button type="submit">처방전 및 약품 등록하기</button>
+    <a href="{% url 'prescriptions:list' %}" class="btn">취소</a>
+
 </form>
+
 {% endblock %}

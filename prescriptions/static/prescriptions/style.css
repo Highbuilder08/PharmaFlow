@@ -91,8 +91,8 @@ a:hover {
     text-decoration: underline;
 }
 
-/* 버튼 스타일 */
-button, input[type="submit"] {
+/* 버튼 스타일 (a 태그용 .btn 클래스 추가) */
+button, input[type="submit"], .btn {
     background-color: #0056b3;
     color: white;
     border: none;
@@ -101,11 +101,16 @@ button, input[type="submit"] {
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
+    text-decoration: none;  /* a 태그의 밑줄 제거 */
+    display: inline-block;  /* a 태그에 패딩(여백)이 먹히도록 설정 */
     transition: background-color 0.3s;
+    box-sizing: border-box;
 }
 
-button:hover, input[type="submit"]:hover {
+button:hover, input[type="submit"]:hover, .btn:hover {
     background-color: #004494;
+    text-decoration: none;
+    color: white;
 }
 
 /* 폼 입력창 (input, textarea) */

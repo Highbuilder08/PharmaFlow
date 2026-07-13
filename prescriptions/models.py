@@ -1,5 +1,7 @@
+import os
 from django.db import models
 from django.conf import settings
+from inventory.models import Medicine, InventoryTransaction 
 
 # 1. 처방전 모델
 class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Model)
@@ -11,17 +13,26 @@ class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Mod
     prescription_date = models.DateField(verbose_name="처방일")
 
 # 2. 처방전 약품 목록 (1:N 관계)
-class PrescriptionItem(models.Model):  # <--- 수정됨 (models.models.Model -> models.Model)
+class PrescriptionItem(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='items')
-    medicine_name = models.CharField(max_length=100, verbose_name="약품명(예: 타이레놀)")
+    
+    # 👇 글자(CharField) 대신 실제 Medicine 모델을 연결(ForeignKey)합니다!
+    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, verbose_name="처방 약품", null=True)
+    
     dosage = models.CharField(max_length=50, verbose_name="복용법(예: 1일 3회)")
     duration = models.CharField(max_length=50, verbose_name="복용기간(예: 5일)")
+    
+    # 👇 재고 차감을 위해 총 몇 알을 주는지 숫자로 받습니다.
+    total_quantity = models.PositiveIntegerField(verbose_name="총 처방 수량(알/포)", default=1)
 
 # 3. 처방전 첨부파일 (NFS 서버에 저장될 부분)
 class PrescriptionAttachment(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='attachments')
     # upload_to를 설정하면 자동으로 연/월 폴더를 만들어 NFS(MEDIA_ROOT)에 저장됩니다.
     file = models.FileField(upload_to='prescriptions/%Y/%m/', verbose_name="첨부파일")
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
 
 # 4. 복약 상담 게시판 모델
 class Consultation(models.Model):
@@ -37,3 +48,4 @@ class ConsultationComment(models.Model):
     writer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="작성자")
     content = models.TextField(verbose_name="댓글 내용")
     created_at = models.DateTimeField(auto_now_add=True)
+    
