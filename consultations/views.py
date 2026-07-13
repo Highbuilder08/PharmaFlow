@@ -100,3 +100,23 @@ def attachment_delete(request, pk):
             attachment.delete()
             
     return redirect('consultations:detail', pk=consultation_pk)
+
+@login_message_required
+def comment_update(request, pk):
+    comment = get_object_or_404(ConsultationComment, pk=pk)
+    consultation_pk = comment.consultation.pk
+    
+    # 🚀 권한 체크: 오직 '작성자 본인'만 수정 가능! (관리자도 남의 댓글 수정 불가)
+    if request.user != comment.writer:
+        messages.warning(request, "본인의 댓글만 수정할 수 있습니다.")
+        return redirect('consultations:detail', pk=consultation_pk)
+
+    # POST 요청(저장 버튼 누름)일 때만 내용 업데이트
+    if request.method == 'POST':
+        updated_content = request.POST.get('content', '').strip()
+        if updated_content:
+            comment.content = updated_content
+            comment.save() # 수정일(updated_at) 자동 갱신됨
+            
+    # 작업이 끝나면 무조건 원래 있던 상세 페이지로 새로고침(이동)
+    return redirect('consultations:detail', pk=consultation_pk)
