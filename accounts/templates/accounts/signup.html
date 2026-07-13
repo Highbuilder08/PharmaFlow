@@ -5,24 +5,40 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
+    <div class="col-md-8 col-lg-7">
+
         <div class="card shadow-sm">
             <div class="card-body p-4">
+
                 <h2 class="text-center mb-4">
                     회원가입
                 </h2>
 
-                <form method="post">
+                <form method="post" id="signup-form">
                     {% csrf_token %}
+
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+
+                        {% for error in hidden.errors %}
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
 
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
                         </div>
                     {% endif %}
 
-                    {% for field in form %}
+                    {% for field in form.visible_fields %}
+
                         <div class="mb-3">
                             <label
                                 for="{{ field.id_for_label }}"
@@ -35,7 +51,7 @@
 
                             {% if field.help_text %}
                                 <div class="form-text">
-                                    {{ field.help_text }}
+                                    {{ field.help_text|safe }}
                                 </div>
                             {% endif %}
 
@@ -45,6 +61,62 @@
                                 </div>
                             {% endfor %}
                         </div>
+
+                        {% if field.name == "requested_role" %}
+
+                            <div class="mb-3">
+                                <label
+                                    for="pharmacy-search-input"
+                                    class="form-label"
+                                >
+                                    소속 약국 검색
+                                </label>
+
+                                <div class="input-group">
+                                    <input
+                                        type="text"
+                                        id="pharmacy-search-input"
+                                        class="form-control"
+                                        placeholder="약국명을 두 글자 이상 입력하세요"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        id="pharmacy-search-button"
+                                        class="btn btn-outline-success"
+                                    >
+                                        검색
+                                    </button>
+                                </div>
+
+                                <div
+                                    id="pharmacy-search-message"
+                                    class="form-text"
+                                >
+                                    검색 결과에서 소속 약국을 선택하세요.
+                                </div>
+                            </div>
+
+                            <div
+                                id="pharmacy-search-results"
+                                class="list-group mb-3"
+                            ></div>
+
+                            <div
+                                id="selected-pharmacy"
+                                class="alert alert-success d-none"
+                            >
+                                <strong>선택한 약국</strong>
+
+                                <div id="selected-pharmacy-name"></div>
+                                <div
+                                    id="selected-pharmacy-address"
+                                    class="small"
+                                ></div>
+                            </div>
+
+                        {% endif %}
+
                     {% endfor %}
 
                     <button
@@ -62,8 +134,152 @@
                         로그인
                     </a>
                 </div>
+
             </div>
         </div>
+
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("pharmacy-search-input");
+    const searchButton = document.getElementById("pharmacy-search-button");
+    const searchResults = document.getElementById("pharmacy-search-results");
+    const searchMessage = document.getElementById("pharmacy-search-message");
+
+    const selectedPharmacy = document.getElementById("selected-pharmacy");
+    const selectedName = document.getElementById("selected-pharmacy-name");
+    const selectedAddress = document.getElementById(
+        "selected-pharmacy-address"
+    );
+
+    const placeIdInput = document.getElementById(
+        "id_pharmacy_place_id"
+    );
+    const pharmacyNameInput = document.getElementById(
+        "id_pharmacy_name"
+    );
+    const pharmacyAddressInput = document.getElementById(
+        "id_pharmacy_address"
+    );
+    const pharmacyPhoneInput = document.getElementById(
+        "id_pharmacy_phone"
+    );
+    const latitudeInput = document.getElementById(
+        "id_pharmacy_latitude"
+    );
+    const longitudeInput = document.getElementById(
+        "id_pharmacy_longitude"
+    );
+
+    async function searchPharmacies() {
+        const query = searchInput.value.trim();
+
+        searchResults.innerHTML = "";
+        selectedPharmacy.classList.add("d-none");
+
+        if (query.length < 2) {
+            searchMessage.textContent =
+                "검색어를 두 글자 이상 입력하세요.";
+            searchMessage.classList.add("text-danger");
+            return;
+        }
+
+        searchButton.disabled = true;
+        searchButton.textContent = "검색 중...";
+        searchMessage.textContent = "약국을 검색하고 있습니다.";
+        searchMessage.classList.remove("text-danger");
+
+        try {
+            const url =
+                "{% url 'accounts:pharmacy_search' %}" +
+                "?q=" +
+                encodeURIComponent(query);
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error || "약국 검색에 실패했습니다."
+                );
+            }
+
+            if (!data.results || data.results.length === 0) {
+                searchMessage.textContent =
+                    "검색 결과가 없습니다.";
+                return;
+            }
+
+            searchMessage.textContent =
+                `${data.results.length}개의 약국을 찾았습니다.`;
+
+            data.results.forEach(function (pharmacy) {
+                const button = document.createElement("button");
+
+                button.type = "button";
+                button.className =
+                    "list-group-item list-group-item-action";
+
+                button.innerHTML = `
+                    <div class="fw-bold"></div>
+                    <div class="small text-muted"></div>
+                    <div class="small"></div>
+                `;
+
+                button.querySelector(".fw-bold").textContent =
+                    pharmacy.name;
+
+                button.querySelector(".text-muted").textContent =
+                    pharmacy.address || "주소 정보 없음";
+
+                button.querySelectorAll(".small")[1].textContent =
+                    pharmacy.phone || "";
+
+                button.addEventListener("click", function () {
+                    placeIdInput.value = pharmacy.place_id;
+                    pharmacyNameInput.value = pharmacy.name;
+                    pharmacyAddressInput.value =
+                        pharmacy.address || "";
+                    pharmacyPhoneInput.value =
+                        pharmacy.phone || "";
+                    latitudeInput.value = pharmacy.latitude;
+                    longitudeInput.value = pharmacy.longitude;
+
+                    selectedName.textContent = pharmacy.name;
+                    selectedAddress.textContent =
+                        pharmacy.address || "주소 정보 없음";
+
+                    selectedPharmacy.classList.remove("d-none");
+                    searchResults.innerHTML = "";
+
+                    searchMessage.textContent =
+                        "소속 약국이 선택되었습니다.";
+                    searchMessage.classList.remove("text-danger");
+                });
+
+                searchResults.appendChild(button);
+            });
+
+        } catch (error) {
+            searchMessage.textContent = error.message;
+            searchMessage.classList.add("text-danger");
+        } finally {
+            searchButton.disabled = false;
+            searchButton.textContent = "검색";
+        }
+    }
+
+    searchButton.addEventListener("click", searchPharmacies);
+
+    searchInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            searchPharmacies();
+        }
+    });
+});
+</script>
+
 {% endblock %}
