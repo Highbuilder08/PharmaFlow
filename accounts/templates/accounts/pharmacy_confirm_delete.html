@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}
+약국 삭제 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-lg-6">
+
+        <div class="card shadow-sm border-danger">
+
+            <div class="card-body">
+
+                <h3 class="text-danger mb-4">
+                    약국 삭제
+                </h3>
+
+                <p>
+                    <strong>{{ pharmacy.pharmacy_name }}</strong>
+                    약국을 정말 삭제하시겠습니까?
+                </p>
+
+                <p class="text-danger">
+                    삭제한 데이터는 복구할 수 없습니다.
+                </p>
+
+                <form method="post">
+
+                    {% csrf_token %}
+
+                    <a
+                        href="{% url 'accounts:pharmacy_list' %}"
+                        class="btn btn-secondary"
+                    >
+                        취소
+                    </a>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger"
+                    >
+                        삭제
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
