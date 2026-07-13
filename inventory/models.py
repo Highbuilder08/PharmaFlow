@@ -30,7 +30,7 @@ class Medicine(models.Model):
     )
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["name"] # 별도로 정렬하지 않아도 의약품 순서로 나올 수 있도록 해준다.
         verbose_name = "의약품"
         verbose_name_plural = "의약품"
 
