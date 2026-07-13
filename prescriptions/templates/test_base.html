@@ -13,6 +13,10 @@
         <nav>
             <a href="{% url 'prescriptions:list' %}">처방전 목록</a>
             <a href="{% url 'prescriptions:consultation_list' %}">상담 게시판</a>
+
+            {% if request.user.is_superuser %}
+                <a href="{% url 'prescriptions:audit_logs' %}" style="color: #ffc107;">[관리자] 시스템 로그</a>
+            {% endif %}
         </nav>
     </header>
 
