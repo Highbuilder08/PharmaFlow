@@ -1,7 +1,7 @@
 {% extends "inventory/base.html" %}
 
 {% block title %}
-의약품 등록 | PharmaFlow
+{{ page_title }} | PharmaFlow
 {% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h3 mb-4">
-                    의약품 등록
+                    {{ page_title }}
                 </h1>
 
                 <form method="post">
@@ -102,7 +102,7 @@
                             type="submit"
                             class="btn btn-success"
                         >
-                            등록
+                            {{ submit_text }}
                         </button>
                     </div>
                 </form>

@@ -1,11 +1,12 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 
-from django.http import HttpResponse
+# Create your views here.
+
+
+# ============ 의약품 (Medicine) ==============
 from .forms import MedicineForm
 from .models import Medicine
 
-
-# Create your views here.
 def medicine_list(request):
     medicines = Medicine.objects.all()
 
@@ -25,8 +26,62 @@ def medicine_create(request):
     else:
         form = MedicineForm()
 
+    context = {
+        "form": form,
+        "page_title": "의약품 등록",
+        "submit_text": "등록",
+    }
+
     return render(
         request,
         "inventory/medicine_form.html",
-        { "form": form }
+        context,
     )
+    
+def medicine_update(request, pk):
+    medicine = get_object_or_404(Medicine, pk=pk)
+
+    if request.method == "POST":
+        form = MedicineForm(
+            request.POST,
+            instance=medicine,
+        )
+
+        if form.is_valid():
+            form.save()
+            return redirect("inventory:medicine_list")
+    else:
+        form = MedicineForm(instance=medicine)
+
+    context = {
+        "form": form,
+        "page_title": "의약품 수정",
+        "submit_text": "수정",
+    }
+
+    return render(
+        request,
+        "inventory/medicine_form.html",
+        context,
+    )
+    
+def medicine_delete(request, pk):
+    medicine = get_object_or_404(Medicine, pk=pk)
+
+    if request.method == "POST":
+        medicine.delete()
+        return redirect("inventory:medicine_list")
+
+    return render(
+        request,
+        "inventory/medicine_confirm_delete.html",
+        {
+            "medicine": medicine,
+        },
+    )
+    
+    
+# ============ 입출고 (Transaction) ==============
+
+
+# ============ 발주 (PurchaseOrder) ==============
