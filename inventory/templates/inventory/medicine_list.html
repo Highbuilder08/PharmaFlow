@@ -27,6 +27,7 @@
                         <th>최소 재고</th>
                         <th>재고 상태</th>
                         <th>수정일</th>
+                        <th>관리</th>
                     </tr>
                 </thead>
 
@@ -64,11 +65,20 @@
                             <td>
                                 {{ medicine.updated_at|date:"Y-m-d H:i" }}
                             </td>
+
+                            <td>
+                                <a
+                                    href="{% url 'inventory:medicine_update' medicine.pk %}"
+                                    class="btn btn-sm btn-outline-primary"
+                                >
+                                    수정
+                                </a>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
                             <td
-                                colspan="7"
+                                colspan="8"
                                 class="text-center text-muted py-5"
                             >
                                 등록된 의약품이 없습니다.
