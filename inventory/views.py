@@ -5,8 +5,9 @@ from django.db import transaction
 from .forms import (
     MedicineForm,
     InventoryTransactionForm,
+    PurchaseOrderForm,
 )
-from .models import Medicine, InventoryTransaction
+from .models import Medicine, InventoryTransaction, PurchaseOrder
 
 
 # ============ 의약품 (Medicine) ==============
@@ -209,5 +210,46 @@ def transaction_create(request):
     )
 
 
+# ============ 발주 (PurchaseOrder) ============== 
+def purchase_order_list(request):
+    purchase_orders = (
+        PurchaseOrder.objects
+        .filter(medicine__pharmacy=request.user.pharmacy)
+        .select_related(
+            "medicine",
+            "ordered_by",
+        )
+    )
 
-# ============ 발주 (PurchaseOrder) ==============
+    return render(
+        request,
+        "inventory/purchase_order_list.html",
+        { "purchase_orders": purchase_orders },
+    )
+
+
+def purchase_order_create(request):
+    if request.method == "POST":
+        form = PurchaseOrderForm(request.POST)
+
+        if form.is_valid():
+            purchase_order = form.save(commit=False)
+            purchase_order.ordered_by = request.user
+            purchase_order.save()
+
+            return redirect("inventory:purchase_order_list")
+
+    else:
+        form = PurchaseOrderForm()
+
+    form.fields["medicine"].queryset = (
+        Medicine.objects
+        .filter(pharmacy=request.user.pharmacy)
+        .order_by("name")
+    )
+
+    return render(
+        request,
+        "inventory/purchase_order_form.html",
+        { "form": form },
+    )
