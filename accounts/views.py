@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 
-import requests
+import requests # pip install requests 필요
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,6 +10,8 @@ from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
+from django.utils import timezone
+from django.db import IntegrityError, transaction
 
 from .decorators import staff_manager_required, superuser_required
 from .models import Pharmacy, PharmacyOwnershipRequest, User
@@ -84,7 +86,7 @@ def signup(request):
                     ),
                 )
 
-            return redirect("accounts:login")
+            return redirect("login")
 
     else:
         form = SignUpForm()
@@ -588,6 +590,7 @@ def user_delete(request, pk):
 
     return redirect("accounts:user_list")
 
+
 @login_required
 @superuser_required
 def ownership_request_list(request):
@@ -597,8 +600,10 @@ def ownership_request_list(request):
             "user",
             "pharmacy",
         )
+        .filter(
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        )
         .order_by(
-            "status",
             "-created_at",
         )
     )
@@ -625,47 +630,81 @@ def ownership_request_approve(request, pk):
         status=PharmacyOwnershipRequest.Status.PENDING,
     )
 
-    with transaction.atomic():
-        ownership_request.status = (
-            PharmacyOwnershipRequest.Status.APPROVED
+    user = ownership_request.user
+    pharmacy = ownership_request.pharmacy
+    business_number = ownership_request.business_number.strip()
+
+    duplicate_pharmacy = (
+        Pharmacy.objects
+        .filter(business_number=business_number)
+        .exclude(pk=pharmacy.pk)
+        .first()
+    )
+
+    if duplicate_pharmacy:
+        messages.error(
+            request,
+            (
+                f"사업자등록번호 {business_number}는 이미 "
+                f"{duplicate_pharmacy.pharmacy_name}에 등록되어 있습니다. "
+                "신청 정보를 확인해 주세요."
+            ),
         )
 
-        ownership_request.processed_at = timezone.now()
-
-        ownership_request.save(
-            update_fields=[
-                "status",
-                "processed_at",
-            ]
+        return redirect(
+            "accounts:ownership_request_list"
         )
 
-        user = ownership_request.user
-        user.pharmacy = ownership_request.pharmacy
-        user.role = User.Role.OWNER
-        user.is_approved = True
+    try:
+        with transaction.atomic():
+            ownership_request.status = (
+                PharmacyOwnershipRequest.Status.APPROVED
+            )
+            ownership_request.processed_at = timezone.now()
 
-        user.save(
-            update_fields=[
-                "pharmacy",
-                "role",
-                "is_approved",
-            ]
+            ownership_request.save(
+                update_fields=[
+                    "status",
+                    "processed_at",
+                ]
+            )
+
+            user.pharmacy = pharmacy
+            user.role = User.Role.OWNER
+            user.is_approved = True
+
+            user.save(
+                update_fields=[
+                    "pharmacy",
+                    "role",
+                    "is_approved",
+                ]
+            )
+
+            pharmacy.business_number = business_number
+
+            if not pharmacy.owner_name:
+                pharmacy.owner_name = user.name
+
+            pharmacy.save(
+                update_fields=[
+                    "business_number",
+                    "owner_name",
+                    "updated_at",
+                ]
+            )
+
+    except IntegrityError:
+        messages.error(
+            request,
+            (
+                "승인 처리 중 중복된 사업자등록번호가 확인되었습니다. "
+                "신청 정보를 다시 확인해 주세요."
+            ),
         )
 
-        pharmacy = ownership_request.pharmacy
-        pharmacy.business_number = (
-            ownership_request.business_number
-        )
-
-        if not pharmacy.owner_name:
-            pharmacy.owner_name = user.name
-
-        pharmacy.save(
-            update_fields=[
-                "business_number",
-                "owner_name",
-                "updated_at",
-            ]
+        return redirect(
+            "accounts:ownership_request_list"
         )
 
     messages.success(
@@ -723,4 +762,48 @@ def ownership_request_reject(request, pk):
 
     return redirect(
         "accounts:ownership_request_list"
+    )
+
+
+@login_required
+@superuser_required
+def pharmacy_admin_update(request, pk):
+    pharmacy = get_object_or_404(
+        Pharmacy,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+        form = PharmacyUpdateForm(
+            request.POST,
+            instance=pharmacy,
+        )
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                f"{pharmacy.pharmacy_name} 정보를 수정했습니다.",
+            )
+
+            return redirect(
+                "accounts:pharmacy_list"
+            )
+
+    else:
+        form = PharmacyUpdateForm(
+            instance=pharmacy,
+        )
+
+    return render(
+        request,
+        "accounts/pharmacy_form.html",
+        {
+            "form": form,
+            "pharmacy": pharmacy,
+            "title": "약국 정보 수정",
+            "submit_text": "저장",
+            "cancel_url_name": "accounts:pharmacy_list",
+        },
     )

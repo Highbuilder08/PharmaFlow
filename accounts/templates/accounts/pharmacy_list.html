@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
 {% block title %}
-약국 목록 | PharmaFlow
+전체 약국 관리 | PharmaFlow
 {% endblock %}
 
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">
-        약국 정보
+        전체 약국 관리
     </h2>
 
-    {% if user.is_superuser or user.role == "ADMIN" %}
+    {% if user.is_superuser %}
         <a
             href="{% url 'accounts:pharmacy_create' %}"
             class="btn btn-success"
@@ -57,10 +57,12 @@
                                     <span class="badge bg-success">
                                         {{ pharmacy.get_status_display }}
                                     </span>
+
                                 {% elif pharmacy.status == "SUSPENDED" %}
                                     <span class="badge bg-warning text-dark">
                                         {{ pharmacy.get_status_display }}
                                     </span>
+
                                 {% else %}
                                     <span class="badge bg-secondary">
                                         {{ pharmacy.get_status_display }}
@@ -69,25 +71,22 @@
                             </td>
 
                             <td class="text-center">
-                                {% if user.is_superuser or user.role == "ADMIN" %}
-                                    <a
-                                        href="{% url 'accounts:pharmacy_update' pharmacy.pk %}"
-                                        class="btn btn-outline-primary btn-sm"
-                                    >
-                                        수정
-                                    </a>
 
-                                    <a
-                                        href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
-                                        class="btn btn-outline-danger btn-sm"
-                                    >
-                                        삭제
-                                    </a>
-                                {% else %}
-                                    <span class="text-muted small">
-                                        조회 전용
-                                    </span>
-                                {% endif %}
+                                <a
+                                    href="{% url 'accounts:pharmacy_admin_update' pharmacy.pk %}"
+                                    class="btn btn-outline-primary btn-sm"
+                                >
+                                    수정
+                                </a>
+
+                                <a
+                                    href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
+                                    class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('정말 삭제하시겠습니까?');"
+                                >
+                                    삭제
+                                </a>
+
                             </td>
                         </tr>
 
@@ -97,13 +96,14 @@
                                 colspan="5"
                                 class="text-center text-muted py-4"
                             >
-                                등록된 약국이 없습니다.
+                               등록된 약국이 없습니다.
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
 
             </table>
+
         </div>
 
     </div>
