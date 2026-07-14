@@ -5,7 +5,8 @@ from inventory.models import Medicine, InventoryTransaction
 from django.utils import timezone
 
 # 1. 처방전 모델
-class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Model)
+class Prescription(models.Model):
+    pharmacy = models.ForeignKey('accounts.Pharmacy', on_delete=models.CASCADE, verbose_name="지정 약국", null=True)
     writer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name="작성자")
     patient_name = models.CharField(max_length=50, verbose_name="환자명")
     ssn_front = models.CharField(max_length=6, verbose_name="주민번호(앞자리)")
@@ -19,7 +20,6 @@ class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Mod
         if not self.created_at:
             return ""
         
-        # DB의 시간(UTC)을 한국 시간으로 변환해서 정확하게 비교합니다.
         local_created = timezone.localtime(self.created_at)
         local_now = timezone.localtime(timezone.now())
         
@@ -34,19 +34,14 @@ class Prescription(models.Model):  # <--- 수정됨 (models.fields -> models.Mod
 class PrescriptionItem(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='items')
     
-    # 👇 글자(CharField) 대신 실제 Medicine 모델을 연결(ForeignKey)합니다!
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, verbose_name="처방 약품", null=True)
     
     dosage = models.CharField(max_length=50, verbose_name="복용법(예: 1일 3회)")
     duration = models.CharField(max_length=50, verbose_name="복용기간(예: 5일)")
-    
-    # 👇 재고 차감을 위해 총 몇 알을 주는지 숫자로 받습니다.
     total_quantity = models.PositiveIntegerField(verbose_name="총 처방 수량(알/포)", default=1)
 
-# 3. 처방전 첨부파일 (NFS 서버에 저장될 부분)
 class PrescriptionAttachment(models.Model):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='attachments')
-    # upload_to를 설정하면 자동으로 연/월 폴더를 만들어 NFS(MEDIA_ROOT)에 저장됩니다.
     file = models.FileField(upload_to='prescriptions/%Y/%m/', verbose_name="첨부파일")
     @property
     def filename(self):

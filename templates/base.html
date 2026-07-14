@@ -64,6 +64,7 @@
                 <ul class="navbar-nav ms-lg-4">
 
                     {% if user.is_superuser %}
+
                         <li class="nav-item">
                             <a
                                 class="nav-link"
@@ -82,48 +83,108 @@
                             </a>
                         </li>
 
-                    {% elif user.pharmacy_id %}
                         <li class="nav-item">
                             <a
-                                class="nav-link"
-                                href="{% url 'accounts:pharmacy_detail' %}"
+                                class="nav-link text-warning fw-bold"
+                                href="{% url 'prescriptions:audit_logs' %}"
                             >
-                                약국 정보
+                                시스템 로그
                             </a>
                         </li>
-                    {% endif %}
 
-                    {% if user.is_approved %}
-                        {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                    {% else %}
+
+                        {% if user.pharmacy_id %}
                             <li class="nav-item">
                                 <a
                                     class="nav-link"
-                                    href="{% url 'accounts:user_list' %}"
+                                    href="{% url 'accounts:pharmacy_detail' %}"
                                 >
-                                    직원 관리
+                                    약국 정보
                                 </a>
                             </li>
                         {% endif %}
-                    {% endif %}
 
-                    {#
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'inventory:medicine_list' %}"
-                        >
-                            재고 관리
-                        </a>
-                    </li>
-                    #}
+                        {% if user.is_approved %}
+                            {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                                <li class="nav-item">
+                                    <a
+                                        class="nav-link"
+                                        href="{% url 'accounts:user_list' %}"
+                                    >
+                                        직원 관리
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if user.pharmacy_id %}
+                            <li class="nav-item">
+                                <a
+                                    class="nav-link"
+                                    href="{% url 'inventory:medicine_list' %}"
+                                >
+                                    재고 관리
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'prescriptions:list' %}"
+                            >
+                                처방전 관리
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'consultations:list' %}"
+                            >
+                                복약 상담 게시판
+                            </a>
+                        </li>
+
+                    {% endif %}
 
                 </ul>
 
-                <div class="ms-auto d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                <div class="ms-auto d-flex align-items-center gap-3 mt-3 mt-lg-0">
 
-                    <span class="text-white">
-                        {{ user.name|default:user.username }}님
-                    </span>
+                    <a
+                        href="{% url 'accounts:my_page' %}"
+                        class="text-white text-decoration-none d-flex align-items-center gap-2"
+                    >
+                        {% if user.profile_image %}
+                            <img
+                                src="{{ user.profile_image.url }}"
+                                alt="{{ user.name|default:user.username }} 프로필"
+                                class="rounded-circle border border-light"
+                                style="
+                                    width: 40px;
+                                    height: 40px;
+                                    object-fit: cover;
+                                "
+                            >
+                        {% else %}
+                            <div
+                                class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center fw-bold"
+                                style="
+                                    width: 40px;
+                                    height: 40px;
+                                    font-size: 18px;
+                                "
+                            >
+                                👤
+                            </div>
+                        {% endif %}
+
+                        <span>
+                            {{ user.name|default:user.username }}님
+                        </span>
+                    </a>
 
                     <form
                         method="post"

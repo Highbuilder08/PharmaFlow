@@ -10,19 +10,17 @@
 </p>
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
-<hr>
 
-<h3>📁 첨부파일</h3>
 <ul>
     {% for attachment in consultation.attachments.all %}
         <li>
             {{ attachment.filename }} 
-            <a href="{{ attachment.file.url }}" target="_blank">[다운로드]</a>
+            <a href="{{ attachment.file.url }}" class="btn btn-primary btn-sm" target="_blank">다운로드</a>
             
             {% if request.user == consultation.writer or request.user.is_superuser %}
             <form action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');" class="btn" style="background-color: #dc3545; padding: 2px 5px; font-size: 11px;">삭제</button>
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('파일을 삭제하시겠습니까?');">삭제</button>
             </form>
             {% endif %}
         </li>
@@ -32,20 +30,20 @@
 </ul>
 <hr>
 
-<a href="{% url 'consultations:list' %}" class="btn">목록으로</a>
+<a href="{% url 'consultations:list' %}" class="btn btn-secondary">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
     <!-- 수정: button 태그를 없애고 a 태그에 btn 클래스 부여 -->
-    <a href="{% url 'consultations:update' consultation.id %}" class="btn">수정</a>
+    <a href="{% url 'consultations:update' consultation.id %}" class="btn btn-secondary">수정</a>
     
     <form action="{% url 'consultations:delete' consultation.id %}" method="POST" style="display:inline;">
         {% csrf_token %}
         <!-- 삭제: 여기도 btn 클래스와 빨간색(danger) 스타일 부여 -->
-        <button type="submit" class="btn" style="background-color: #dc3545;" onclick="return confirm('게시글을 삭제하시겠습니까?');">삭제</button>
+        <button type="submit" class="btn btn-danger" onclick="return confirm('게시글을 삭제하시겠습니까?');">삭제</button>
     </form>
 {% endif %}
 <hr>
 <h3>💬 답변</h3>
-<ul>
+<ul class="list-unstyled mb-4">
     {% for comment in consultation.comments.all %}
         <!-- 💡 data-raw 속성에 원본 텍스트를 숨겨둡니다 -->
         <li class="comment-item" data-author="{{ comment.writer.username }}" data-raw="{{ comment.content }}" style="margin-bottom: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
@@ -70,8 +68,8 @@
                 <!-- 실제 내용 입력창 -->
                 <input type="text" name="content" id="edit-input-{{ comment.id }}" required style="width: 50%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;">
                 
-                <button type="submit" class="btn" style="padding: 3px 10px; font-size: 11px;">저장</button>
-                <button type="button" class="btn cancel-edit-btn" data-id="{{ comment.id }}" style="padding: 3px 10px; font-size: 11px; background-color: #6c757d;">취소</button>
+                <button type="submit" class="btn btn-primary">저장</button>
+                <button type="button" class="btn btn-secondary" data-id="{{ comment.id }}">취소</button>
             </form>
 
             <!-- 시간 표시 -->
@@ -83,18 +81,20 @@
             </small>
 
             <!-- 버튼들 -->
-            <button type="button" id="reply-btn-{{ comment.id }}" class="btn reply-btn" data-username="{{ comment.writer.username }}" style="padding: 2px 8px; font-size: 11px; margin-left: 10px; background-color: #6c757d;">답글</button>
+            <div class="mt-2">
+                <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm" data-username="{{ comment.writer.username }}">답글</button>
 
-            {% if request.user == comment.writer %}
-                <button type="button" id="edit-btn-{{ comment.id }}" class="btn edit-btn" data-id="{{ comment.id }}" style="padding: 2px 8px; font-size: 11px; background-color: #ffc107; color: #000;">수정</button>
-            {% endif %}
+                {% if request.user == comment.writer %}
+                    <button type="button" id="edit-btn-{{ comment.id }}" class="btn btn-secondary btn-sm" data-id="{{ comment.id }}">수정</button>
+                {% endif %}
 
-            {% if request.user == comment.writer or request.user.is_superuser %}
-            <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn" style="padding: 2px 8px; font-size: 11px; background-color: #dc3545;">삭제</button>
-            </form>
-            {% endif %}
+                {% if request.user == comment.writer or request.user.is_superuser %}
+                <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn btn-danger btn-sm">삭제</button>
+                </form>
+                {% endif %}
+            </div>
         </li>
     {% empty %}
         <li>아직 답변이 없습니다.</li>
@@ -105,7 +105,7 @@
 <form method="POST">
     {% csrf_token %}
     <input type="text" name="content" id="comment-input" placeholder="답변을 입력하세요" required style="width: 70%; padding: 10px;">
-    <button type="submit" class="btn">답변 달기</button>
+    <button type="submit" class="btn btn-success">답변 달기</button>
 </form>
 
 <script>
@@ -146,7 +146,11 @@
             item.style.marginLeft = margin + 'px';
             item.style.backgroundColor = '#e9ecef';
             
-            textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold; margin-right: 5px;">↳</span><span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
+            // 🚀 1. <li> 태그 맨 앞(작성자 이름 왼쪽)에 화살표(↳)를 꽂아 넣습니다!
+            item.insertAdjacentHTML('afterbegin', `<span style="color: #0056b3; font-weight: bold; margin-right: 5px; font-size: 1.1em;">↳</span>`);
+            
+            // 🚀 2. 본문 텍스트에는 화살표를 빼고 @태그만 파란색으로 표시합니다.
+            textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
         }
         previousComments.push({ author: author, depth: depth });
     });

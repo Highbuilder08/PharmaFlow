@@ -1,72 +1,82 @@
 {% extends 'base.html' %}
-
-<!-- 본인 프로젝트의 base.html에 맞춰 block 이름을 'content' 또는 'main_content'로 꼭 확인하세요! -->
 {% block content %} 
 
-<h2>처방전 수정 및 약품 추가</h2>
+<div class="container mt-4 mb-5">
+    <h2 class="fw-bold mb-4" style="color: #2c3e50;">💊 처방전 수정 및 약품 추가</h2>
 
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    
-    <!-- 1. 기본 처방전 폼 영역 -->
-    <h3>📝 환자 기본 정보</h3>
-    <div style="background-color: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        {{ form.as_p }}
-        <p><label>추가 첨부파일:</label> <input type="file" name="attachments" multiple></p>
-    </div>
-
-    <!-- 2. 약품 추가 폼셋 영역 -->
-    <h3>💊 처방 약품 관리</h3>
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        {{ formset.management_form }} 
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
         
-        {% if has_stock %}
-            <div id="formset-container">
-                {% for item_form in formset %}
-                    <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                        {{ item_form.as_p }}
-                        
-                        <!-- 👇 새로 추가할 부분: 이미 등록된 약품(ID가 있는 경우)에만 삭제 버튼 표시 -->
-                        {% if item_form.instance.pk %}
-                            <div style="margin-top: 10px; padding: 10px; background-color: #ffeeba; border-radius: 5px;">
-                                <label style="color: #856404; font-weight: bold;">이 약품 삭제하기:</label>
-                                
-                                <!-- 🚨 핵심: form="delete-form-아이디" 속성을 써서 바깥에 있는 폼과 연결합니다! -->
-                                <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required style="padding: 5px; width: 200px;">
-                                <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn" style="background-color: #dc3545; padding: 5px 10px; font-size: 12px;">처방 취소</button>
-                            </div>
-                        {% endif %}
-                        <!-- 👆 추가 끝 -->
-                        
-                    </div>
-                {% endfor %}
+        <!-- 1. 기본 처방전 폼 영역 -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-light border-bottom-0 pt-3 pb-2">
+                <h5 class="fw-bold mb-0 text-primary">📝 환자 기본 정보</h5>
             </div>
-
-            <!-- 추가 버튼과 숨겨진 폼 -->
-            <button type="button" id="add-form-btn" class="btn" style="background-color: #28a745; margin-top: 10px;">+ 약품 칸 추가하기</button>
-            <div id="empty-form" style="display: none;">
-                <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                    {{ formset.empty_form.as_p }}
+            <div class="card-body p-4">
+                {{ form.as_p }}
+                <div class="mt-3 p-3 bg-light rounded border">
+                    <label class="fw-bold mb-2">📎 추가 첨부파일</label> 
+                    <input type="file" name="attachments" multiple class="form-control bg-white">
                 </div>
             </div>
-        {% else %}
-            <!-- 재고 없을 때 -->
-            <p style="color: #ff4757; font-weight: bold; font-size: 16px; margin: 0;">
-                🚨 현재 추가 가능한 약품(재고)이 없습니다. 개발자 2(재고 관리자)에게 문의하세요.
-            </p>
-            <div style="display: none;">
-                {% for item_form in formset %}
-                    {{ item_form.as_p }}
-                {% endfor %}
+        </div>
+
+        <!-- 2. 약품 추가 폼셋 영역 -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-light border-bottom-0 pt-3 pb-2">
+                <h5 class="fw-bold mb-0 text-success">💊 처방 약품 관리</h5>
             </div>
-        {% endif %}
-    </div>
+            <div class="card-body p-4">
+                {{ formset.management_form }} 
+            
+                {% if has_stock %}
+                    <div id="formset-container">
+                        {% for item_form in formset %}
+                            <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
+                                {{ item_form.as_p }}
+                        
+                                <!-- 삭제 영역 디자인 개선 -->
+                                {% if item_form.instance.pk %}
+                                    <div class="bg-light p-3 rounded mt-3 border border-danger border-opacity-25">
+                                        <label class="text-danger fw-bold mb-2">🚨 이 약품 삭제하기:</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required class="form-control w-50">
+                                            <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn btn-danger text-nowrap">처방 취소</button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
 
-    <hr>
-    <button type="submit" class="btn">수정 완료</button>
-    <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn" style="background-color: #6c757d;">취소</a>
-</form>
+                    <button type="button" id="add-form-btn" class="btn btn-outline-success fw-bold mt-2 shadow-sm">+ 약품 칸 추가하기</button>
+                    
+                    <div id="empty-form" style="display: none;">
+                        <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
+                            {{ formset.empty_form.as_p }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger fw-bold mb-0">
+                        🚨 현재 추가 가능한 약품(재고)이 없습니다. 재고 관리자에게 문의하세요.
+                    </div>
+                    <div style="display: none;">
+                        {% for item_form in formset %}
+                            {{ item_form.as_p }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
 
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn btn-light border shadow-sm px-4">취소</a>
+            <button type="submit" class="btn btn-success shadow-sm px-4">수정 완료</button>
+        </div>
+    </form>
+</div>
+
+<!-- 숨겨진 삭제 폼들 -->
 {% for item_form in formset %}
     {% if item_form.instance.pk %}
         <form id="delete-form-{{ item_form.instance.pk }}" action="{% url 'prescriptions:item_delete' item_form.instance.pk %}" method="POST" style="display:none;">
@@ -74,9 +84,58 @@
         </form>
     {% endif %}
 {% endfor %}
+
 <!-- 🚀 업데이트 화면용 자바스크립트 -->
 {% if has_stock %}
 <script>
+    // 1. views.py에서 넘겨준 약품-약국 지도를 가져옵니다.
+    const medPharmacyMap = {{ med_pharmacy_json|safe }};
+    const pharmacySelect = document.getElementById('id_pharmacy'); // 약국 선택 드롭다운
+
+    // 2. 약품을 필터링하는 마법의 함수
+    function filterMedicines() {
+        if (!pharmacySelect) return;
+        
+        const selectedPharmacyId = pharmacySelect.value;
+        const medicineSelects = document.querySelectorAll('select[name$="-medicine"]'); // 모든 약품 드롭다운 찾기
+
+        medicineSelects.forEach(select => {
+            const currentValue = select.value;
+            let valueStillValid = false;
+
+            // 드롭다운 안의 모든 <option>을 검사합니다.
+            Array.from(select.options).forEach(option => {
+                if (option.value === "") return; // '약을 선택하세요'는 항상 보임
+
+                const medId = option.value;
+                const medPharmId = medPharmacyMap[medId];
+
+                // 선택된 약국이 없거나, 이 약이 선택된 약국 소속이면 보여줌!
+                if (!selectedPharmacyId || String(medPharmId) === String(selectedPharmacyId)) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    if (option.value === currentValue) valueStillValid = true;
+                } else {
+                    // 다른 약국 약이면 숨김!
+                    option.hidden = true;
+                    option.disabled = true;
+                }
+            });
+
+            // 만약 기존에 골라둔 약이 다른 약국 약이라서 숨겨졌다면, 선택 초기화
+            if (currentValue && !valueStillValid) {
+                select.value = "";
+            }
+        });
+    }
+
+    // 3. 약국을 바꿀 때마다 필터링 실행
+    if (pharmacySelect) {
+        pharmacySelect.addEventListener('change', filterMedicines);
+        filterMedicines(); // 페이지 처음 켜질 때도 한 번 실행
+    }
+
+    // 4. [+ 약품 칸 추가하기] 버튼을 눌렀을 때도 필터링 적용
     document.getElementById('add-form-btn').addEventListener('click', function() {
         const container = document.getElementById('formset-container');
         const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS'); 
@@ -87,6 +146,9 @@
 
         container.insertAdjacentHTML('beforeend', newFormHtml);
         totalFormsInput.value = formCount + 1;
+        
+        // 👇 새 칸이 추가된 직후에 필터링 함수를 한 번 더 실행해 줍니다!
+        filterMedicines();
     });
 </script>
 {% endif %}

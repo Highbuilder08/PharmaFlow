@@ -13,40 +13,42 @@
 
 <h3>💊 처방 약품 목록</h3>
 
-<table border="1" style="width: 100%;">
-    <tr>
-        <th>약품명</th>
-        <th>제조사</th>
-        <th>복용법</th>
-        <th>복용기간</th>
-        <th>처방수량</th>
-        <!-- ❌ <th>관리</th> 삭제됨 -->
-    </tr>
-    {% for item in prescription.items.all %}
-    <tr>
-        <td>{{ item.medicine.name }}</td>
-        <td>{{ item.medicine.manufacturer }}</td>
-        <td>{{ item.dosage }}</td>
-        <td>{{ item.duration }}</td>
-        <td>{{ item.total_quantity }}개</td>
-        <!-- ❌ 삭제 폼(form) 부분 삭제됨 -->
-    </tr>
-    {% empty %}
-    <tr><td colspan="5">아직 등록된 약품이 없습니다.</td></tr>
-    {% endfor %}
+<table class="table table-hover table-bordered align-middle shadow-sm">
+    <thead class="table-light text-center">
+        <tr>
+            <th>약품명</th>
+            <th>제조사</th>
+            <th>복용법</th>
+            <th>복용기간</th>
+            <th>처방수량</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in prescription.items.all %}
+        <tr>
+            <td>{{ item.medicine.name }}</td>
+            <td>{{ item.medicine.manufacturer }}</td>
+            <td>{{ item.dosage }}</td>
+            <td>{{ item.duration }}</td>
+            <td>{{ item.total_quantity }}개</td>
+            <!-- ❌ 삭제 폼(form) 부분 삭제됨 -->
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">아직 등록된 약품이 없습니다.</td></tr>
+        {% endfor %}
+    </tbody>
 </table>
 
-<h3>첨부파일</h3>
 <ul>
     {% for attachment in prescription.attachments.all %}
         <li>
             {{ attachment.filename }} 
-            <a href="{{ attachment.file.url }}" target="_blank" class="btn">다운로드</a>
+            <a href="{{ attachment.file.url }}" target="_blank" class="btn btn-primary btn-sm">다운로드</a>
             
             {% if request.user == prescription.writer or request.user.is_superuser %}
             <form action="{% url 'prescriptions:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');">첨부파일 삭제</button>
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('파일을 삭제하시겠습니까?');">삭제</button>
             </form>
             {% endif %}
         </li>
@@ -55,12 +57,12 @@
     {% endfor %}
 </ul>
 <hr>
-<a href="{% url 'prescriptions:list' %}" class="btn">목록으로</a>
+<a href="{% url 'prescriptions:list' %}" class="btn btn-secondary">목록으로</a>
 {% if request.user == prescription.writer or request.user.is_superuser %}
-    <a href="{% url 'prescriptions:update' prescription.id %}" class="btn">수정</a>
+    <a href="{% url 'prescriptions:update' prescription.id %}" class="btn btn-warning">수정</a>
     <form action="{% url 'prescriptions:delete' prescription.id %}" method="POST" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" onclick="return confirm('처방전을 삭제하시겠습니까?');">삭제</button>
+        <button type="submit" class="btn btn-danger" onclick="return confirm('처방전을 삭제하시겠습니까?');">삭제</button>
     </form>
 {% endif %}
 {% endblock %}
