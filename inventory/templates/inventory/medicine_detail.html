@@ -1,0 +1,290 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}
+{{ medicine.name }} 상세 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <!-- 약 이름과 재고 상태-->
+        <div class="border-bottom pb-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div
+                            class="d-flex align-items-center justify-content-center bg-light rounded-circle"
+                            style="
+                                width: 56px;
+                                height: 56px;
+                                font-size: 28px;
+                            "
+                        >
+                            💊
+                        </div>
+
+                        <div>
+                            <h1 class="h3 mb-1">
+                                {{ medicine.name }}
+                            </h1>
+
+                            <p class="text-muted mb-1">
+                                {{ medicine.manufacturer }}
+                            </p>
+
+                            <p class="small text-muted mb-0">
+                                소속 약국:
+                                <strong class="text-dark">
+                                    {{ medicine.pharmacy.pharmacy_name }}
+                                </strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 text-md-end">
+                    {% if medicine.is_low_stock %}
+                        <span class="badge bg-danger fs-6 mb-2">
+                            재고 부족
+                        </span>
+                    {% else %}
+                        <span class="badge bg-success fs-6 mb-2">
+                            정상
+                        </span>
+                    {% endif %}
+
+                    <div>
+                        <span class="text-muted small">
+                            현재 재고
+                        </span>
+
+                        <div class="fs-3 fw-bold">
+                            {{ medicine.stock }}개
+                        </div>
+
+                        <div class="text-muted small">
+                            최소 재고 {{ medicine.minimum_stock }}개
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 이미지 -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="border rounded p-3 text-center h-100">
+                    <h2 class="h6 mb-3">
+                        약 상자 이미지
+                    </h2>
+
+                    {% if medicine.box_image %} <!-- 이미지 있을때만 .url을 쓸수 있게 함 -->
+                        <img
+                            src="{{ medicine.box_image.url }}"
+                            alt="{{ medicine.name }} 상자 이미지"
+                            class="img-fluid"
+                            style="
+                                width: 220px;
+                                height: 220px;
+                                object-fit: contain;
+                            "
+                        >
+                    {% else %}
+                        <div
+                            class="d-flex align-items-center justify-content-center bg-light rounded text-muted"
+                            style="height: 220px;"
+                        >
+                            등록된 이미지가 없습니다.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 text-center h-100">
+                    <h2 class="h6 mb-3">
+                        약 이미지
+                    </h2>
+
+                    {% if medicine.medicine_image %}
+                        <img
+                            src="{{ medicine.medicine_image.url }}"
+                            alt="{{ medicine.name }} 이미지"
+                            class="img-fluid"
+                            style="
+                                width: 220px;
+                                height: 220px;
+                                object-fit: contain;
+                            "
+                        >
+                    {% else %}
+                        <div
+                            class="d-flex align-items-center justify-content-center bg-light rounded text-muted"
+                            style="height: 220px;"
+                        >
+                            등록된 이미지가 없습니다.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 기본 정보 -->
+        <div class="border rounded">
+            <div class="p-3 border-bottom bg-light">
+                <h2 class="h5 mb-0">
+                    의약품 상세정보
+                </h2>
+            </div>
+
+            <div class="p-3">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">
+                            소속 약국
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ medicine.pharmacy.pharmacy_name }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">
+                            제조사
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ medicine.manufacturer }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">
+                            등록일
+                        </div>
+
+                        <div>
+                            {{ medicine.created_at|date:"Y-m-d H:i" }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">
+                            수정일
+                        </div>
+
+                        <div>
+                            {{ medicine.updated_at|date:"Y-m-d H:i" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 입출고 -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">
+                    최근 입출고 내역
+                </h2>
+
+                <a
+                    href="{% url 'inventory:transaction_list' %}"
+                    class="btn btn-sm btn-outline-secondary"
+                >
+                    전체 내역 보기
+                </a>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>처리일시</th>
+                                <th>구분</th>
+                                <th>수량</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>
+                                        {{ transaction.created_at|date:"Y-m-d H:i" }}
+                                    </td>
+
+                                    <td>
+                                        {% if transaction.transaction_type == "IN" %}
+                                            <span class="badge bg-primary">
+                                                입고
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">
+                                                출고
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if transaction.transaction_type == "IN" %}
+                                            <span class="text-primary">
+                                                +{{ transaction.quantity }}개
+                                            </span>
+                                        {% else %}
+                                            <span class="text-danger">
+                                                -{{ transaction.quantity }}개
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ transaction.note|default:"-" }}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td
+                                        colspan="4"
+                                        class="text-center text-muted py-4"
+                                    >
+                                        등록된 입출고 내역이 없습니다.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수정/삭제/목록 버튼 -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <a
+                href="{% url 'inventory:medicine_list' %}"
+                class="btn btn-outline-secondary"
+            >
+                목록으로
+            </a>
+
+            <div class="d-flex gap-2">
+                <a
+                    href="{% url 'inventory:medicine_update' medicine.pk %}"
+                    class="btn btn-primary"
+                >
+                    수정
+                </a>
+
+                <a
+                    href="{% url 'inventory:medicine_delete' medicine.pk %}"
+                    class="btn btn-danger"
+                >
+                    삭제
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

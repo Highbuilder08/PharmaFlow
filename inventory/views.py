@@ -73,6 +73,29 @@ def medicine_update(request, pk):
         context,
     )
     
+def medicine_detail(request, pk):
+    medicine = get_object_or_404(
+        Medicine.objects.select_related("pharmacy"),
+        pk=pk,
+    )
+
+    recent_transactions = ( # 해당 의약품의 입출고 기록 가져오기
+        medicine.transactions
+        .select_related("medicine")
+        .all()[:5] # 최근 입출고는 가장 최근 5건까지 표시
+    )
+
+    context = {
+        "medicine": medicine,
+        "recent_transactions": recent_transactions,
+    }
+
+    return render(
+        request,
+        "inventory/medicine_detail.html",
+        context,
+    )
+    
 def medicine_delete(request, pk):
     medicine = get_object_or_404(Medicine, pk=pk)
 
