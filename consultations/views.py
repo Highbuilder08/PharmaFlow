@@ -8,6 +8,7 @@ from django.contrib import messages
 from .models import Consultation, ConsultationComment, ConsultationAttachment
 from .forms import ConsultationForm
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 # 🚨 핵심: consultations 앱에 있는 데코레이터를 빌려옵니다!
 from prescriptions.views import login_message_required 
@@ -19,13 +20,11 @@ def consultation_list(request):
     search_type = request.GET.get('search_type', '')
     q = request.GET.get('q', '')
 
-    # 🚀 공지와 일반글을 완벽하게 분리하여 정렬합니다.
-    # 공지: 'created_at' (오름차순 - 옛날 글이 위로, 나중 글이 아래로)
+    # 1. 공지사항과 일반글 정렬 쿼리
     notices = Consultation.objects.filter(tag='NOTICE').order_by('created_at')
-    # 일반글: '-created_at' (내림차순 - 최신 글이 위로)
     normal_posts = Consultation.objects.exclude(tag='NOTICE').order_by('-created_at')
 
-    # 검색어가 있는 경우 두 묶음 모두에게 검색 적용
+    # 2. 검색어 필터링
     if q:
         if search_type == 'title':
             notices = notices.filter(title__icontains=q)
@@ -33,15 +32,22 @@ def consultation_list(request):
         elif search_type == 'writer':
             notices = notices.filter(writer__username__icontains=q)
             normal_posts = normal_posts.filter(writer__username__icontains=q)
-        else: # 전체
+        else:
             notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
             normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
 
-    # 🚀 두 개의 정렬된 리스트를 하나로 합쳐서 공지가 무조건 맨 위에 오도록 만듭니다!
-    consultations = list(notices) + list(normal_posts)
+    # 두 묶음 병합
+    combined_list = list(notices) + list(normal_posts)
+
+    # 🚀 3. [핵심] 페이징 처리 추가
+    # 한 페이지에 보여줄 글 개수 설정
+    paginator = Paginator(combined_list, 10) 
+    
+    page_number = request.GET.get('page') # URL에서 ?page=2 같은 현재 페이지 번호 받기
+    page_obj = paginator.get_page(page_number) # 해당 페이지의 글들만 쏙 뽑아오기
 
     return render(request, 'consultations/list.html', {
-        'consultations': consultations,
+        'consultations': page_obj, # 👈 기존 combined_list 대신 잘라진 page_obj를 보냅니다!
         'q': q,
         'search_type': search_type
     })

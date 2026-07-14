@@ -59,6 +59,57 @@
     </div>
 </div>
 
+{% if consultations.has_other_pages %}
+<nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
+    <ul class="pagination shadow-sm">
+        
+        <!-- ◀️ 이전 페이지 버튼 -->
+        {% if consultations.has_previous %}
+            <li class="page-item">
+                <!-- 💡 검색 상태를 잃어버리지 않도록 URL 뒤에 &q={{ q }}를 붙여주는 고도의 디테일! -->
+                <a class="page-link text-success" href="?page={{ consultations.previous_page_number }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <!-- 이전 페이지가 없으면 클릭 안 되게 막음(disabled) -->
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+        {% endif %}
+
+        <!-- 1 2 3 페이지 번호들 -->
+        {% for num in consultations.paginator.page_range %}
+            {% if consultations.number == num %}
+                <!-- 현재 보고 있는 페이지는 활성화(active) 표시 -->
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link bg-success border-success text-white">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link text-success" href="?page={{ num }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        <!-- ▶️ 다음 페이지 버튼 -->
+        {% if consultations.has_next %}
+            <li class="page-item">
+                <a class="page-link text-success" href="?page={{ consultations.next_page_number }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <!-- 다음 페이지가 없으면 클릭 안 되게 막음(disabled) -->
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+        {% endif %}
+        
+    </ul>
+</nav>
+{% endif %}
+
 <div class="d-flex justify-content-center mt-4 mb-5">
     <!-- width를 500px에서 600px로 넉넉하게 늘렸습니다 -->
     <form method="GET" action="" class="d-flex gap-2" style="max-width: 600px; width: 100%;">
