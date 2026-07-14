@@ -16,27 +16,36 @@ from prescriptions.views import login_message_required
 # 2. 복약 상담 게시판 (Consultation) CRUD
 # ==========================================
 def consultation_list(request):
-    consultations = Consultation.objects.all().order_by('-created_at')
-    
     search_type = request.GET.get('search_type', '')
     q = request.GET.get('q', '')
 
+    # 🚀 공지와 일반글을 완벽하게 분리하여 정렬합니다.
+    # 공지: 'created_at' (오름차순 - 옛날 글이 위로, 나중 글이 아래로)
+    notices = Consultation.objects.filter(tag='NOTICE').order_by('created_at')
+    # 일반글: '-created_at' (내림차순 - 최신 글이 위로)
+    normal_posts = Consultation.objects.exclude(tag='NOTICE').order_by('-created_at')
+
+    # 검색어가 있는 경우 두 묶음 모두에게 검색 적용
     if q:
         if search_type == 'title':
-            consultations = consultations.filter(title__icontains=q)
+            notices = notices.filter(title__icontains=q)
+            normal_posts = normal_posts.filter(title__icontains=q)
         elif search_type == 'writer':
-            consultations = consultations.filter(writer__username__icontains=q)
-        else: # '전체' 선택 시 (제목 OR 작성자)
-            consultations = consultations.filter(
-                Q(title__icontains=q) | Q(writer__username__icontains=q)
-            )
+            notices = notices.filter(writer__username__icontains=q)
+            normal_posts = normal_posts.filter(writer__username__icontains=q)
+        else: # 전체
+            notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
+            normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
+
+    # 🚀 두 개의 정렬된 리스트를 하나로 합쳐서 공지가 무조건 맨 위에 오도록 만듭니다!
+    consultations = list(notices) + list(normal_posts)
 
     return render(request, 'consultations/list.html', {
         'consultations': consultations,
         'q': q,
         'search_type': search_type
     })
-
+    
 @login_message_required
 def consultation_detail(request, pk):
     consultation = get_object_or_404(Consultation, pk=pk)
@@ -54,20 +63,18 @@ def consultation_detail(request, pk):
 @login_message_required
 def consultation_create(request):
     if request.method == 'POST':
-        # 👇 request.FILES 추가
-        form = ConsultationForm(request.POST, request.FILES)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             consultation = form.save(commit=False)
             consultation.writer = request.user
             consultation.save()
-            
-            # 🚀 넘겨받은 첨부파일들 저장하기
             for f in request.FILES.getlist('attachments'):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
-                
             return redirect('consultations:list')
     else:
-        form = ConsultationForm()
+        # 👇 user=request.user 추가
+        form = ConsultationForm(user=request.user)
     return render(request, 'consultations/create.html', {'form': form})
 
 @login_message_required
@@ -77,18 +84,16 @@ def consultation_update(request, pk):
         return redirect('consultations:detail', pk=pk)
 
     if request.method == 'POST':
-        # 👇 request.FILES 추가
-        form = ConsultationForm(request.POST, request.FILES, instance=consultation)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(request.POST, request.FILES, instance=consultation, user=request.user)
         if form.is_valid():
             form.save()
-            
-            # 🚀 수정할 때 새로 넘겨받은 첨부파일들 추가 저장하기
             for f in request.FILES.getlist('attachments'):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
-                
             return redirect('consultations:detail', pk=pk)
     else:
-        form = ConsultationForm(instance=consultation)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(instance=consultation, user=request.user)
     return render(request, 'consultations/update.html', {'form': form, 'consultation': consultation})
 
 @login_message_required

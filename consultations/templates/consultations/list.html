@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 복약 상담 게시판</h2>
+    <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
     <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
@@ -21,14 +21,25 @@
                 </thead>
                 <tbody class="text-center">
                     {% for post in consultations %}
-                    <tr>
-                        <td class="text-muted">{{ post.id }}</td>
-                        <!-- 제목은 왼쪽 정렬(text-start)을 주어 읽기 편하게 만듭니다 -->
+                    <!-- 🚀 공지글인 경우 부트스트랩 table-warning 클래스를 주어 줄 전체를 노랗고 굵게 칠해줍니다! -->
+                    <tr {% if post.tag == 'NOTICE' %}class="table-warning fw-bold"{% endif %}>
+                        <td class="text-muted">
+                            <!-- 공지글은 번호 대신 메가폰 아이콘을 띄웁니다 -->
+                            {% if post.tag == 'NOTICE' %}
+                                📢
+                            {% else %}
+                                {{ post.id }}
+                            {% endif %}
+                        </td>
                         <td class="text-start px-4">
+                            <!-- 🚀 태그별 어울리는 색상의 배지(Badge) 표시 -->
+                            <span class="badge {% if post.tag == 'NOTICE' %}bg-danger{% elif post.tag == 'QUESTION' %}bg-warning text-dark{% elif post.tag == 'COUNSEL' %}bg-success{% elif post.tag == 'INFO' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-1">
+                                {{ post.get_tag_display }}
+                            </span>
+                            
                             <a href="{% url 'consultations:detail' post.id %}" class="text-dark text-decoration-none fw-bold custom-link">
                                 {{ post.title }}
                             </a>
-                            <!-- 🚀 댓글 개수를 부트스트랩 배지(badge)로 예쁘게 표시 -->
                             {% if post.comments.count > 0 %}
                                 <span class="badge bg-danger rounded-pill ms-1">{{ post.comments.count }}</span>
                             {% endif %}

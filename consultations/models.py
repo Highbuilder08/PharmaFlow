@@ -6,6 +6,22 @@ from django.utils import timezone
 # Create your models here.
 # 4. 복약 상담 게시판 모델
 class Consultation(models.Model):
+    
+    TAG_CHOICES = [
+        ('NOTICE', '공지'),
+        ('CHAT', '잡담'),
+        ('QUESTION', '질문'),
+        ('COUNSEL', '상담'),
+        ('INFO', '정보'),
+    ]
+    
+    tag = models.CharField(
+        max_length=10,
+        choices=TAG_CHOICES,
+        default='CHAT',
+        verbose_name="태그"
+    )
+    
     title = models.CharField(max_length=200, verbose_name="제목")
     content = models.TextField(verbose_name="내용")
     writer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="작성자")

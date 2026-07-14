@@ -18,20 +18,21 @@
         <tr>
             <th>약품명</th>
             <th>제조사</th>
-            <th>복용법</th>
-            <th>복용기간</th>
-            <th>처방수량</th>
+            <th>1회 투약량</th>
+            <th>1일 투여횟수</th>
+            <th>투약일수</th>
+            <th>총 처방수량</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody class="text-center">
         {% for item in prescription.items.all %}
         <tr>
             <td>{{ item.medicine.name }}</td>
             <td>{{ item.medicine.manufacturer }}</td>
-            <td>{{ item.dosage }}</td>
-            <td>{{ item.duration }}</td>
-            <td>{{ item.total_quantity }}개</td>
-            <!-- ❌ 삭제 폼(form) 부분 삭제됨 -->
+            <td>{{ item.dose_amount }}</td>
+            <td>{{ item.daily_doses }}회</td>
+            <td>{{ item.duration_days }}일</td>
+            <td class="fw-bold text-primary">{{ item.total_quantity }}개</td>
         </tr>
         {% empty %}
         <tr><td colspan="5">아직 등록된 약품이 없습니다.</td></tr>

@@ -36,8 +36,9 @@ class PrescriptionItem(models.Model):
     
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, verbose_name="처방 약품", null=True)
     
-    dosage = models.CharField(max_length=50, verbose_name="복용법(예: 1일 3회)")
-    duration = models.CharField(max_length=50, verbose_name="복용기간(예: 5일)")
+    dose_amount = models.PositiveIntegerField(verbose_name="1회 투약량(알/포)", default=1)
+    daily_doses = models.PositiveIntegerField(verbose_name="1일 투여횟수(회)", default=3)
+    duration_days = models.PositiveIntegerField(verbose_name="투약일수(일)", default=3)
     total_quantity = models.PositiveIntegerField(verbose_name="총 처방 수량(알/포)", default=1)
 
 class PrescriptionAttachment(models.Model):
