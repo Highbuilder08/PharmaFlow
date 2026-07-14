@@ -18,8 +18,10 @@ class PrescriptionItemForm(forms.ModelForm):
         fields = ['medicine', 'dosage', 'duration', 'total_quantity']
         
     def __init__(self, *args, **kwargs):
-        # ❌ pharmacy = kwargs.pop('pharmacy', None)  <-- 이 줄 삭제!
         super().__init__(*args, **kwargs)
+        
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
         
         # 🚀 일단 재고가 있는 '모든 약국의 약'을 다 가져옵니다.
         available_medicines = Medicine.objects.filter(stock__gt=0)

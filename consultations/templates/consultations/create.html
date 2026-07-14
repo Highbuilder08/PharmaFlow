@@ -8,7 +8,7 @@
     <!-- 2. 파일 업로드 칸 추가! -->
     <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
     
-    <button type="submit">작성완료</button>
-    <a href="{% url 'consultations:list' %}" class="btn">취소</a>
+    <button type="submit" class="btn btn-success">작성완료</button>
+    <a href="{% url 'consultations:list' %}" class="btn btn-secondary">취소</a>
 </form>
 {% endblock %}
