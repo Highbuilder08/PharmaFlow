@@ -11,6 +11,17 @@ class SignUpForm(UserCreationForm):
         label="이메일",
     )
 
+    profile_image = forms.ImageField(
+        required=False,
+        label="프로필 사진",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+                "accept": "image/*",
+            }
+        ),
+    )
+
     requested_role = forms.ChoiceField(
         choices=(
             (User.Role.OWNER, "점주"),
@@ -70,6 +81,7 @@ class SignUpForm(UserCreationForm):
             "password2",
             "name",
             "email",
+            "profile_image",
             "requested_role",
             "business_number",
             "pharmacy_external_id",
@@ -116,6 +128,7 @@ class SignUpForm(UserCreationForm):
                 "password2",
                 "name",
                 "email",
+                "profile_image",
                 "requested_role",
                 "business_number",
                 "pharmacy_external_id",
@@ -322,6 +335,7 @@ class StaffCreateForm(UserCreationForm):
             "name",
             "email",
             "phone",
+            "profile_image",
         )
 
         labels = {
@@ -329,6 +343,16 @@ class StaffCreateForm(UserCreationForm):
             "name": "이름",
             "email": "이메일",
             "phone": "연락처",
+            "profile_image": "프로필 사진",
+        }
+
+        widgets = {
+            "profile_image": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -345,6 +369,7 @@ class StaffCreateForm(UserCreationForm):
                 "name",
                 "email",
                 "phone",
+                "profile_image",
             ]
         )
 
@@ -358,6 +383,7 @@ class StaffUpdateForm(forms.ModelForm):
             "name",
             "email",
             "phone",
+            "profile_image",
             "is_approved",
         )
 
@@ -365,6 +391,7 @@ class StaffUpdateForm(forms.ModelForm):
             "name": "이름",
             "email": "이메일",
             "phone": "연락처",
+            "profile_image": "프로필 사진",
             "is_approved": "근무 승인",
         }
 
@@ -382,6 +409,12 @@ class StaffUpdateForm(forms.ModelForm):
             "phone": forms.TextInput(
                 attrs={
                     "class": "form-control",
+                }
+            ),
+            "profile_image": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",
                 }
             ),
             "is_approved": forms.CheckboxInput(
