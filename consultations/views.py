@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Consultation, ConsultationComment, ConsultationAttachment
 from .forms import ConsultationForm
+from django.db.models import Q
 
 # 🚨 핵심: consultations 앱에 있는 데코레이터를 빌려옵니다!
 from prescriptions.views import login_message_required 
@@ -16,7 +17,25 @@ from prescriptions.views import login_message_required
 # ==========================================
 def consultation_list(request):
     consultations = Consultation.objects.all().order_by('-created_at')
-    return render(request, 'consultations/list.html', {'consultations': consultations})
+    
+    search_type = request.GET.get('search_type', '')
+    q = request.GET.get('q', '')
+
+    if q:
+        if search_type == 'title':
+            consultations = consultations.filter(title__icontains=q)
+        elif search_type == 'writer':
+            consultations = consultations.filter(writer__username__icontains=q)
+        else: # '전체' 선택 시 (제목 OR 작성자)
+            consultations = consultations.filter(
+                Q(title__icontains=q) | Q(writer__username__icontains=q)
+            )
+
+    return render(request, 'consultations/list.html', {
+        'consultations': consultations,
+        'q': q,
+        'search_type': search_type
+    })
 
 @login_message_required
 def consultation_detail(request, pk):
