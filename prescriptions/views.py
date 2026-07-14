@@ -28,6 +28,9 @@ def login_message_required(view_func):
 # 1. 처방전 (Prescription) CRUD
 # ==========================================
 def prescription_list(request):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
+
     prescriptions = Prescription.objects.all().order_by('-id')
     
     # 🚀 1. HTML 검색창에서 날아온 검색 조건(search_type)과 검색어(q) 받기
@@ -54,11 +57,16 @@ def prescription_list(request):
 
 @login_message_required
 def prescription_detail(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
+    
     prescription = get_object_or_404(Prescription, pk=pk)
     return render(request, 'prescriptions/detail.html', {'prescription': prescription})
 
 @login_message_required
 def prescription_create(request):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     # 🌟 부모(처방전)와 자식(약품) 폼을 하나로 묶어주는 마법의 폼셋!
     ItemFormSet = inlineformset_factory(
         Prescription, 
@@ -119,6 +127,8 @@ def prescription_create(request):
 
 @login_message_required
 def prescription_update(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     prescription = get_object_or_404(Prescription, pk=pk)
     
     # 권한 체크
@@ -186,6 +196,8 @@ def prescription_update(request, pk):
 
 @login_message_required
 def prescription_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     prescription = get_object_or_404(Prescription, pk=pk)
     if request.user == prescription.writer or request.user.is_superuser:
         if request.method == 'POST':
@@ -195,6 +207,8 @@ def prescription_delete(request, pk):
 
 @login_message_required
 def attachment_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     attachment = get_object_or_404(PrescriptionAttachment, pk=pk)
     prescription_pk = attachment.prescription.pk
     if request.user == attachment.prescription.writer or request.user.is_superuser:
@@ -204,6 +218,8 @@ def attachment_delete(request, pk):
 
 @login_message_required
 def prescription_item_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     item = get_object_or_404(PrescriptionItem, pk=pk)
     prescription_pk = item.prescription.pk
     
