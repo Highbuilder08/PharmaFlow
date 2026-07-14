@@ -147,6 +147,14 @@ class User(AbstractUser):
         verbose_name="연락처",
     )
 
+# pip install Pillow 필요
+    profile_image = models.ImageField(
+        upload_to="profiles/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name="프로필 사진",
+    )
+
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
@@ -239,4 +247,7 @@ class PharmacyOwnershipRequest(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.pharmacy.pharmacy_name}"
+        return (
+            f"{self.user.username} - "
+            f"{self.pharmacy.pharmacy_name}"
+        )
