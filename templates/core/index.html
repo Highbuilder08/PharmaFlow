@@ -1,10 +1,236 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}메인 | PharmaFlow{% endblock %}
+{% block title %}
+메인 | PharmaFlow
+{% endblock %}
 
 {% block content %}
-<section class="text-center py-5">
-    <h1>PharmaFlow</h1>
-    <p class="lead">약국 통합 관리 시스템</p>
-</section>
+
+<div class="text-center py-5">
+
+    <img
+        src="{% static 'images/logo_full.png' %}"
+        alt="PharmaFlow 로고"
+        class="img-fluid mb-4"
+        style="max-width: 480px;"
+    >
+
+    <h1 class="fw-bold mb-2">
+        PharmaFlow
+    </h1>
+
+    <p class="lead text-muted mb-5">
+        약국 통합 관리 시스템
+    </p>
+
+    {% if user.is_authenticated %}
+
+        {% if user.is_superuser %}
+
+            <div class="row g-4 justify-content-center">
+
+                <div class="col-md-5 col-lg-4">
+                    <a
+                        href="{% url 'accounts:pharmacy_list' %}"
+                        class="text-decoration-none"
+                    >
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="fs-1 mb-3">
+                                    🏥
+                                </div>
+
+                                <h4 class="text-dark">
+                                    전체 약국 관리
+                                </h4>
+
+                                <p class="text-muted mb-0">
+                                    등록된 약국 정보를 확인하고 관리합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-5 col-lg-4">
+                    <a
+                        href="{% url 'accounts:ownership_request_list' %}"
+                        class="text-decoration-none"
+                    >
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="fs-1 mb-3">
+                                    ✅
+                                </div>
+
+                                <h4 class="text-dark">
+                                    점주 승인
+                                </h4>
+
+                                <p class="text-muted mb-0">
+                                    점주 권한 신청을 확인하고 처리합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-5 col-lg-4">
+                    <a
+                        href="{% url 'prescriptions:audit_logs' %}"
+                        class="text-decoration-none"
+                    >
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="fs-1 mb-3">
+                                    📋
+                                </div>
+
+                                <h4 class="text-dark">
+                                    시스템 로그
+                                </h4>
+
+                                <p class="text-muted mb-0">
+                                    주요 시스템 기록을 확인합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="row g-4 justify-content-center">
+
+                {% if user.pharmacy_id %}
+                    <div class="col-md-6 col-lg-3">
+                        <a
+                            href="{% url 'accounts:pharmacy_detail' %}"
+                            class="text-decoration-none"
+                        >
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body p-4">
+                                    <div class="fs-1 mb-3">
+                                        🏪
+                                    </div>
+
+                                    <h4 class="text-dark">
+                                        약국 정보
+                                    </h4>
+
+                                    <p class="text-muted mb-0">
+                                        소속 약국 정보를 확인합니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
+
+                {% if user.pharmacy_id %}
+                    <div class="col-md-6 col-lg-3">
+                        <a
+                            href="{% url 'inventory:medicine_list' %}"
+                            class="text-decoration-none"
+                        >
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body p-4">
+                                    <div class="fs-1 mb-3">
+                                        💊
+                                    </div>
+
+                                    <h4 class="text-dark">
+                                        재고 관리
+                                    </h4>
+
+                                    <p class="text-muted mb-0">
+                                        의약품과 재고 현황을 관리합니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
+
+                {% if user.is_approved %}
+                    {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                        <div class="col-md-6 col-lg-3">
+                            <a
+                                href="{% url 'accounts:user_list' %}"
+                                class="text-decoration-none"
+                            >
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body p-4">
+                                        <div class="fs-1 mb-3">
+                                            👥
+                                        </div>
+
+                                        <h4 class="text-dark">
+                                            직원 관리
+                                        </h4>
+
+                                        <p class="text-muted mb-0">
+                                            약사와 직원 계정을 관리합니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <div class="col-md-6 col-lg-3">
+                    <a
+                        href="{% url 'consultations:list' %}"
+                        class="text-decoration-none"
+                    >
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="fs-1 mb-3">
+                                    💬
+                                </div>
+
+                                <h4 class="text-dark">
+                                    자유 게시판
+                                </h4>
+
+                                <p class="text-muted mb-0">
+                                    자유롭게 게시글을 작성하고 확인합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    {% else %}
+
+        <div class="d-flex justify-content-center gap-2">
+
+            <a
+                href="{% url 'login' %}"
+                class="btn btn-success btn-lg"
+            >
+                로그인
+            </a>
+
+            <a
+                href="{% url 'accounts:signup' %}"
+                class="btn btn-outline-success btn-lg"
+            >
+                회원가입
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
 {% endblock %}
