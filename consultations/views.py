@@ -19,12 +19,19 @@ from prescriptions.views import login_message_required
 def consultation_list(request):
     search_type = request.GET.get('search_type', '')
     q = request.GET.get('q', '')
+    # 🚀 1. 선택된 태그가 있는지 GET 파라미터에서 꺼냅니다. (기본값은 'all' 전체)
+    selected_tag = request.GET.get('tag', 'all') 
 
-    # 1. 공지사항과 일반글 정렬 쿼리
+    # 공지글과 일반글 기본 쿼리셋 준비
     notices = Consultation.objects.filter(tag='NOTICE').order_by('created_at')
     normal_posts = Consultation.objects.exclude(tag='NOTICE').order_by('-created_at')
 
-    # 2. 검색어 필터링
+    # 🚀 2. [핵심] 사용자가 특정 태그를 선택했다면, 그 태그에 해당하는 글만 필터링!
+    if selected_tag and selected_tag != 'all':
+        notices = notices.filter(tag=selected_tag)
+        normal_posts = normal_posts.filter(tag=selected_tag)
+
+    # 🚀 3. 태그 필터링이 완료된 상태에서 '검색어' 필터링 진행 (태그 안에서 검색 가능!)
     if q:
         if search_type == 'title':
             notices = notices.filter(title__icontains=q)
@@ -32,24 +39,22 @@ def consultation_list(request):
         elif search_type == 'writer':
             notices = notices.filter(writer__username__icontains=q)
             normal_posts = normal_posts.filter(writer__username__icontains=q)
-        else:
+        else: # 전체 검색
             notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
             normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
 
-    # 두 묶음 병합
-    combined_list = list(notices) + list(normal_posts)
+    # 4. 페이징 처리
+    paginator = Paginator(normal_posts, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-    # 🚀 3. [핵심] 페이징 처리 추가
-    # 한 페이지에 보여줄 글 개수 설정
-    paginator = Paginator(combined_list, 10) 
-    
-    page_number = request.GET.get('page') # URL에서 ?page=2 같은 현재 페이지 번호 받기
-    page_obj = paginator.get_page(page_number) # 해당 페이지의 글들만 쏙 뽑아오기
-
+    # 🚀 5. selected_tag를 HTML 템플릿으로 전달하여 버튼 활성화에 씁니다.
     return render(request, 'consultations/list.html', {
-        'consultations': page_obj, # 👈 기존 combined_list 대신 잘라진 page_obj를 보냅니다!
+        'notices': notices,         
+        'consultations': page_obj,  
         'q': q,
-        'search_type': search_type
+        'search_type': search_type,
+        'selected_tag': selected_tag # 👈 추가됨
     })
     
 @login_message_required

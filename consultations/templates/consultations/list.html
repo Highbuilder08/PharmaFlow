@@ -6,6 +6,32 @@
     <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
+<div class="d-flex gap-2 mb-4 flex-wrap">
+    <!-- 전체 버튼 -->
+    <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
+    
+    <!-- 공지 버튼 -->
+    <a href="?tag=NOTICE{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'NOTICE' %}btn-danger{% else %}btn-outline-danger{% endif %}">공지</a>
+    
+    <!-- 잡담 버튼 -->
+    <a href="?tag=CHAT{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'CHAT' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">잡담</a>
+    
+    <!-- 질문 버튼 -->
+    <a href="?tag=QUESTION{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'QUESTION' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">질문</a>
+    
+    <!-- 상담 버튼 -->
+    <a href="?tag=COUNSEL{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'COUNSEL' %}btn-success{% else %}btn-outline-success{% endif %}">상담</a>
+    
+    <!-- 정보 버튼 -->
+    <a href="?tag=INFO{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" 
+       class="btn btn-sm shadow-sm {% if selected_tag == 'INFO' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">정보</a>
+</div>
+
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -20,23 +46,13 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    {% for post in consultations %}
-                    <!-- 🚀 공지글인 경우 부트스트랩 table-warning 클래스를 주어 줄 전체를 노랗고 굵게 칠해줍니다! -->
-                    <tr {% if post.tag == 'NOTICE' %}class="table-warning fw-bold"{% endif %}>
-                        <td class="text-muted">
-                            <!-- 공지글은 번호 대신 메가폰 아이콘을 띄웁니다 -->
-                            {% if post.tag == 'NOTICE' %}
-                                📢
-                            {% else %}
-                                {{ post.id }}
-                            {% endif %}
-                        </td>
+                    
+                    <!-- 🚀 1. 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+                    {% for post in notices %}
+                    <tr class="table-warning fw-bold">
+                        <td class="text-muted">📢</td>
                         <td class="text-start px-4">
-                            <!-- 🚀 태그별 어울리는 색상의 배지(Badge) 표시 -->
-                            <span class="badge {% if post.tag == 'NOTICE' %}bg-danger{% elif post.tag == 'QUESTION' %}bg-warning text-dark{% elif post.tag == 'COUNSEL' %}bg-success{% elif post.tag == 'INFO' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-1">
-                                {{ post.get_tag_display }}
-                            </span>
-                            
+                            <span class="badge bg-danger me-1">{{ post.get_tag_display }}</span>
                             <a href="{% url 'consultations:detail' post.id %}" class="text-dark text-decoration-none fw-bold custom-link">
                                 {{ post.title }}
                             </a>
@@ -48,11 +64,36 @@
                         <td class="text-muted">{{ post.smart_date }}</td>
                         <td class="text-muted">{{ post.views }}</td>
                     </tr>
-                    {% empty %}
+                    {% endfor %}
+
+                    <!-- 🚀 2. 일반 게시글 목록 루프 (10개씩 페이징되어 노출) -->
+                    {% for post in consultations %}
+                    <tr>
+                        <td class="text-muted">{{ post.id }}</td>
+                        <td class="text-start px-4">
+                            <span class="badge {% if post.tag == 'QUESTION' %}bg-warning text-dark{% elif post.tag == 'COUNSEL' %}bg-success{% elif post.tag == 'INFO' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-1">
+                                {{ post.get_tag_display }}
+                            </span>
+                            <a href="{% url 'consultations:detail' post.id %}" class="text-dark text-decoration-none fw-bold custom-link">
+                                {{ post.title }}
+                            </a>
+                            {% if post.comments.count > 0 %}
+                                <span class="badge bg-danger rounded-pill ms-1">{{ post.comments.count }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ post.writer.username }}</td>
+                        <td class="text-muted">{{ post.smart_date }}</td>
+                        <td class="text-muted">{{ post.views }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    <!-- 🚀 3. 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
+                    {% if not notices and not consultations %}
                     <tr>
                         <td colspan="5" class="text-center text-muted py-5">등록된 게시글이 없습니다.</td>
                     </tr>
-                    {% endfor %}
+                    {% endif %}
+                    
                 </tbody>
             </table>
         </div>
@@ -66,8 +107,8 @@
         <!-- ◀️ 이전 페이지 버튼 -->
         {% if consultations.has_previous %}
             <li class="page-item">
-                <!-- 💡 검색 상태를 잃어버리지 않도록 URL 뒤에 &q={{ q }}를 붙여주는 고도의 디테일! -->
-                <a class="page-link text-success" href="?page={{ consultations.previous_page_number }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Previous">
+                <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
+                <a class="page-link text-success" href="?page={{ consultations.previous_page_number }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -81,13 +122,13 @@
         <!-- 1 2 3 페이지 번호들 -->
         {% for num in consultations.paginator.page_range %}
             {% if consultations.number == num %}
-                <!-- 현재 보고 있는 페이지는 활성화(active) 표시 -->
                 <li class="page-item active" aria-current="page">
                     <span class="page-link bg-success border-success text-white">{{ num }}</span>
                 </li>
             {% else %}
                 <li class="page-item">
-                    <a class="page-link text-success" href="?page={{ num }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}">{{ num }}</a>
+                    <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
+                    <a class="page-link text-success" href="?page={{ num }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}">{{ num }}</a>
                 </li>
             {% endif %}
         {% endfor %}
@@ -95,11 +136,11 @@
         <!-- ▶️ 다음 페이지 버튼 -->
         {% if consultations.has_next %}
             <li class="page-item">
-                <a class="page-link text-success" href="?page={{ consultations.next_page_number }}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Next">
+                <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
+                <a class="page-link text-success" href="?page={{ consultations.next_page_number }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
-        {% else %}
             <!-- 다음 페이지가 없으면 클릭 안 되게 막음(disabled) -->
             <li class="page-item disabled">
                 <span class="page-link">&raquo;</span>
@@ -111,8 +152,11 @@
 {% endif %}
 
 <div class="d-flex justify-content-center mt-4 mb-5">
-    <!-- width를 500px에서 600px로 넉넉하게 늘렸습니다 -->
-    <form method="GET" action="" class="d-flex gap-2" style="max-width: 600px; width: 100%;">
+    <form method="GET" action="{% url 'consultations:list' %}" class="d-flex gap-2" style="max-width: 600px; width: 100%;">
+        
+        {% if selected_tag %}
+            <input type="hidden" name="tag" value="{{ selected_tag }}">
+        {% endif %}
         
         <!-- 검색 조건 선택 드롭다운 (flex-shrink-0으로 찌그러짐 방지) -->
         <select name="search_type" class="form-select shadow-sm" style="width: 130px; flex-shrink: 0;">
