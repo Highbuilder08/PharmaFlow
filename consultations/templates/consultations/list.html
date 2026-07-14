@@ -16,7 +16,6 @@
         <td>
             <a href="{% url 'consultations:detail' post.id %}">{{ post.title }}</a>
             
-            <!-- 댓글이 1개 이상일 때만 [숫자]를 빨간색으로 예쁘게 띄워줍니다 -->
                 {% if post.comments.count > 0 %}
                 <span style="color: #ff4757; font-weight: bold; font-size: 13px; margin-left: 5px;">
                     [{{ post.comments.count }}]
