@@ -1,76 +1,82 @@
 {% extends 'base.html' %}
-
-<!-- 본인 프로젝트의 base.html에 맞춰 block 이름을 'content' 또는 'main_content'로 꼭 확인하세요! -->
 {% block content %} 
 
-<h2>처방전 수정 및 약품 추가</h2>
+<div class="container mt-4 mb-5">
+    <h2 class="fw-bold mb-4" style="color: #2c3e50;">💊 처방전 수정 및 약품 추가</h2>
 
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    
-    <!-- 1. 기본 처방전 폼 영역 -->
-    <h3>📝 환자 기본 정보</h3>
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            {{ form.as_p }}
-            <p><label>추가 첨부파일:</label> <input type="file" name="attachments" multiple></p>
-        </div>
-    </div>
-
-    <!-- 2. 약품 추가 폼셋 영역 -->
-    <h3>💊 처방 약품 관리</h3>
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            {{ formset.management_form }} 
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
         
-            {% if has_stock %}
-                <div id="formset-container">
-                    {% for item_form in formset %}
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-body">
+        <!-- 1. 기본 처방전 폼 영역 -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-light border-bottom-0 pt-3 pb-2">
+                <h5 class="fw-bold mb-0 text-primary">📝 환자 기본 정보</h5>
+            </div>
+            <div class="card-body p-4">
+                {{ form.as_p }}
+                <div class="mt-3 p-3 bg-light rounded border">
+                    <label class="fw-bold mb-2">📎 추가 첨부파일</label> 
+                    <input type="file" name="attachments" multiple class="form-control bg-white">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 약품 추가 폼셋 영역 -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-light border-bottom-0 pt-3 pb-2">
+                <h5 class="fw-bold mb-0 text-success">💊 처방 약품 관리</h5>
+            </div>
+            <div class="card-body p-4">
+                {{ formset.management_form }} 
+            
+                {% if has_stock %}
+                    <div id="formset-container">
+                        {% for item_form in formset %}
+                            <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
                                 {{ item_form.as_p }}
                         
-                                <!-- 👇 새로 추가할 부분: 이미 등록된 약품(ID가 있는 경우)에만 삭제 버튼 표시 -->
+                                <!-- 삭제 영역 디자인 개선 -->
                                 {% if item_form.instance.pk %}
-                                    <div class="bg-light p-3 rounded mt-3 border">
-                                        <label class="text-danger fw-bold mb-2">🚨 이 약품 삭제하기:</label><br>
-                                        <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required class="form-control d-inline-block w-auto me-2">
-                                        <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn btn-danger">처방 취소</button>
+                                    <div class="bg-light p-3 rounded mt-3 border border-danger border-opacity-25">
+                                        <label class="text-danger fw-bold mb-2">🚨 이 약품 삭제하기:</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required class="form-control w-50">
+                                            <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn btn-danger text-nowrap">처방 취소</button>
+                                        </div>
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-                    {% endfor %}
-                </div>
-
-            <!-- 추가 버튼과 숨겨진 폼 -->
-            <button type="button" id="add-form-btn" class="btn btn-success">+ 약품 칸 추가하기</button>
-            <div id="empty-form" style="display: none;">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        {{ formset.empty_form.as_p }}
+                        {% endfor %}
                     </div>
-                </div>
+
+                    <button type="button" id="add-form-btn" class="btn btn-outline-success fw-bold mt-2 shadow-sm">+ 약품 칸 추가하기</button>
+                    
+                    <div id="empty-form" style="display: none;">
+                        <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
+                            {{ formset.empty_form.as_p }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger fw-bold mb-0">
+                        🚨 현재 추가 가능한 약품(재고)이 없습니다. 재고 관리자에게 문의하세요.
+                    </div>
+                    <div style="display: none;">
+                        {% for item_form in formset %}
+                            {{ item_form.as_p }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
-        {% else %}
-            <!-- 재고 없을 때 -->
-            <p style="color: #ff4757; font-weight: bold; font-size: 16px; margin: 0;">
-                🚨 현재 추가 가능한 약품(재고)이 없습니다. 재고 관리자에게 문의하세요.
-            </p>
-            <div style="display: none;">
-                {% for item_form in formset %}
-                    {{ item_form.as_p }}
-                {% endfor %}
-            </div>
-        {% endif %}
         </div>
-    </div>
 
-    <hr>
-    <button type="submit" class="btn btn-success">수정 완료</button>
-    <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn btn-secondary">취소</a>
-</form>
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'prescriptions:detail' prescription.id %}" class="btn btn-light border shadow-sm px-4">취소</a>
+            <button type="submit" class="btn btn-success shadow-sm px-4">수정 완료</button>
+        </div>
+    </form>
+</div>
 
+<!-- 숨겨진 삭제 폼들 -->
 {% for item_form in formset %}
     {% if item_form.instance.pk %}
         <form id="delete-form-{{ item_form.instance.pk }}" action="{% url 'prescriptions:item_delete' item_form.instance.pk %}" method="POST" style="display:none;">
@@ -78,6 +84,7 @@
         </form>
     {% endif %}
 {% endfor %}
+
 <!-- 🚀 업데이트 화면용 자바스크립트 -->
 {% if has_stock %}
 <script>
