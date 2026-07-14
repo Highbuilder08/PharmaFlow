@@ -20,6 +20,12 @@
     </title>
 
     <link
+        rel="icon"
+        type="image/png"
+        href="{% static 'images/favicon.png' %}"
+    >
+
+    <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
@@ -32,24 +38,14 @@
 
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+<nav class="navbar navbar-expand-lg navbar-dark bg-success py-2">
     <div class="container">
 
         <a
-            class="navbar-brand d-flex align-items-center gap-2"
+            class="navbar-brand fw-bold"
             href="{% url 'core:index' %}"
         >
-
-            <img
-                src="{% static 'images/logo_symbol.png' %}"
-                alt="PharmaFlow"
-                height="42"
-            >
-
-            <span class="fw-bold">
-                PharmaFlow
-            </span>
-
+            PharmaFlow
         </a>
 
         {% if user.is_authenticated %}
@@ -141,16 +137,20 @@
 
                     {% endif %}
 
-                    {% comment %} <li class="nav-item">
+                    {% comment %}
+                    처방전 관리 기능 활성화 시 주석 해제
+
+                    <li class="nav-item">
                         <a
                             class="nav-link"
                             href="{% url 'prescriptions:list' %}"
                         >
                             처방전 관리
                         </a>
-                    </li> {% endcomment %}
+                    </li>
+                    {% endcomment %}
 
-                     <li class="nav-item">
+                    <li class="nav-item">
                         <a
                             class="nav-link"
                             href="{% url 'consultations:list' %}"
@@ -170,21 +170,21 @@
                         {% if user.profile_image %}
                             <img
                                 src="{{ user.profile_image.url }}"
-                                alt="{{ user.name|default:user.username }} 프로필"
+                                alt="{{ user.name|default:user.username }} 프로필 사진"
                                 class="rounded-circle border border-light"
                                 style="
-                                    width: 40px;
-                                    height: 40px;
-                                    object-fit: cover;
+                                    width:38px;
+                                    height:38px;
+                                    object-fit:cover;
                                 "
                             >
                         {% else %}
                             <div
                                 class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center fw-bold"
                                 style="
-                                    width: 40px;
-                                    height: 40px;
-                                    font-size: 18px;
+                                    width:38px;
+                                    height:38px;
+                                    font-size:17px;
                                 "
                             >
                                 👤
@@ -267,7 +267,15 @@
 
 <footer class="bg-light mt-5 py-3 border-top">
     <div class="container text-center">
-        PharmaFlow © 2026
+
+        <div>
+            PharmaFlow © 2026
+        </div>
+
+        <div class="small text-muted mt-1">
+            약국 통합 관리 시스템
+        </div>
+
     </div>
 </footer>
 
