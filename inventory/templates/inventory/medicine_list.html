@@ -10,8 +10,10 @@
             등록된 의약품의 현재 재고를 확인합니다.
         </p>
     </div>
-
-    <a href="{% url 'inventory:medicine_create' %}" class="btn btn-success">의약품 등록</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'inventory:transaction_list' %}" class="btn btn-outline-success">입출고 내역</a>
+        <a href="{% url 'inventory:medicine_create' %}" class="btn btn-success">의약품 등록</a>
+    </div>
 </div>
 
 <div class="card shadow-sm">

@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages  # 👈 메시지 띄우기용
 from functools import wraps          # 👈 데코레이터 만들기용
@@ -73,7 +74,9 @@ def prescription_create(request):
                 InventoryTransaction.objects.create(
                     medicine=medicine,
                     transaction_type='OUT',
-                    quantity=item.total_quantity
+                    quantity=item.total_quantity,
+                    created_by=request.user,
+                    note=f"처방전 #{prescription.id} 발급 출고"
                 )
                 
             return redirect('prescriptions:detail', pk=prescription.id)
@@ -81,9 +84,14 @@ def prescription_create(request):
         form = PrescriptionForm()
         formset = ItemFormSet()
         
+        medicines = Medicine.objects.filter(stock__gt=0)
+        med_pharmacy_map = {med.id: med.pharmacy_id for med in medicines}
+
+        
     return render(request, 'prescriptions/create.html', {
         'form': form, 
-        'formset': formset
+        'formset': formset,
+        'med_pharmacy_json': json.dumps(med_pharmacy_map) 
     })
 
 @login_message_required
@@ -129,7 +137,9 @@ def prescription_update(request, pk):
                     InventoryTransaction.objects.create(
                         medicine=medicine,
                         transaction_type='OUT',
-                        quantity=item.total_quantity
+                        quantity=item.total_quantity,
+                        created_by=request.user,
+                        note=f"처방전 #{prescription.id} 추가 처방 출고"
                     )
             return redirect('prescriptions:detail', pk=pk)
     else:
@@ -138,12 +148,17 @@ def prescription_update(request, pk):
 
     # 💡 화면에 '재고 없음' 문구를 띄우기 위해 재고가 있는지 미리 검사
     has_stock = Medicine.objects.filter(stock__gt=0).exists()
+    
+    # 👇 추가: JS가 약국별로 약을 필터링할 수 있게 지도(Map)를 만듭니다.
+    medicines = Medicine.objects.filter(stock__gt=0)
+    med_pharmacy_map = {med.id: med.pharmacy_id for med in medicines}
 
     return render(request, 'prescriptions/update.html', {
         'form': form, 
         'formset': formset, 
         'prescription': prescription,
-        'has_stock': has_stock # HTML로 검사 결과 전달
+        'has_stock': has_stock, # HTML로 검사 결과 전달
+        'med_pharmacy_json': json.dumps(med_pharmacy_map) # 👈 추가: HTML로 지도 넘겨주기
     })
 
 @login_message_required
@@ -186,7 +201,9 @@ def prescription_item_delete(request, pk):
             InventoryTransaction.objects.create(
                 medicine=medicine,
                 transaction_type='IN',
-                quantity=item.total_quantity
+                quantity=item.total_quantity,
+                created_by=request.user,
+                note=f"처방전 #{prescription_pk} 처방 취소로 인한 복구"
             )
             
             # 🚀 2. 관리자용 로그에 삭제 기록 및 사유 남기기

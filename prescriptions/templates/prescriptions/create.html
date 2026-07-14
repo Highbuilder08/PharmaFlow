@@ -7,34 +7,42 @@
     
     <!-- 1. 기본 처방전 폼 영역 -->
     <h3>📝 환자 기본 정보</h3>
-    <div style="background-color: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
-        {{ form.as_p }}
-        <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <p><label>첨부파일:</label> <input type="file" name="attachments" multiple></p>
+        </div>
     </div>
 
 <!-- 2. 약품 폼셋 영역 -->
     <h3>💊 처방 약품 추가</h3>
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
         
-        <!-- 필수: 폼셋 관리 데이터 (TOTAL_FORMS 등을 관리) -->
-        {{ formset.management_form }} 
+            <!-- 필수: 폼셋 관리 데이터 (TOTAL_FORMS 등을 관리) -->
+            {{ formset.management_form }} 
         
-        <!-- 약품 입력 칸들이 들어갈 뼈대(Container) -->
-        <div id="formset-container">
-            {% for item_form in formset %}
-                <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                    {{ item_form.as_p }}
-                </div>
-            {% endfor %}
+            <!-- 약품 입력 칸들이 들어갈 뼈대(Container) -->
+            <div id="formset-container">
+                {% for item_form in formset %}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                        {{ item_form.as_p }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
+    </div>
 
         <!-- 👇 추가 버튼 -->
-        <button type="button" id="add-form-btn" class="btn" style="background-color: #28a745; margin-top: 10px;">+ 약품 칸 추가하기</button>
+        <button type="button" id="add-form-btn" class="btn btn-success">+ 약품 칸 추가하기</button>
 
         <!-- 👇 JS가 복사해갈 숨겨진 원본 폼 (empty_form) -->
         <div id="empty-form" style="display: none;">
-            <div class="item-form" style="border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                {{ formset.empty_form.as_p }}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    {{ formset.empty_form.as_p }}
+                </div>
             </div>
         </div>
 
@@ -42,8 +50,8 @@
 
     <!-- 3. 제출 및 취소 버튼 -->
     <hr>
-    <button type="submit" class="btn">처방전 및 약품 등록하기</button>
-    <a href="{% url 'prescriptions:list' %}" class="btn" style="background-color: #6c757d;">취소</a>
+    <button type="submit" class="btn btn-success">처방전 및 약품 등록하기</button>
+    <a href="{% url 'prescriptions:list' %}" class="btn btn=secondary">취소</a>
 </form>
 
 <!-- 🚀 마법의 자바스크립트 코드 -->
@@ -61,6 +69,69 @@
         // 컨테이너 맨 밑에 새 폼을 추가하고, 총 개수를 1 늘려줌
         container.insertAdjacentHTML('beforeend', newFormHtml);
         totalFormsInput.value = formCount + 1;
+    });
+
+    // 1. views.py에서 넘겨준 약품-약국 지도를 가져옵니다.
+    const medPharmacyMap = {{ med_pharmacy_json|safe }};
+    const pharmacySelect = document.getElementById('id_pharmacy'); // 약국 선택 드롭다운
+
+    // 2. 약품을 필터링하는 마법의 함수
+    function filterMedicines() {
+        if (!pharmacySelect) return;
+        
+        const selectedPharmacyId = pharmacySelect.value;
+        const medicineSelects = document.querySelectorAll('select[name$="-medicine"]'); // 모든 약품 드롭다운 찾기
+
+        medicineSelects.forEach(select => {
+            const currentValue = select.value;
+            let valueStillValid = false;
+
+            // 드롭다운 안의 모든 <option>을 검사합니다.
+            Array.from(select.options).forEach(option => {
+                if (option.value === "") return; // '약을 선택하세요'는 항상 보임
+
+                const medId = option.value;
+                const medPharmId = medPharmacyMap[medId];
+
+                // 선택된 약국이 없거나, 이 약이 선택된 약국 소속이면 보여줌!
+                if (!selectedPharmacyId || String(medPharmId) === String(selectedPharmacyId)) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    if (option.value === currentValue) valueStillValid = true;
+                } else {
+                    // 다른 약국 약이면 숨김!
+                    option.hidden = true;
+                    option.disabled = true;
+                }
+            });
+
+            // 만약 기존에 골라둔 약이 다른 약국 약이라서 숨겨졌다면, 선택 초기화
+            if (currentValue && !valueStillValid) {
+                select.value = "";
+            }
+        });
+    }
+
+    // 3. 약국을 바꿀 때마다 필터링 실행
+    if (pharmacySelect) {
+        pharmacySelect.addEventListener('change', filterMedicines);
+        filterMedicines(); // 페이지 처음 켜질 때도 한 번 실행
+    }
+
+    // 4. [+ 약품 칸 추가하기] 버튼을 눌렀을 때도 필터링 적용
+    document.getElementById('add-form-btn').addEventListener('click', function() {
+        const container = document.getElementById('formset-container');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS'); 
+        let formCount = parseInt(totalFormsInput.value);
+
+        const emptyFormHtml = document.getElementById('empty-form').innerHTML;
+        const newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+
+        container.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = formCount + 1;
+        
+        // 👇 새 칸이 추가된 직후에 필터링 함수를 한 번 더 실행해 줍니다!
+        filterMedicines();
     });
 </script>
 
