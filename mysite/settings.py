@@ -6,7 +6,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # 보안 설정
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = os.environ.get(
+    # "DJANGO_SECRET_KEY",
+    (
+        "django-insecure-"
+        "tjnh9avp0%gm899n96r%@)j3q4h!_hddy#==&or3^*eom8pg&t"
+    ),
+)
 
 DEBUG = os.environ.get(
     "DJANGO_DEBUG",
