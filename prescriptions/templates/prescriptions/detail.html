@@ -48,7 +48,7 @@
             {% if request.user == prescription.writer or request.user.is_superuser %}
             <form action="{% url 'prescriptions:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('파일을 삭제하시겠습니까?');">첨부파일 삭제</button>
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('파일을 삭제하시겠습니까?');">삭제</button>
             </form>
             {% endif %}
         </li>
