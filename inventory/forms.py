@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Medicine
+from .models import Medicine, InventoryTransaction
 
 
 class MedicineForm(forms.ModelForm):
@@ -23,6 +23,35 @@ class MedicineForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs["class"] = "form-control"
+
+
+class InventoryTransactionForm(forms.ModelForm):
+
+    class Meta:
+        model = InventoryTransaction
+        fields = (
+            "medicine",
+            "transaction_type",
+            "quantity",
+            "note",
+        )
+
+        labels = {
+            "medicine": "의약품",
+            "transaction_type": "구분",
+            "quantity": "수량",
+            "note": "비고",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["medicine"].queryset = (
+            Medicine.objects.order_by("name")
+        )
 
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
