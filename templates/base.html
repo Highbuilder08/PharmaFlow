@@ -64,6 +64,7 @@
                 <ul class="navbar-nav ms-lg-4">
 
                     {% if user.is_superuser %}
+
                         <li class="nav-item">
                             <a
                                 class="nav-link"
@@ -82,40 +83,42 @@
                             </a>
                         </li>
 
-                    {% elif user.pharmacy_id %}
-                        <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                href="{% url 'accounts:pharmacy_detail' %}"
-                            >
-                                약국 정보
-                            </a>
-                        </li>
-                    {% endif %}
+                    {% else %}
 
-                    {% if user.is_approved %}
-                        {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                        {% if user.pharmacy_id %}
                             <li class="nav-item">
                                 <a
                                     class="nav-link"
-                                    href="{% url 'accounts:user_list' %}"
+                                    href="{% url 'accounts:pharmacy_detail' %}"
                                 >
-                                    직원 관리
+                                    약국 정보
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a
+                                    class="nav-link"
+                                    href="{% url 'inventory:medicine_list' %}"
+                                >
+                                    재고 관리
                                 </a>
                             </li>
                         {% endif %}
-                    {% endif %}
 
-                    {#
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'inventory:medicine_list' %}"
-                        >
-                            재고 관리
-                        </a>
-                    </li>
-                    #}
+                        {% if user.is_approved %}
+                            {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                                <li class="nav-item">
+                                    <a
+                                        class="nav-link"
+                                        href="{% url 'accounts:user_list' %}"
+                                    >
+                                        직원 관리
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+
+                    {% endif %}
 
                     <li class="nav-item">
                         <a
