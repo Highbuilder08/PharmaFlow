@@ -36,10 +36,20 @@
     <div class="container">
 
         <a
-            class="navbar-brand fw-bold"
+            class="navbar-brand d-flex align-items-center gap-2"
             href="{% url 'core:index' %}"
         >
-            PharmaFlow
+
+            <img
+                src="{% static 'images/logo_symbol.png' %}"
+                alt="PharmaFlow"
+                height="42"
+            >
+
+            <span class="fw-bold">
+                PharmaFlow
+            </span>
+
         </a>
 
         {% if user.is_authenticated %}
