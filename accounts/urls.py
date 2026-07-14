@@ -25,7 +25,9 @@ urlpatterns = [
     path("users/create/", views.user_create, name="user_create"),
     path("users/<int:pk>/update/", views.user_update, name="user_update"),
     path("users/<int:pk>/delete/", views.user_delete, name="user_delete"),
-
+    path("users/<int:pk>/approve/", views.user_approve, name="user_approve"),
+    path("users/<int:pk>/revoke/", views.user_revoke, name="user_revoke"),
+    
     # 점주 승인
     path("ownership-requests/", views.ownership_request_list, name="ownership_request_list"),
     path("ownership-requests/<int:pk>/approve/", views.ownership_request_approve, name="ownership_request_approve"),

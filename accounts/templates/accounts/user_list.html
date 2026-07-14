@@ -35,6 +35,7 @@
                         <th>아이디</th>
                         <th>이름</th>
                         <th>역할</th>
+                        <th>승인 상태</th>
                         <th class="text-center">관리</th>
                     </tr>
                 </thead>
@@ -54,14 +55,67 @@
                                 {{ account.get_role_display }}
                             </td>
 
+                            <td>
+                                {% if account.is_approved %}
+                                    <span class="badge bg-success">
+                                        승인 완료
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        승인 대기
+                                    </span>
+                                {% endif %}
+                            </td>
+
                             <td class="text-center">
 
-                                <a
-                                    href="{% url 'accounts:user_update' account.pk %}"
-                                    class="btn btn-outline-success btn-sm"
-                                >
-                                    수정
-                                </a>
+                                {% if request.user.role == "OWNER" %}
+
+                                    {% if account.is_approved %}
+                                        <form
+                                            method="post"
+                                            action="{% url 'accounts:user_revoke' account.pk %}"
+                                            class="d-inline"
+                                            onsubmit="return confirm('이 사용자의 승인을 취소하시겠습니까?');"
+                                        >
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-outline-warning btn-sm"
+                                            >
+                                                승인 취소
+                                            </button>
+                                        </form>
+
+                                    {% else %}
+                                        <form
+                                            method="post"
+                                            action="{% url 'accounts:user_approve' account.pk %}"
+                                            class="d-inline"
+                                            onsubmit="return confirm('이 사용자를 승인하시겠습니까?');"
+                                        >
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-success btn-sm"
+                                            >
+                                                승인
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                {% endif %}
+
+                                {% if account.is_approved %}
+                                    <a
+                                        href="{% url 'accounts:user_update' account.pk %}"
+                                        class="btn btn-outline-success btn-sm"
+                                    >
+                                        수정
+                                    </a>
+                                {% endif %}
 
                                 <form
                                     method="post"
@@ -85,10 +139,10 @@
                     {% empty %}
                         <tr>
                             <td
-                                colspan="4"
+                                colspan="5"
                                 class="text-center text-muted py-4"
                             >
-                                등록된 직원이 없습니다.
+                                등록된 사용자가 없습니다.
                             </td>
                         </tr>
                     {% endfor %}

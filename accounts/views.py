@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
 from django.db import IntegrityError, transaction
 
-from .decorators import staff_manager_required, superuser_required
+from .decorators import owner_required, staff_manager_required, superuser_required
 from .models import Pharmacy, PharmacyOwnershipRequest, User
 from .forms import (
     PharmacyUpdateForm,
@@ -466,10 +466,16 @@ def user_list(request):
     users = (
         User.objects.filter(
             pharmacy=request.user.pharmacy,
-            role=User.Role.STAFF,
+            role__in=[
+                User.Role.PHARMACIST,
+                User.Role.STAFF,
+            ],
             is_superuser=False,
         )
+        .exclude(pk=request.user.pk)
         .order_by(
+            "is_approved",
+            "role",
             "name",
             "username",
         )
@@ -807,3 +813,60 @@ def pharmacy_admin_update(request, pk):
             "cancel_url_name": "accounts:pharmacy_list",
         },
     )
+    
+
+@login_required
+@staff_manager_required
+@require_POST
+def user_approve(request, pk):
+    target_user = get_object_or_404(
+        User,
+        pk=pk,
+        pharmacy=request.user.pharmacy,
+        role__in=[
+            User.Role.PHARMACIST,
+            User.Role.STAFF,
+        ],
+        is_superuser=False,
+    )
+
+    target_user.is_approved = True
+    target_user.save(
+        update_fields=["is_approved"]
+    )
+
+    messages.success(
+        request,
+        f"{target_user.name} 사용자를 승인했습니다.",
+    )
+
+    return redirect("accounts:user_list")
+
+
+@login_required
+@staff_manager_required
+@require_POST
+def user_revoke(request, pk):
+    target_user = get_object_or_404(
+        User,
+        pk=pk,
+        pharmacy=request.user.pharmacy,
+        role__in=[
+            User.Role.PHARMACIST,
+            User.Role.STAFF,
+        ],
+        is_superuser=False,
+    )
+
+    target_user.is_approved = False
+    target_user.save(
+        update_fields=["is_approved"]
+    )
+
+    messages.success(
+        request,
+        f"{target_user.name} 사용자의 승인을 취소했습니다.",
+    )
+
+    return redirect("accounts:user_list")
+
