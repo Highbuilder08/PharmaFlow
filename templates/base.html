@@ -83,6 +83,15 @@
                             </a>
                         </li>
 
+                        <li class="nav-item">
+                            <a
+                                class="nav-link text-warning fw-bold"
+                                href="{% url 'prescriptions:audit_logs' %}"
+                            >
+                                시스템 로그
+                            </a>
+                        </li>
+
                     {% else %}
 
                         {% if user.pharmacy_id %}
@@ -120,44 +129,62 @@
                             </li>
                         {% endif %}
 
-                    {% endif %}
-
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'prescriptions:list' %}"
-                        >
-                            처방전 관리
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'consultations:list' %}"
-                        >
-                            복약 상담 게시판
-                        </a>
-                    </li>
-
-                    {% if user.is_superuser %}
                         <li class="nav-item">
                             <a
-                                class="nav-link text-warning fw-bold"
-                                href="{% url 'prescriptions:audit_logs' %}"
+                                class="nav-link"
+                                href="{% url 'prescriptions:list' %}"
                             >
-                                시스템 로그
+                                처방전 관리
                             </a>
                         </li>
+
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'consultations:list' %}"
+                            >
+                                복약 상담 게시판
+                            </a>
+                        </li>
+
                     {% endif %}
 
                 </ul>
 
-                <div class="ms-auto d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                <div class="ms-auto d-flex align-items-center gap-3 mt-3 mt-lg-0">
 
-                    <span class="text-white">
-                        {{ user.name|default:user.username }}님
-                    </span>
+                    <a
+                        href="{% url 'accounts:my_page' %}"
+                        class="text-white text-decoration-none d-flex align-items-center gap-2"
+                    >
+                        {% if user.profile_image %}
+                            <img
+                                src="{{ user.profile_image.url }}"
+                                alt="{{ user.name|default:user.username }} 프로필"
+                                class="rounded-circle border border-light"
+                                style="
+                                    width: 40px;
+                                    height: 40px;
+                                    object-fit: cover;
+                                "
+                            >
+                        {% else %}
+                            <div
+                                class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center fw-bold"
+                                style="
+                                    width: 40px;
+                                    height: 40px;
+                                    font-size: 18px;
+                                "
+                            >
+                                👤
+                            </div>
+                        {% endif %}
+
+                        <span>
+                            {{ user.name|default:user.username }}님
+                        </span>
+                    </a>
 
                     <form
                         method="post"
