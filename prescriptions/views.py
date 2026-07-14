@@ -6,6 +6,7 @@ from .models import Prescription, PrescriptionAttachment, PrescriptionItem, Audi
 from inventory.models import Medicine, InventoryTransaction # 약국 재고 가져오기
 from django.forms import inlineformset_factory 
 from .forms import PrescriptionForm, PrescriptionItemForm 
+from django.db.models import Q
 
 def login_message_required(view_func):
     @wraps(view_func)
@@ -28,7 +29,28 @@ def login_message_required(view_func):
 # ==========================================
 def prescription_list(request):
     prescriptions = Prescription.objects.all().order_by('-id')
-    return render(request, 'prescriptions/list.html', {'prescriptions': prescriptions})
+    
+    # 🚀 1. HTML 검색창에서 날아온 검색 조건(search_type)과 검색어(q) 받기
+    search_type = request.GET.get('search_type', '')
+    q = request.GET.get('q', '')
+
+    # 🚀 2. 검색어가 있다면 필터링 진행
+    if q:
+        if search_type == 'patient':
+            prescriptions = prescriptions.filter(patient_name__icontains=q)
+        elif search_type == 'writer':
+            prescriptions = prescriptions.filter(writer__username__icontains=q)
+        else: # '전체' 선택 시 (환자명 OR 작성자)
+            prescriptions = prescriptions.filter(
+                Q(patient_name__icontains=q) | Q(writer__username__icontains=q)
+            )
+
+    # 검색어 유지(화면에 다시 뿌려주기)를 위해 q와 search_type도 같이 넘깁니다.
+    return render(request, 'prescriptions/list.html', {
+        'prescriptions': prescriptions,
+        'q': q,
+        'search_type': search_type
+    })
 
 @login_message_required
 def prescription_detail(request, pk):

@@ -10,7 +10,6 @@
 </p>
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
-<hr>
 
 <ul>
     {% for attachment in consultation.attachments.all %}
@@ -44,7 +43,7 @@
 {% endif %}
 <hr>
 <h3>💬 답변</h3>
-<ul>
+<ul class="list-unstyled mb-4">
     {% for comment in consultation.comments.all %}
         <!-- 💡 data-raw 속성에 원본 텍스트를 숨겨둡니다 -->
         <li class="comment-item" data-author="{{ comment.writer.username }}" data-raw="{{ comment.content }}" style="margin-bottom: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
@@ -82,18 +81,20 @@
             </small>
 
             <!-- 버튼들 -->
-            <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm" data-username="{{ comment.writer.username }}">답글</button>
+            <div class="mt-2">
+                <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm" data-username="{{ comment.writer.username }}">답글</button>
 
-            {% if request.user == comment.writer %}
-                <button type="button" id="edit-btn-{{ comment.id }}" class="btn btn-secondary btn-sm" data-id="{{ comment.id }}">수정</button>
-            {% endif %}
+                {% if request.user == comment.writer %}
+                    <button type="button" id="edit-btn-{{ comment.id }}" class="btn btn-secondary btn-sm" data-id="{{ comment.id }}">수정</button>
+                {% endif %}
 
-            {% if request.user == comment.writer or request.user.is_superuser %}
-            <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn btn-danger btn-sm">삭제</button>
-            </form>
-            {% endif %}
+                {% if request.user == comment.writer or request.user.is_superuser %}
+                <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn btn-danger btn-sm">삭제</button>
+                </form>
+                {% endif %}
+            </div>
         </li>
     {% empty %}
         <li>아직 답변이 없습니다.</li>
@@ -145,7 +146,11 @@
             item.style.marginLeft = margin + 'px';
             item.style.backgroundColor = '#e9ecef';
             
-            textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold; margin-right: 5px;">↳</span><span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
+            // 🚀 1. <li> 태그 맨 앞(작성자 이름 왼쪽)에 화살표(↳)를 꽂아 넣습니다!
+            item.insertAdjacentHTML('afterbegin', `<span style="color: #0056b3; font-weight: bold; margin-right: 5px; font-size: 1.1em;">↳</span>`);
+            
+            // 🚀 2. 본문 텍스트에는 화살표를 빼고 @태그만 파란색으로 표시합니다.
+            textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
         }
         previousComments.push({ author: author, depth: depth });
     });
