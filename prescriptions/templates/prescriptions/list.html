@@ -1,24 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>처방전 목록</h2>
-<a href="{% url 'prescriptions:create' %}" class="btn">새 처방전 등록</a>
-<table border="1">
-    <tr>
-        <th>번호</th>
-        <th>환자명</th>
-        <th>처방일</th>
-        <th>작성자</th>
-        <th>작성일</th>
-    </tr>
+<a href="{% url 'prescriptions:create' %}" class="btn btn-primary">새 처방전 등록</a>
+<table class="table table-hover table-bordered align-middle shadow-sm">
+    <thead class="table-light text-center"> <!-- 제목 줄을 연한 회색으로 -->
+        <tr>
+            <th>번호</th>
+            <th>환자명</th>
+            <th>처방일</th>
+            <th>작성자</th>
+            <th>작성일</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for p in prescriptions %}
-    <tr>
-        <td>{{ p.id }}</td>
-        <td><a href="{% url 'prescriptions:detail' p.id %}">{{ p.patient_name }}</a></td>
-        <td>{{ p.prescription_date }}</td>
-        <td>{{ p.writer.username }}</td>
+        <tr>
+            <td>{{ p.id }}</td>
+            <td><a href="{% url 'prescriptions:detail' p.id %}">{{ p.patient_name }}</a></td>
+            <td>{{ p.prescription_date }}</td>
+            <td>{{ p.writer.username }}</td>
 
-        <td style="color: #666; font-size: 14px; text-align: center;">{{ p.smart_date }}</td>
-    </tr>
+            <td style="color: #666; font-size: 14px; text-align: center;">{{ p.smart_date }}</td>
+        </tr>
     {% endfor %}
+    </tbody>
 </table>
 {% endblock %}

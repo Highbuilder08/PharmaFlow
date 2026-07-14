@@ -1,34 +1,37 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>복약 상담 게시판</h2>
-<a href="{% url 'consultations:create' %}" class="btn">글쓰기</a>
-<table border="1">
-    <tr>
-        <th>번호</th>
-        <th>제목</th>
-        <th>작성자</th>
-        <th>작성일</th>
-        <th>조회수</th>
-    </tr>
+<a href="{% url 'consultations:create' %}" class="btn btn-primary">글쓰기</a>
+<table class="table table-hover table-bordered align-middle shadow-sm">
+    <thead class="table-light text-center">
+        <tr>
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>작성일</th>
+            <th>조회수</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for post in consultations %}
-    <tr>
-        <td>{{ post.id }}</td>
-        <td>
-            <a href="{% url 'consultations:detail' post.id %}">{{ post.title }}</a>
+        <tr>
+            <td>{{ post.id }}</td>
+            <td>
+                <a href="{% url 'consultations:detail' post.id %}">{{ post.title }}</a>
             
-            <!-- 댓글이 1개 이상일 때만 [숫자]를 빨간색으로 예쁘게 띄워줍니다 -->
-                {% if post.comments.count > 0 %}
-                <span style="color: #ff4757; font-weight: bold; font-size: 13px; margin-left: 5px;">
-                    [{{ post.comments.count }}]
-                </span>
-            {% endif %}
-        </td>
-        <td>{{ post.writer.username }}</td>
+                    {% if post.comments.count > 0 %}
+                    <span style="color: #ff4757; font-weight: bold; font-size: 13px; margin-left: 5px;">
+                        [{{ post.comments.count }}]
+                    </span>
+                {% endif %}
+            </td>
+            <td>{{ post.writer.username }}</td>
 
-        <td style="color: #666; font-size: 14px; text-align: center;">{{ post.smart_date }}</td>
+            <td style="color: #666; font-size: 14px; text-align: center;">{{ post.smart_date }}</td>
         
-        <td>{{ post.views }}</td>
-    </tr>
+            <td>{{ post.views }}</td>
+        </tr>
     {% endfor %}
+    </tbody>
 </table>
 {% endblock %}
