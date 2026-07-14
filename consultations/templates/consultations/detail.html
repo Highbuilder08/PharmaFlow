@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>{{ consultation.title }}</h2>
+<h2>
+    <span class="badge {% if consultation.tag == 'NOTICE' %}bg-danger{% elif consultation.tag == 'QUESTION' %}bg-warning text-dark{% elif consultation.tag == 'COUNSEL' %}bg-success{% elif consultation.tag == 'INFO' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-2">
+        {{ consultation.get_tag_display }}
+    </span>
+    {{ consultation.title }}
+</h2>
+</h2>
 <p style="color: #666; font-size: 14px;">
     작성자: {{ consultation.writer.username }} | 조회수: {{ consultation.views }} | 
     작성일: {{ consultation.created_at|date:"Y-m-d H:i" }}
@@ -42,7 +48,7 @@
     </form>
 {% endif %}
 <hr>
-<h3>💬 답변</h3>
+<h3>💬 댓글</h3>
 <ul class="list-unstyled mb-4">
     {% for comment in consultation.comments.all %}
         <!-- 💡 data-raw 속성에 원본 텍스트를 숨겨둡니다 -->
@@ -91,21 +97,21 @@
                 {% if request.user == comment.writer or request.user.is_superuser %}
                 <form id="delete-form-{{ comment.id }}" action="{% url 'consultations:comment_delete' comment.id %}" method="POST" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" onclick="return confirm('답변을 삭제하시겠습니까?');" class="btn btn-danger btn-sm">삭제</button>
+                    <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?');" class="btn btn-danger btn-sm">삭제</button>
                 </form>
                 {% endif %}
             </div>
         </li>
     {% empty %}
-        <li>아직 답변이 없습니다.</li>
+        <li>아직 댓글이 없습니다.</li>
     {% endfor %}
 </ul>
 
 <!-- 👇 댓글 입력창에 id="comment-input" 추가 -->
 <form method="POST">
     {% csrf_token %}
-    <input type="text" name="content" id="comment-input" placeholder="답변을 입력하세요" required style="width: 70%; padding: 10px;">
-    <button type="submit" class="btn btn-success">답변 달기</button>
+    <input type="text" name="content" id="comment-input" placeholder="댓글을 입력하세요" required style="width: 70%; padding: 10px;">
+    <button type="submit" class="btn btn-success">댓글 달기</button>
 </form>
 
 <script>
