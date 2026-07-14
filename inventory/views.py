@@ -22,7 +22,10 @@ def medicine_list(request):
     
 def medicine_create(request):
     if request.method == "POST":
-        form = MedicineForm(request.POST)
+        form = MedicineForm(
+            request.POST,
+            request.FILES,
+        )
 
         if form.is_valid():
             form.save()
@@ -48,6 +51,7 @@ def medicine_update(request, pk):
     if request.method == "POST":
         form = MedicineForm(
             request.POST,
+            request.FILES,
             instance=medicine,
         )
 

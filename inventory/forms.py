@@ -10,6 +10,8 @@ class MedicineForm(forms.ModelForm):
         fields = (
             "name",
             "manufacturer",
+            "box_image",
+            "medicine_image",
             "stock",
             "minimum_stock",
         )
@@ -17,6 +19,8 @@ class MedicineForm(forms.ModelForm):
         labels = {
             "name": "의약품명",
             "manufacturer": "제조사",
+            "box_image": "약 상자 이미지",
+            "medicine_image": "약 이미지",
             "stock": "현재 재고",
             "minimum_stock": "최소 재고",
         }
