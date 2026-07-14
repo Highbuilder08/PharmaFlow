@@ -6,14 +6,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # 보안 설정
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-development-only-change-me",
-)
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 DEBUG = os.environ.get(
     "DJANGO_DEBUG",
-    "True",
+    "False",
 ).lower() == "true"
 
 ALLOWED_HOSTS = [
@@ -92,10 +89,7 @@ DATABASES = {
             "DB_USER",
             "admin",
         ),
-        "PASSWORD": os.environ.get(
-            "DB_PASSWORD",
-            "1234",
-        ),
+        "PASSWORD": os.environ["DB_PASSWORD"],
         "HOST": os.environ.get(
             "DB_HOST",
             "192.168.32.87",
@@ -106,6 +100,7 @@ DATABASES = {
         ),
         "OPTIONS": {
             "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
@@ -184,5 +179,10 @@ HIRA_SERVICE_KEY = os.environ.get(
     "",
 )
 
+# HTTPS 적용 후 활성화
+# SECURE_PROXY_SSL_HEADER = (
+#     "HTTP_X_FORWARDED_PROTO",
+#     "https",
+# )
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
