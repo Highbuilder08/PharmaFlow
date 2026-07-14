@@ -1,5 +1,10 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth import password_validation
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    UserCreationForm,
+)
+from django.core.exceptions import ValidationError
 
 from .models import Pharmacy, User
 
@@ -423,3 +428,155 @@ class StaffUpdateForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class PasswordConfirmForm(forms.Form):
+
+    password = forms.CharField(
+        label="현재 비밀번호",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "현재 비밀번호",
+                "autocomplete": "current-password",
+            }
+        ),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+
+        if self.user is None or not self.user.check_password(password):
+            raise forms.ValidationError(
+                "비밀번호가 올바르지 않습니다."
+            )
+
+        return password
+
+
+class MyPageUpdateForm(forms.ModelForm):
+
+    new_password1 = forms.CharField(
+        required=False,
+        label="새 비밀번호",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "변경할 때만 입력하세요.",
+                "autocomplete": "new-password",
+            }
+        ),
+        help_text="비밀번호를 변경하지 않으려면 비워 두세요.",
+    )
+
+    new_password2 = forms.CharField(
+        required=False,
+        label="새 비밀번호 확인",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "새 비밀번호를 다시 입력하세요.",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    class Meta:
+        model = User
+
+        fields = (
+            "name",
+            "email",
+            "phone",
+            "profile_image",
+        )
+
+        labels = {
+            "name": "이름",
+            "email": "이메일",
+            "phone": "연락처",
+            "profile_image": "프로필 사진",
+        }
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "phone": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "profile_image": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",
+                }
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        password1 = cleaned_data.get("new_password1")
+        password2 = cleaned_data.get("new_password2")
+
+        if password1 or password2:
+            if not password1:
+                self.add_error(
+                    "new_password1",
+                    "새 비밀번호를 입력해 주세요.",
+                )
+
+            if not password2:
+                self.add_error(
+                    "new_password2",
+                    "새 비밀번호 확인을 입력해 주세요.",
+                )
+
+            if password1 and password2 and password1 != password2:
+                self.add_error(
+                    "new_password2",
+                    "새 비밀번호가 서로 일치하지 않습니다.",
+                )
+
+            if password1 and password1 == password2:
+                try:
+                    password_validation.validate_password(
+                        password1,
+                        self.instance,
+                    )
+                except ValidationError as errors:
+                    self.add_error(
+                        "new_password1",
+                        errors,
+                    )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        new_password = self.cleaned_data.get("new_password1")
+
+        if new_password:
+            user.set_password(new_password)
+
+        if commit:
+            user.save()
+
+        return user
+

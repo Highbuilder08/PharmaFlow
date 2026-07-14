@@ -20,7 +20,11 @@
                     회원가입
                 </h2>
 
-                <form method="post" id="signup-form">
+                <form
+                    method="post"
+                    enctype="multipart/form-data"
+                    id="signup-form"
+                >
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -116,6 +120,32 @@
 
                     <div class="mb-3">
                         <label
+                            for="{{ form.profile_image.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.profile_image.label }}
+                        </label>
+
+                        {{ form.profile_image }}
+
+                        {% for error in form.profile_image.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                        <div class="text-center mt-3">
+                            <img
+                                id="profile-preview"
+                                class="img-thumbnail rounded-circle d-none"
+                                alt="프로필 사진 미리보기"
+                                style="width:160px;height:160px;object-fit:cover;"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label
                             for="{{ form.requested_role.id_for_label }}"
                             class="form-label"
                         >
@@ -123,6 +153,12 @@
                         </label>
 
                         {{ form.requested_role }}
+
+                        {% for error in form.requested_role.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
 
                     <div
@@ -226,6 +262,13 @@
         "business-number-area"
     );
 
+    const profileInput = document.getElementById(
+        "id_profile_image"
+    );
+    const profilePreview = document.getElementById(
+        "profile-preview"
+    );
+
     const searchInput = document.getElementById("pharmacy-query");
     const searchButton = document.getElementById(
         "pharmacy-search-button"
@@ -291,6 +334,7 @@
     tileLayer.addTo(map);
 
     let marker = null;
+    let profilePreviewUrl = null;
 
     function updateBusinessNumberVisibility() {
         if (roleSelect.value === "OWNER") {
@@ -298,6 +342,33 @@
         } else {
             businessNumberArea.classList.add("d-none");
         }
+    }
+
+    function updateProfilePreview() {
+        const file = profileInput.files[0];
+
+        if (profilePreviewUrl) {
+            URL.revokeObjectURL(profilePreviewUrl);
+            profilePreviewUrl = null;
+        }
+
+        if (!file) {
+            profilePreview.removeAttribute("src");
+            profilePreview.classList.add("d-none");
+            return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+            profileInput.value = "";
+            profilePreview.removeAttribute("src");
+            profilePreview.classList.add("d-none");
+            alert("이미지 파일만 선택할 수 있습니다.");
+            return;
+        }
+
+        profilePreviewUrl = URL.createObjectURL(file);
+        profilePreview.src = profilePreviewUrl;
+        profilePreview.classList.remove("d-none");
     }
 
     function selectPharmacy(pharmacy) {
@@ -463,6 +534,13 @@
         updateBusinessNumberVisibility
     );
 
+    if (profileInput && profilePreview) {
+        profileInput.addEventListener(
+            "change",
+            updateProfilePreview
+        );
+    }
+
     searchButton.addEventListener(
         "click",
         searchPharmacies
@@ -483,6 +561,15 @@
     setTimeout(function () {
         map.invalidateSize();
     }, 100);
+
+    window.addEventListener(
+        "beforeunload",
+        function () {
+            if (profilePreviewUrl) {
+                URL.revokeObjectURL(profilePreviewUrl);
+            }
+        }
+    );
 </script>
 
 {% endblock %}

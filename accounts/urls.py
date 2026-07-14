@@ -8,7 +8,10 @@ app_name = "accounts"
 urlpatterns = [
     # 회원
     path("signup/", views.signup, name="signup"),
-
+    path("mypage/", views.my_page, name="my_page"),
+    path("mypage/edit/", views.my_page_update, name="my_page_update"),
+    path("mypage/verify-password/", views.my_page_verify_password, name="my_page_verify_password"),
+    
     # 점주(본인 약국)
     path("pharmacy/", views.pharmacy_detail, name="pharmacy_detail"),
     path("pharmacy/edit/", views.pharmacy_update, name="pharmacy_update"),

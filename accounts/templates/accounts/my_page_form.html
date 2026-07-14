@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}
+내 정보 수정 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <h2 class="mb-4">
+                    내 정보 수정
+                </h2>
+
+                <form
+                    method="post"
+                    enctype="multipart/form-data"
+                    novalidate
+                >
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="text-center mb-4">
+
+                        {% if account.profile_image %}
+                            <img
+                                id="profile-preview"
+                                src="{{ account.profile_image.url }}"
+                                alt="{{ account.name|default:account.username }} 프로필"
+                                class="rounded-circle border"
+                                style="
+                                    width:160px;
+                                    height:160px;
+                                    object-fit:cover;
+                                "
+                            >
+
+                            <div
+                                id="default-profile"
+                                class="d-none"
+                            >
+                                👤
+                            </div>
+
+                        {% else %}
+
+                            <img
+                                id="profile-preview"
+                                class="rounded-circle border d-none"
+                                style="
+                                    width:160px;
+                                    height:160px;
+                                    object-fit:cover;
+                                "
+                                alt="프로필 사진"
+                            >
+
+                            <div
+                                id="default-profile"
+                                class="rounded-circle bg-light border d-inline-flex align-items-center justify-content-center text-muted"
+                                style="
+                                    width:160px;
+                                    height:160px;
+                                    font-size:64px;
+                                "
+                            >
+                                👤
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    {% for field in form %}
+                        <div class="mb-3">
+
+                            {% if field.field.widget.input_type == "checkbox" %}
+
+                                <div class="form-check">
+                                    {{ field }}
+
+                                    <label
+                                        class="form-check-label"
+                                        for="{{ field.id_for_label }}"
+                                    >
+                                        {{ field.label }}
+                                    </label>
+                                </div>
+
+                            {% else %}
+
+                                <label
+                                    class="form-label"
+                                    for="{{ field.id_for_label }}"
+                                >
+                                    {{ field.label }}
+                                </label>
+
+                                {{ field }}
+
+                            {% endif %}
+
+                            {% if field.help_text %}
+                                <div class="form-text">
+                                    {{ field.help_text }}
+                                </div>
+                            {% endif %}
+
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-end gap-2">
+
+                        <a
+                            href="{% url 'accounts:my_page' %}"
+                            class="btn btn-outline-secondary"
+                        >
+                            취소
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-success"
+                        >
+                            저장
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+const profileInput = document.getElementById(
+    "id_profile_image"
+);
+
+const profilePreview = document.getElementById(
+    "profile-preview"
+);
+
+const defaultProfile = document.getElementById(
+    "default-profile"
+);
+
+let previewUrl = null;
+
+if (profileInput) {
+
+    profileInput.addEventListener(
+        "change",
+        function () {
+
+            const file = this.files[0];
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+
+            if (!file) {
+                return;
+            }
+
+            if (!file.type.startsWith("image/")) {
+
+                alert(
+                    "이미지 파일만 선택할 수 있습니다."
+                );
+
+                this.value = "";
+
+                return;
+            }
+
+            previewUrl = URL.createObjectURL(file);
+
+            profilePreview.src = previewUrl;
+
+            profilePreview.classList.remove(
+                "d-none"
+            );
+
+            if (defaultProfile) {
+                defaultProfile.classList.add(
+                    "d-none"
+                );
+            }
+
+        }
+    );
+
+}
+
+window.addEventListener(
+    "beforeunload",
+    function () {
+
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}
