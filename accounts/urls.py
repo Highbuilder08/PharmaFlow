@@ -20,4 +20,8 @@ urlpatterns = [
     path("users/create/", views.user_create, name="user_create"),
     path("users/<int:pk>/update/", views.user_update, name="user_update"),
     path("users/<int:pk>/delete/", views.user_delete, name="user_delete"),
+    
+    path("ownership-requests/", views.ownership_request_list, name="ownership_request_list"),
+    path("ownership-requests/<int:pk>/approve/", views.ownership_request_approve, name="ownership_request_approve"),
+    path("ownership-requests/<int:pk>/reject/", views.ownership_request_reject, name="ownership_request_reject"),
 ]

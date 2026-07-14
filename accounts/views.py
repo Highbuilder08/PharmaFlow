@@ -587,3 +587,140 @@ def user_delete(request, pk):
     )
 
     return redirect("accounts:user_list")
+
+@login_required
+@superuser_required
+def ownership_request_list(request):
+    ownership_requests = (
+        PharmacyOwnershipRequest.objects
+        .select_related(
+            "user",
+            "pharmacy",
+        )
+        .order_by(
+            "status",
+            "-created_at",
+        )
+    )
+
+    return render(
+        request,
+        "accounts/ownership_request_list.html",
+        {
+            "ownership_requests": ownership_requests,
+        },
+    )
+
+
+@login_required
+@superuser_required
+@require_POST
+def ownership_request_approve(request, pk):
+    ownership_request = get_object_or_404(
+        PharmacyOwnershipRequest.objects.select_related(
+            "user",
+            "pharmacy",
+        ),
+        pk=pk,
+        status=PharmacyOwnershipRequest.Status.PENDING,
+    )
+
+    with transaction.atomic():
+        ownership_request.status = (
+            PharmacyOwnershipRequest.Status.APPROVED
+        )
+
+        ownership_request.processed_at = timezone.now()
+
+        ownership_request.save(
+            update_fields=[
+                "status",
+                "processed_at",
+            ]
+        )
+
+        user = ownership_request.user
+        user.pharmacy = ownership_request.pharmacy
+        user.role = User.Role.OWNER
+        user.is_approved = True
+
+        user.save(
+            update_fields=[
+                "pharmacy",
+                "role",
+                "is_approved",
+            ]
+        )
+
+        pharmacy = ownership_request.pharmacy
+        pharmacy.business_number = (
+            ownership_request.business_number
+        )
+
+        if not pharmacy.owner_name:
+            pharmacy.owner_name = user.name
+
+        pharmacy.save(
+            update_fields=[
+                "business_number",
+                "owner_name",
+                "updated_at",
+            ]
+        )
+
+    messages.success(
+        request,
+        (
+            f"{user.name} 사용자의 "
+            f"{pharmacy.pharmacy_name} 점주 권한을 승인했습니다."
+        ),
+    )
+
+    return redirect(
+        "accounts:ownership_request_list"
+    )
+
+
+@login_required
+@superuser_required
+@require_POST
+def ownership_request_reject(request, pk):
+    ownership_request = get_object_or_404(
+        PharmacyOwnershipRequest.objects.select_related(
+            "user",
+            "pharmacy",
+        ),
+        pk=pk,
+        status=PharmacyOwnershipRequest.Status.PENDING,
+    )
+
+    ownership_request.status = (
+        PharmacyOwnershipRequest.Status.REJECTED
+    )
+
+    ownership_request.processed_at = timezone.now()
+
+    ownership_request.save(
+        update_fields=[
+            "status",
+            "processed_at",
+        ]
+    )
+
+    user = ownership_request.user
+    user.is_approved = False
+
+    user.save(
+        update_fields=[
+            "is_approved",
+        ]
+    )
+
+    messages.success(
+        request,
+        f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.",
+    )
+
+    return redirect(
+        "accounts:ownership_request_list"
+    )
