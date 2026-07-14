@@ -58,6 +58,56 @@
 
                     <div class="mb-3">
                         <label
+                            for="{{ form.box_image.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.box_image.label }}
+                        </label>
+
+                        {{ form.box_image }}
+
+                        {% if form.instance.box_image %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    현재 등록된 상자 이미지가 있습니다.
+                                </small>
+                            </div>
+                        {% endif %}
+
+                        {% for error in form.box_image.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.medicine_image.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.medicine_image.label }}
+                        </label>
+
+                        {{ form.medicine_image }}
+
+                        {% if form.instance.medicine_image %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    현재 등록된 약 이미지가 있습니다.
+                                </small>
+                            </div>
+                        {% endif %}
+
+                        {% for error in form.medicine_image.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
                             for="{{ form.stock.id_for_label }}"
                             class="form-label"
                         >
