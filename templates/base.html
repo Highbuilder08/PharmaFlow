@@ -94,15 +94,6 @@
                                     약국 정보
                                 </a>
                             </li>
-
-                            <li class="nav-item">
-                                <a
-                                    class="nav-link"
-                                    href="{% url 'inventory:medicine_list' %}"
-                                >
-                                    재고 관리
-                                </a>
-                            </li>
                         {% endif %}
 
                         {% if user.is_approved %}
@@ -116,6 +107,17 @@
                                     </a>
                                 </li>
                             {% endif %}
+                        {% endif %}
+
+                        {% if user.pharmacy_id %}
+                            <li class="nav-item">
+                                <a
+                                    class="nav-link"
+                                    href="{% url 'inventory:medicine_list' %}"
+                                >
+                                    재고 관리
+                                </a>
+                            </li>
                         {% endif %}
 
                     {% endif %}
