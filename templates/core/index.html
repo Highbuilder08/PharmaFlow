@@ -105,6 +105,8 @@
     }
 
     .calendar-day {
+        position: relative;
+
         display: flex;
         align-items: center;
         justify-content: center;
@@ -158,6 +160,24 @@
     .calendar-day.today:hover {
         background-color: #157347;
         color: #ffffff;
+    }
+
+
+    /* 메모가 있는 날짜의 표시 점 */
+    .calendar-day.has-memo::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 2px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background-color: #fd7e14;
+        transform: translateX(-50%);
+    }
+
+    .calendar-day.today.has-memo::after {
+        background-color: #ffffff;
     }
 
     .calendar-footer {
@@ -512,6 +532,11 @@
                             <span>
                                 <span class="text-danger">●</span>
                                 일요일
+                            </span>
+
+                            <span>
+                                <span class="text-warning">●</span>
+                                메모
                             </span>
 
                         </div>
@@ -945,6 +970,110 @@
 
         </section>
 
+
+        <!-- 달력 메모 모달 -->
+        <div
+            class="modal fade"
+            id="calendarMemoModal"
+            tabindex="-1"
+            aria-labelledby="calendarMemoModalLabel"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5
+                            class="modal-title"
+                            id="calendarMemoModalLabel"
+                        >
+                            날짜 메모
+                        </h5>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="닫기"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div
+                            id="calendar-memo-date-label"
+                            class="fw-bold text-success mb-3"
+                        ></div>
+
+                        <input
+                            type="hidden"
+                            id="calendar-memo-date"
+                        >
+
+                        <label
+                            for="calendar-memo-content"
+                            class="form-label"
+                        >
+                            메모 내용
+                        </label>
+
+                        <textarea
+                            id="calendar-memo-content"
+                            class="form-control"
+                            rows="6"
+                            maxlength="2000"
+                            placeholder="해당 날짜의 메모를 입력하세요."
+                        ></textarea>
+
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">
+                                최대 2,000자
+                            </small>
+
+                            <small
+                                id="calendar-memo-length"
+                                class="text-muted"
+                            >
+                                0 / 2000
+                            </small>
+                        </div>
+
+                        <div
+                            id="calendar-memo-message"
+                            class="small mt-2"
+                        ></div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            id="calendar-memo-delete"
+                            class="btn btn-outline-danger me-auto"
+                            disabled
+                        >
+                            삭제
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal"
+                        >
+                            취소
+                        </button>
+
+                        <button
+                            type="button"
+                            id="calendar-memo-save"
+                            class="btn btn-success"
+                        >
+                            저장
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     {% else %}
 
         <!-- 비로그인 화면 -->
@@ -1001,29 +1130,21 @@
     document.addEventListener(
         "DOMContentLoaded",
         function () {
-            const titleElement = document.getElementById(
-                "calendar-title"
-            );
+            const titleElement = document.getElementById("calendar-title");
+            const gridElement = document.getElementById("calendar-grid");
+            const todayLabelElement = document.getElementById("calendar-today-label");
+            const prevButton = document.getElementById("calendar-prev");
+            const nextButton = document.getElementById("calendar-next");
+            const todayButton = document.getElementById("calendar-today");
 
-            const gridElement = document.getElementById(
-                "calendar-grid"
-            );
-
-            const todayLabelElement = document.getElementById(
-                "calendar-today-label"
-            );
-
-            const prevButton = document.getElementById(
-                "calendar-prev"
-            );
-
-            const nextButton = document.getElementById(
-                "calendar-next"
-            );
-
-            const todayButton = document.getElementById(
-                "calendar-today"
-            );
+            const memoModalElement = document.getElementById("calendarMemoModal");
+            const memoDateInput = document.getElementById("calendar-memo-date");
+            const memoDateLabel = document.getElementById("calendar-memo-date-label");
+            const memoContentInput = document.getElementById("calendar-memo-content");
+            const memoLengthElement = document.getElementById("calendar-memo-length");
+            const memoMessageElement = document.getElementById("calendar-memo-message");
+            const memoSaveButton = document.getElementById("calendar-memo-save");
+            const memoDeleteButton = document.getElementById("calendar-memo-delete");
 
             if (
                 !titleElement
@@ -1032,16 +1153,53 @@
                 || !prevButton
                 || !nextButton
                 || !todayButton
+                || !memoModalElement
+                || !memoDateInput
+                || !memoDateLabel
+                || !memoContentInput
+                || !memoLengthElement
+                || !memoMessageElement
+                || !memoSaveButton
+                || !memoDeleteButton
             ) {
                 return;
             }
 
+            const memoModal = new bootstrap.Modal(memoModalElement);
             const realToday = new Date();
 
             let displayedYear = realToday.getFullYear();
             let displayedMonth = realToday.getMonth();
+            let memoDateSet = new Set();
+            let selectedMemoExists = false;
 
-            function formatTodayLabel(date) {
+            function getCookie(name) {
+                const cookies = document.cookie
+                    ? document.cookie.split(";")
+                    : [];
+
+                for (const cookieText of cookies) {
+                    const cookie = cookieText.trim();
+
+                    if (cookie.startsWith(`${name}=`)) {
+                        return decodeURIComponent(
+                            cookie.substring(name.length + 1)
+                        );
+                    }
+                }
+
+                return "";
+            }
+
+            function formatDateKey(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+
+                return `${year}-${month}-${day}`;
+            }
+
+            function formatDateLabel(date) {
                 return new Intl.DateTimeFormat(
                     "ko-KR",
                     {
@@ -1055,180 +1213,258 @@
 
             function isSameDate(firstDate, secondDate) {
                 return (
-                    firstDate.getFullYear()
-                    === secondDate.getFullYear()
-                    &&
-                    firstDate.getMonth()
-                    === secondDate.getMonth()
-                    &&
-                    firstDate.getDate()
-                    === secondDate.getDate()
+                    firstDate.getFullYear() === secondDate.getFullYear()
+                    && firstDate.getMonth() === secondDate.getMonth()
+                    && firstDate.getDate() === secondDate.getDate()
                 );
             }
 
+            function updateMemoLength() {
+                memoLengthElement.textContent =
+                    `${memoContentInput.value.length} / 2000`;
+            }
+
+            function clearMemoMessage() {
+                memoMessageElement.className = "small mt-2";
+                memoMessageElement.textContent = "";
+            }
+
+            function showMemoMessage(message) {
+                memoMessageElement.className = "small mt-2 text-danger";
+                memoMessageElement.textContent = message;
+            }
+
+            function setMemoButtonsDisabled(disabled) {
+                memoSaveButton.disabled = disabled;
+                memoDeleteButton.disabled =
+                    disabled || !selectedMemoExists;
+            }
+
+            async function loadMemoDates() {
+                try {
+                    const url =
+                        "{% url 'core:calendar_memo_dates' %}"
+                        + `?year=${displayedYear}`
+                        + `&month=${displayedMonth + 1}`;
+
+                    const response = await fetch(
+                        url,
+                        {
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                        }
+                    );
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(
+                            data.message
+                            || "메모 날짜를 불러오지 못했습니다."
+                        );
+                    }
+
+                    memoDateSet = new Set(data.dates);
+
+                } catch (error) {
+                    memoDateSet = new Set();
+                    console.error(error);
+                }
+            }
+
+            async function openMemoModal(targetDate) {
+                const dateKey = formatDateKey(targetDate);
+
+                memoDateInput.value = dateKey;
+                memoDateLabel.textContent = formatDateLabel(targetDate);
+                memoContentInput.value = "";
+                selectedMemoExists = false;
+
+                updateMemoLength();
+                clearMemoMessage();
+                setMemoButtonsDisabled(true);
+
+                memoModal.show();
+
+                try {
+                    const url =
+                        "{% url 'core:calendar_memo_detail' %}"
+                        + `?date=${encodeURIComponent(dateKey)}`;
+
+                    const response = await fetch(
+                        url,
+                        {
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                        }
+                    );
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(
+                            data.message
+                            || "메모를 불러오지 못했습니다."
+                        );
+                    }
+
+                    memoContentInput.value = data.content;
+                    selectedMemoExists = data.exists;
+
+                    updateMemoLength();
+                    setMemoButtonsDisabled(false);
+
+                    window.setTimeout(
+                        function () {
+                            memoContentInput.focus();
+                        },
+                        200
+                    );
+
+                } catch (error) {
+                    setMemoButtonsDisabled(false);
+                    showMemoMessage(error.message);
+                }
+            }
+
             function createCalendarCell(targetDate) {
-                const cellElement =
-                    document.createElement("div");
+                const cellElement = document.createElement("div");
+                cellElement.className = "calendar-cell";
 
-                cellElement.className =
-                    "calendar-cell";
-
-                const dayButton =
-                    document.createElement("button");
-
+                const dayButton = document.createElement("button");
                 dayButton.type = "button";
                 dayButton.className = "calendar-day";
-                dayButton.textContent =
-                    targetDate.getDate();
+                dayButton.textContent = targetDate.getDate();
 
                 const isCurrentMonth =
-                    targetDate.getFullYear()
-                    === displayedYear
-                    &&
-                    targetDate.getMonth()
-                    === displayedMonth;
+                    targetDate.getFullYear() === displayedYear
+                    && targetDate.getMonth() === displayedMonth;
 
                 if (!isCurrentMonth) {
-                    dayButton.classList.add(
-                        "other-month"
-                    );
+                    dayButton.classList.add("other-month");
                 }
 
-                const weekday =
-                    targetDate.getDay();
+                const weekday = targetDate.getDay();
 
                 if (weekday === 0) {
-                    dayButton.classList.add(
-                        "sunday"
-                    );
+                    dayButton.classList.add("sunday");
                 }
 
                 if (weekday === 6) {
-                    dayButton.classList.add(
-                        "saturday"
-                    );
+                    dayButton.classList.add("saturday");
                 }
 
-                if (
-                    isSameDate(
-                        targetDate,
-                        realToday
-                    )
-                ) {
-                    dayButton.classList.add(
-                        "today"
-                    );
-
-                    dayButton.setAttribute(
-                        "aria-current",
-                        "date"
-                    );
+                if (isSameDate(targetDate, realToday)) {
+                    dayButton.classList.add("today");
+                    dayButton.setAttribute("aria-current", "date");
                 }
 
-                const year =
-                    targetDate.getFullYear();
+                const dateKey = formatDateKey(targetDate);
 
-                const month =
-                    String(
-                        targetDate.getMonth() + 1
-                    ).padStart(2, "0");
+                dayButton.dataset.date = dateKey;
 
-                const day =
-                    String(
-                        targetDate.getDate()
-                    ).padStart(2, "0");
-
-                dayButton.dataset.date =
-                    `${year}-${month}-${day}`;
+                if (memoDateSet.has(dateKey)) {
+                    dayButton.classList.add("has-memo");
+                }
 
                 dayButton.setAttribute(
                     "aria-label",
-                    `${year}년 `
-                    + `${targetDate.getMonth() + 1}월 `
-                    + `${targetDate.getDate()}일`
+                    formatDateLabel(targetDate)
                 );
 
-                /*
-                 * 이후 메모 기능을 붙일 위치입니다.
-                 *
-                 * dayButton.addEventListener(
-                 *     "click",
-                 *     function () {
-                 *         메모 모달 열기
-                 *     }
-                 * );
-                 */
-
-                cellElement.appendChild(
-                    dayButton
+                dayButton.addEventListener(
+                    "click",
+                    function () {
+                        openMemoModal(targetDate);
+                    }
                 );
+
+                cellElement.appendChild(dayButton);
 
                 return cellElement;
             }
 
-            function renderCalendar() {
+            async function renderCalendar() {
                 titleElement.textContent =
-                    `${displayedYear}년 `
-                    + `${displayedMonth + 1}월`;
+                    `${displayedYear}년 ${displayedMonth + 1}월`;
 
                 gridElement.replaceChildren();
 
-                const firstDateOfMonth =
-                    new Date(
-                        displayedYear,
-                        displayedMonth,
-                        1
-                    );
+                await loadMemoDates();
 
-                const lastDateOfMonth =
-                    new Date(
-                        displayedYear,
-                        displayedMonth + 1,
-                        0
-                    );
+                const firstDateOfMonth = new Date(
+                    displayedYear,
+                    displayedMonth,
+                    1
+                );
 
-                const startWeekday =
-                    firstDateOfMonth.getDay();
+                const lastDateOfMonth = new Date(
+                    displayedYear,
+                    displayedMonth + 1,
+                    0
+                );
 
-                const daysInMonth =
-                    lastDateOfMonth.getDate();
+                const startWeekday = firstDateOfMonth.getDay();
+                const daysInMonth = lastDateOfMonth.getDate();
+                const requiredCells = startWeekday + daysInMonth;
+                const totalCells = Math.ceil(requiredCells / 7) * 7;
 
-                const requiredCells =
-                    startWeekday + daysInMonth;
-
-                const totalCells =
-                    Math.ceil(
-                        requiredCells / 7
-                    ) * 7;
-
-                const calendarStartDate =
-                    new Date(
-                        displayedYear,
-                        displayedMonth,
-                        1 - startWeekday
-                    );
+                const calendarStartDate = new Date(
+                    displayedYear,
+                    displayedMonth,
+                    1 - startWeekday
+                );
 
                 for (
                     let index = 0;
                     index < totalCells;
                     index += 1
                 ) {
-                    const targetDate =
-                        new Date(
-                            calendarStartDate
-                        );
+                    const targetDate = new Date(calendarStartDate);
 
                     targetDate.setDate(
-                        calendarStartDate.getDate()
-                        + index
+                        calendarStartDate.getDate() + index
                     );
 
                     gridElement.appendChild(
-                        createCalendarCell(
-                            targetDate
-                        )
+                        createCalendarCell(targetDate)
                     );
                 }
+            }
+
+            async function saveMemo(content) {
+                const response = await fetch(
+                    "{% url 'core:calendar_memo_save' %}",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+
+                        body: JSON.stringify(
+                            {
+                                date: memoDateInput.value,
+                                content: content,
+                            }
+                        ),
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message
+                        || "메모 처리에 실패했습니다."
+                    );
+                }
+
+                return data;
             }
 
             prevButton.addEventListener(
@@ -1262,20 +1498,81 @@
             todayButton.addEventListener(
                 "click",
                 function () {
-                    displayedYear =
-                        realToday.getFullYear();
-
-                    displayedMonth =
-                        realToday.getMonth();
+                    displayedYear = realToday.getFullYear();
+                    displayedMonth = realToday.getMonth();
 
                     renderCalendar();
                 }
             );
 
+            memoContentInput.addEventListener(
+                "input",
+                updateMemoLength
+            );
+
+            memoSaveButton.addEventListener(
+                "click",
+                async function () {
+                    setMemoButtonsDisabled(true);
+                    clearMemoMessage();
+
+                    try {
+                        await saveMemo(
+                            memoContentInput.value.trim()
+                        );
+
+                        memoModal.hide();
+                        await renderCalendar();
+
+                    } catch (error) {
+                        setMemoButtonsDisabled(false);
+                        showMemoMessage(error.message);
+                    }
+                }
+            );
+
+            memoDeleteButton.addEventListener(
+                "click",
+                async function () {
+                    const confirmed = window.confirm(
+                        "이 날짜의 메모를 삭제하시겠습니까?"
+                    );
+
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    setMemoButtonsDisabled(true);
+                    clearMemoMessage();
+
+                    try {
+                        await saveMemo("");
+
+                        memoModal.hide();
+                        await renderCalendar();
+
+                    } catch (error) {
+                        setMemoButtonsDisabled(false);
+                        showMemoMessage(error.message);
+                    }
+                }
+            );
+
+            memoModalElement.addEventListener(
+                "hidden.bs.modal",
+                function () {
+                    memoDateInput.value = "";
+                    memoContentInput.value = "";
+                    selectedMemoExists = false;
+
+                    updateMemoLength();
+                    clearMemoMessage();
+                    setMemoButtonsDisabled(false);
+                }
+            );
+
             todayLabelElement.textContent =
-                formatTodayLabel(
-                    realToday
-                );
+                formatDateLabel(realToday);
 
             renderCalendar();
         }
