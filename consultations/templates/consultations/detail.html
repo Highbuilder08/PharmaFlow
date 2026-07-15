@@ -17,21 +17,23 @@
 <hr>
 <p>{{ consultation.content|linebreaks }}</p>
 
-<ul>
+<h3>📎 첨부파일</h3>
+<ul class="list-unstyled ms-2">
     {% for attachment in consultation.attachments.all %}
-        <li>
-            {{ attachment.filename }} 
-            <a href="{{ attachment.file.url }}" class="btn btn-primary btn-sm" target="_blank">다운로드</a>
+        <!-- 🚀 li 태그에 mb-2(아래쪽 여백)를 주어 버튼들이 겹치지 않게 띄워줍니다 -->
+        <li class="mb-2">
+            • {{ attachment.filename }} 
+            <a href="{{ attachment.file.url }}" target="_blank" class="btn btn-primary btn-sm py-0 px-2 ms-1">다운로드</a>
             
             {% if request.user == consultation.writer or request.user.is_superuser %}
             <form action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('파일을 삭제하시겠습니까?');">삭제</button>
+                <button type="submit" onclick="return confirm('파일을 삭제하시겠습니까?');" class="btn btn-danger btn-sm py-0 px-2">삭제</button>
             </form>
             {% endif %}
         </li>
     {% empty %}
-        <li style="color: #888;">첨부파일이 없습니다.</li>
+        <li class="text-muted">첨부파일이 없습니다.</li>
     {% endfor %}
 </ul>
 <hr>
