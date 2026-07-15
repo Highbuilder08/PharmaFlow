@@ -30,6 +30,8 @@ class CalendarMemo(models.Model):
     )
 
     class Meta:
+        db_table = "calendar_memo"
+
         ordering = [
             "memo_date",
         ]
@@ -48,4 +50,4 @@ class CalendarMemo(models.Model):
         verbose_name_plural = "달력 메모"
 
     def __str__(self):
-        return f"{self.user} - {self.memo_date}"
+        return f"{self.user.username} - " f"{self.memo_date}"

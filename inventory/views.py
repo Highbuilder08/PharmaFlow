@@ -1,5 +1,8 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import F, Q
 
 # Create your views here.
 from .forms import (
@@ -13,14 +16,39 @@ from .models import Medicine, InventoryTransaction, PurchaseOrder
 # ============ 의약품 (Medicine) ==============
 
 def medicine_list(request):
-    medicines = Medicine.objects.all()
+    medicines = (
+        Medicine.objects
+        .filter(pharmacy=request.user.pharmacy)
+        .order_by("name")
+    )
+
+    query = request.GET.get("q", "").strip()
+    low_stock = request.GET.get("low_stock", "")
+
+    if query:
+        medicines = medicines.filter(
+            Q(name__icontains=query)
+            | Q(manufacturer__icontains=query)
+        )
+
+    if low_stock == "1":
+        medicines = medicines.filter(
+            stock__lte=F("minimum_stock")
+        )
+
+    context = {
+        "medicines": medicines,
+        "query": query,
+        "low_stock": low_stock,
+    }
 
     return render(
         request,
         "inventory/medicine_list.html",
-        { "medicines": medicines }
+        context,
     )
-    
+
+#의약품 등록
 def medicine_create(request):
     if request.method == "POST":
         form = MedicineForm(
@@ -29,7 +57,15 @@ def medicine_create(request):
         )
 
         if form.is_valid():
-            form.save()
+            medicine = form.save(commit=False)
+            medicine.pharmacy = request.user.pharmacy
+            medicine.save()
+
+            messages.success(
+                request,
+                "의약품이 등록되었습니다.",
+            )
+
             return redirect("inventory:medicine_list")
     else:
         form = MedicineForm()
@@ -46,8 +82,9 @@ def medicine_create(request):
         context,
     )
     
+#의약품 수정
 def medicine_update(request, pk):
-    medicine = get_object_or_404(Medicine, pk=pk)
+    medicine = get_object_or_404(Medicine, pk=pk, pharmacy=request.user.pharmacy)
 
     if request.method == "POST":
         form = MedicineForm(
@@ -58,6 +95,12 @@ def medicine_update(request, pk):
 
         if form.is_valid():
             form.save()
+
+            messages.success(
+                request,
+                "의약품 정보가 수정되었습니다.",
+            )
+
             return redirect("inventory:medicine_list")
     else:
         form = MedicineForm(instance=medicine)
@@ -73,11 +116,13 @@ def medicine_update(request, pk):
         "inventory/medicine_form.html",
         context,
     )
-    
+
+#의약품 상세
 def medicine_detail(request, pk):
     medicine = get_object_or_404(
         Medicine.objects.select_related("pharmacy"),
         pk=pk,
+        pharmacy=request.user.pharmacy,
     )
 
     recent_transactions = ( # 해당 의약품의 입출고 기록 가져오기
@@ -96,12 +141,21 @@ def medicine_detail(request, pk):
         "inventory/medicine_detail.html",
         context,
     )
-    
+
+#의약품 삭제
 def medicine_delete(request, pk):
-    medicine = get_object_or_404(Medicine, pk=pk)
+    medicine = get_object_or_404(Medicine, pk=pk, pharmacy=request.user.pharmacy)
 
     if request.method == "POST":
+        medicine_name = medicine.name
+
         medicine.delete()
+
+        messages.success(
+            request,
+            f"{medicine_name} 의약품이 삭제되었습니다.",
+        )
+
         return redirect("inventory:medicine_list")
 
     return render(
@@ -129,6 +183,7 @@ def transaction_list(request):
         context,
     )
     
+#입출고 등록
 def transaction_create(request):
     if request.method == "POST":
         form = InventoryTransactionForm(request.POST)
@@ -183,6 +238,17 @@ def transaction_create(request):
                         transaction_type=transaction_type,
                         quantity=quantity,
                         note=note,
+                        created_by=request.user,
+                    )
+
+                    messages.success(
+                        request,
+                        (
+                            f"{medicine.name} "
+                            f"{quantity}개 "
+                            f"{'입고' if transaction_type == InventoryTransaction.TransactionType.IN else '출고'}"
+                            f" 처리가 완료되었습니다."
+                        ),
                     )
 
                     return redirect(
@@ -228,7 +294,7 @@ def purchase_order_list(request):
         { "purchase_orders": purchase_orders },
     )
 
-
+#발주 등록
 def purchase_order_create(request):
     if request.method == "POST":
         form = PurchaseOrderForm(request.POST)
@@ -247,6 +313,14 @@ def purchase_order_create(request):
         purchase_order = form.save(commit=False)
         purchase_order.ordered_by = request.user
         purchase_order.save()
+
+        messages.success(
+            request,
+            (
+                f"{purchase_order.medicine.name} "
+                f"{purchase_order.quantity}개 발주가 등록되었습니다."
+            ),
+        )
 
         return redirect("inventory:purchase_order_list")
 
@@ -269,10 +343,8 @@ def purchase_order_create(request):
         "inventory/purchase_order_form.html",
         context,
     )
-    
-from django.contrib import messages
-from django.utils import timezone
 
+#발주 완료
 def purchase_order_mark_ordered(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder,
@@ -305,6 +377,7 @@ def purchase_order_mark_ordered(request, pk):
 
     return redirect("inventory:purchase_order_list")
 
+#입고 완료
 def purchase_order_receive(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder.objects.select_related("medicine"),
@@ -363,7 +436,7 @@ def purchase_order_receive(request, pk):
 
     return redirect("inventory:purchase_order_list")
 
-#취소 함수
+#취소
 def purchase_order_cancel(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder,

@@ -26,6 +26,65 @@
     </div>
 </div>
 
+<form
+    method="get"
+    class="card shadow-sm mb-3"
+>
+    <div class="card-body">
+        <div class="row g-2 align-items-center">
+
+            <div class="col-md">
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control"
+                    placeholder="의약품명 또는 제조사 검색"
+                >
+            </div>
+
+            <div class="col-md-auto">
+                <div class="form-check">
+                    <input
+                        type="checkbox"
+                        name="low_stock"
+                        value="1"
+                        class="form-check-input"
+                        id="low-stock-filter"
+                        {% if low_stock == "1" %}checked{% endif %}
+                    >
+
+                    <label
+                        for="low-stock-filter"
+                        class="form-check-label"
+                    >
+                        재고 부족만 보기
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-auto">
+                <button
+                    type="submit"
+                    class="btn btn-success"
+                >
+                    검색
+                </button>
+            </div>
+
+            <div class="col-md-auto">
+                <a
+                    href="{% url 'inventory:medicine_list' %}"
+                    class="btn btn-outline-secondary"
+                >
+                    초기화
+                </a>
+            </div>
+
+        </div>
+    </div>
+</form>
+
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
