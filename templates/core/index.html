@@ -7,36 +7,210 @@
 
 {% block content %}
 
-<div class="text-center py-5">
+<div class="py-5">
 
-    <img
-        src="{% static 'images/logo_full.png' %}"
-        alt="PharmaFlow 로고"
-        class="img-fluid mb-4"
-        style="max-width: 480px;"
-    >
+    <!-- 로고 및 서비스 소개 -->
+    <div class="text-center mb-5">
 
-    <h1 class="fw-bold mb-2">
-        PharmaFlow
-    </h1>
+        <img
+            src="{% static 'images/logo_full.png' %}"
+            alt="PharmaFlow 로고"
+            class="img-fluid mb-4"
+            style="max-width:480px;"
+        >
 
-    <p class="lead text-muted mb-5">
-        약국 통합 관리 시스템
-    </p>
+        <h1 class="fw-bold mb-2">
+            PharmaFlow
+        </h1>
+
+        <p class="lead text-muted mb-0">
+            약국 통합 관리 시스템
+        </p>
+
+    </div>
 
     {% if user.is_authenticated %}
 
+        <!-- 공지사항 및 최근 게시글 -->
+        <div class="row g-4 mb-5">
+
+            <!-- 공지사항 -->
+            <div class="col-lg-6">
+
+                <div class="card shadow-sm h-100">
+
+                    <div
+                        class="card-header bg-success text-white d-flex justify-content-between align-items-center"
+                    >
+                        <span class="fw-bold">
+                            📢 공지사항
+                        </span>
+
+                        <a
+                            href="{% url 'consultations:list' %}?tag=NOTICE"
+                            class="text-white text-decoration-none small"
+                        >
+                            전체보기
+                        </a>
+                    </div>
+
+                    <div class="list-group list-group-flush">
+
+                        {% for notice in notices %}
+
+                            <a
+                                href="{% url 'consultations:detail' notice.pk %}"
+                                class="list-group-item list-group-item-action"
+                            >
+                                <div
+                                    class="d-flex justify-content-between align-items-center gap-3"
+                                >
+                                    <div class="text-truncate">
+
+                                        <span class="badge bg-danger me-2">
+                                            공지
+                                        </span>
+
+                                        <span class="fw-semibold">
+                                            {{ notice.title }}
+                                        </span>
+
+                                    </div>
+
+                                    <small class="text-muted flex-shrink-0">
+                                        {{ notice.smart_date }}
+                                    </small>
+                                </div>
+                            </a>
+
+                        {% empty %}
+
+                            <div
+                                class="list-group-item text-center text-muted py-4"
+                            >
+                                등록된 공지사항이 없습니다.
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- 최근 게시글 -->
+            <div class="col-lg-6">
+
+                <div class="card shadow-sm h-100">
+
+                    <div
+                        class="card-header bg-light d-flex justify-content-between align-items-center"
+                    >
+                        <span class="fw-bold">
+                            📝 최근 게시글
+                        </span>
+
+                        <a
+                            href="{% url 'consultations:list' %}"
+                            class="text-success text-decoration-none small"
+                        >
+                            전체보기
+                        </a>
+                    </div>
+
+                    <div class="list-group list-group-flush">
+
+                        {% for post in recent_posts %}
+
+                            <a
+                                href="{% url 'consultations:detail' post.pk %}"
+                                class="list-group-item list-group-item-action"
+                            >
+                                <div
+                                    class="d-flex justify-content-between align-items-start gap-3"
+                                >
+                                    <div class="overflow-hidden">
+
+                                        <div class="fw-semibold text-truncate">
+                                            {{ post.title }}
+                                        </div>
+
+                                        <div class="small text-muted mt-1">
+
+                                            <span>
+                                                {{ post.get_tag_display }}
+                                            </span>
+
+                                            <span class="mx-1">
+                                                ·
+                                            </span>
+
+                                            <span>
+                                                {{ post.writer.name|default:post.writer.username }}
+                                            </span>
+
+                                            <span class="mx-1">
+                                                ·
+                                            </span>
+
+                                            <span>
+                                                조회 {{ post.views }}
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                    <small class="text-muted flex-shrink-0">
+                                        {{ post.smart_date }}
+                                    </small>
+                                </div>
+                            </a>
+
+                        {% empty %}
+
+                            <div
+                                class="list-group-item text-center text-muted py-4"
+                            >
+                                등록된 게시글이 없습니다.
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 관리자 메뉴 -->
         {% if user.is_superuser %}
+
+            <div class="mb-3">
+                <h3 class="fw-bold">
+                    관리자 메뉴
+                </h3>
+
+                <p class="text-muted">
+                    약국과 사용자 승인 및 시스템 기록을 관리합니다.
+                </p>
+            </div>
 
             <div class="row g-4 justify-content-center">
 
-                <div class="col-md-5 col-lg-4">
+                <div class="col-md-6 col-lg-4">
+
                     <a
                         href="{% url 'accounts:pharmacy_list' %}"
                         class="text-decoration-none"
                     >
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body p-4">
+                        <div class="card h-100 shadow-sm border-0">
+
+                            <div class="card-body p-4 text-center">
+
                                 <div class="fs-1 mb-3">
                                     🏥
                                 </div>
@@ -48,18 +222,24 @@
                                 <p class="text-muted mb-0">
                                     등록된 약국 정보를 확인하고 관리합니다.
                                 </p>
+
                             </div>
+
                         </div>
                     </a>
+
                 </div>
 
-                <div class="col-md-5 col-lg-4">
+                <div class="col-md-6 col-lg-4">
+
                     <a
                         href="{% url 'accounts:ownership_request_list' %}"
                         class="text-decoration-none"
                     >
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body p-4">
+                        <div class="card h-100 shadow-sm border-0">
+
+                            <div class="card-body p-4 text-center">
+
                                 <div class="fs-1 mb-3">
                                     ✅
                                 </div>
@@ -71,18 +251,24 @@
                                 <p class="text-muted mb-0">
                                     점주 권한 신청을 확인하고 처리합니다.
                                 </p>
+
                             </div>
+
                         </div>
                     </a>
+
                 </div>
 
-                <div class="col-md-5 col-lg-4">
+                <div class="col-md-6 col-lg-4">
+
                     <a
                         href="{% url 'prescriptions:audit_logs' %}"
                         class="text-decoration-none"
                     >
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body p-4">
+                        <div class="card h-100 shadow-sm border-0">
+
+                            <div class="card-body p-4 text-center">
+
                                 <div class="fs-1 mb-3">
                                     📋
                                 </div>
@@ -94,25 +280,43 @@
                                 <p class="text-muted mb-0">
                                     주요 시스템 기록을 확인합니다.
                                 </p>
+
                             </div>
+
                         </div>
                     </a>
+
                 </div>
 
             </div>
 
+        <!-- 일반 사용자 메뉴 -->
         {% else %}
+
+            <div class="mb-3">
+                <h3 class="fw-bold">
+                    업무 메뉴
+                </h3>
+
+                <p class="text-muted">
+                    필요한 약국 관리 기능을 선택하세요.
+                </p>
+            </div>
 
             <div class="row g-4 justify-content-center">
 
                 {% if user.pharmacy_id %}
+
                     <div class="col-md-6 col-lg-3">
+
                         <a
                             href="{% url 'accounts:pharmacy_detail' %}"
                             class="text-decoration-none"
                         >
-                            <div class="card h-100 shadow-sm">
-                                <div class="card-body p-4">
+                            <div class="card h-100 shadow-sm border-0">
+
+                                <div class="card-body p-4 text-center">
+
                                     <div class="fs-1 mb-3">
                                         🏪
                                     </div>
@@ -124,20 +328,24 @@
                                     <p class="text-muted mb-0">
                                         소속 약국 정보를 확인합니다.
                                     </p>
+
                                 </div>
+
                             </div>
                         </a>
-                    </div>
-                {% endif %}
 
-                {% if user.pharmacy_id %}
+                    </div>
+
                     <div class="col-md-6 col-lg-3">
+
                         <a
                             href="{% url 'inventory:medicine_list' %}"
                             class="text-decoration-none"
                         >
-                            <div class="card h-100 shadow-sm">
-                                <div class="card-body p-4">
+                            <div class="card h-100 shadow-sm border-0">
+
+                                <div class="card-body p-4 text-center">
+
                                     <div class="fs-1 mb-3">
                                         💊
                                     </div>
@@ -149,21 +357,29 @@
                                     <p class="text-muted mb-0">
                                         의약품과 재고 현황을 관리합니다.
                                     </p>
+
                                 </div>
+
                             </div>
                         </a>
+
                     </div>
+
                 {% endif %}
 
                 {% if user.is_approved %}
                     {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+
                         <div class="col-md-6 col-lg-3">
+
                             <a
                                 href="{% url 'accounts:user_list' %}"
                                 class="text-decoration-none"
                             >
-                                <div class="card h-100 shadow-sm">
-                                    <div class="card-body p-4">
+                                <div class="card h-100 shadow-sm border-0">
+
+                                    <div class="card-body p-4 text-center">
+
                                         <div class="fs-1 mb-3">
                                             👥
                                         </div>
@@ -175,20 +391,27 @@
                                         <p class="text-muted mb-0">
                                             약사와 직원 계정을 관리합니다.
                                         </p>
+
                                     </div>
+
                                 </div>
                             </a>
+
                         </div>
+
                     {% endif %}
                 {% endif %}
 
                 <div class="col-md-6 col-lg-3">
+
                     <a
                         href="{% url 'consultations:list' %}"
                         class="text-decoration-none"
                     >
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body p-4">
+                        <div class="card h-100 shadow-sm border-0">
+
+                            <div class="card-body p-4 text-center">
+
                                 <div class="fs-1 mb-3">
                                     💬
                                 </div>
@@ -200,9 +423,12 @@
                                 <p class="text-muted mb-0">
                                     자유롭게 게시글을 작성하고 확인합니다.
                                 </p>
+
                             </div>
+
                         </div>
                     </a>
+
                 </div>
 
             </div>
@@ -211,21 +437,30 @@
 
     {% else %}
 
-        <div class="d-flex justify-content-center gap-2">
+        <!-- 비로그인 사용자 -->
+        <div class="text-center">
 
-            <a
-                href="{% url 'login' %}"
-                class="btn btn-success btn-lg"
-            >
-                로그인
-            </a>
+            <p class="text-muted mb-4">
+                PharmaFlow 서비스를 이용하려면 로그인하거나 회원가입해 주세요.
+            </p>
 
-            <a
-                href="{% url 'accounts:signup' %}"
-                class="btn btn-outline-success btn-lg"
-            >
-                회원가입
-            </a>
+            <div class="d-flex justify-content-center gap-2">
+
+                <a
+                    href="{% url 'login' %}"
+                    class="btn btn-success btn-lg"
+                >
+                    로그인
+                </a>
+
+                <a
+                    href="{% url 'accounts:signup' %}"
+                    class="btn btn-outline-success btn-lg"
+                >
+                    회원가입
+                </a>
+
+            </div>
 
         </div>
 
