@@ -7,7 +7,7 @@
 {% block content %}
 
 <!-- 상단 제목 및 버튼 영역 -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-header-responsive">
     <div>
         <h1 class="h3 mb-1">
             발주 관리
@@ -18,20 +18,10 @@
         </p>
     </div>
 
-    <div class="d-flex gap-2">
-        <a
-            href="{% url 'inventory:medicine_list' %}"
-            class="btn btn-outline-secondary"
-        >
-            의약품 목록
-        </a>
-
-        <a
-            href="{% url 'inventory:purchase_order_create' %}"
-            class="btn btn-success"
-        >
-            발주 등록
-        </a>
+    <div class="d-flex gap-2 page-actions-responsive">
+        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
+        <a href="{% url 'inventory:medicine_list' %}" class="btn btn-outline-success">의약품 목록</a>
+        <a href="{% url 'inventory:purchase_order_create' %}" class="btn btn-success">발주 등록</a>
     </div>
 </div>
 

@@ -23,7 +23,7 @@ def medicine_list(request):
     )
 
     query = request.GET.get("q", "").strip()
-    low_stock = request.GET.get("low_stock", "")
+    stock_filter = request.GET.get("stock_filter", "all")
 
     if query:
         medicines = medicines.filter(
@@ -31,15 +31,20 @@ def medicine_list(request):
             | Q(manufacturer__icontains=query)
         )
 
-    if low_stock == "1":
+    if stock_filter == "low":
         medicines = medicines.filter(
             stock__lte=F("minimum_stock")
+        )
+
+    elif stock_filter == "normal":
+        medicines = medicines.filter(
+            stock__gt=F("minimum_stock")
         )
 
     context = {
         "medicines": medicines,
         "query": query,
-        "low_stock": low_stock,
+        "stock_filter": stock_filter,
     }
 
     return render(
