@@ -255,6 +255,58 @@
         white-space: nowrap;
     }
 
+
+    /* 공지사항 / 최근 게시글 높이 균등 정렬 */
+    .dashboard-board-stack {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        height: 100%;
+    }
+
+    .dashboard-board-item {
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .dashboard-board-card {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-board-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    @media (min-width: 1200px) {
+        .dashboard-board-stack {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .dashboard-board-stack {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+
+        .dashboard-board-card {
+            height: auto;
+        }
+
+        .dashboard-board-list {
+            overflow-y: visible;
+        }
+    }
+
 </style>
 
 <div class="py-4">
@@ -651,11 +703,11 @@
             <!-- 오른쪽: 공지사항 + 최근 게시글 -->
             <div class="col-xl-4 col-lg-12">
 
-                <div class="row g-3">
+                <div class="dashboard-board-stack">
 
-                    <div class="col-xl-12 col-md-6">
+                    <div class="dashboard-board-item">
 
-                        <section class="card shadow-sm h-100">
+                        <section class="card shadow-sm dashboard-board-card">
 
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
 
@@ -672,7 +724,7 @@
 
                             </div>
 
-                            <div class="list-group list-group-flush">
+                            <div class="list-group list-group-flush dashboard-board-list">
 
                                 {% for notice in notices %}
 
@@ -713,9 +765,9 @@
 
                     </div>
 
-                    <div class="col-xl-12 col-md-6">
+                    <div class="dashboard-board-item">
 
-                        <section class="card shadow-sm h-100">
+                        <section class="card shadow-sm dashboard-board-card">
 
                             <div class="card-header recent-post-header d-flex justify-content-between align-items-center">
 
@@ -732,7 +784,7 @@
 
                             </div>
 
-                            <div class="list-group list-group-flush">
+                            <div class="list-group list-group-flush dashboard-board-list">
 
                                 {% for post in recent_posts %}
 
@@ -994,38 +1046,42 @@
 
                         </div>
 
-                        <div class="col-md-6 col-xl-3">
+                        {% if user.role == "STAFF" %}
 
-                            <a
-                                href="{% url 'inventory:purchase_order_list' %}"
-                                class="text-decoration-none"
-                            >
-                                <div class="card dashboard-menu-card shadow-sm h-100">
+                            <div class="col-md-6 col-xl-3">
 
-                                    <div class="card-body p-4 text-center">
+                                <a
+                                    href="{% url 'inventory:purchase_order_list' %}"
+                                    class="text-decoration-none"
+                                >
+                                    <div class="card dashboard-menu-card shadow-sm h-100">
 
-                                        <div class="fs-1 mb-3">
-                                            🚚
+                                        <div class="card-body p-4 text-center">
+
+                                            <div class="fs-1 mb-3">
+                                                🚚
+                                            </div>
+
+                                            <h4 class="text-dark">
+                                                발주 관리
+                                            </h4>
+
+                                            <p class="text-muted">
+                                                의약품 발주 내역을 조회하고 관리합니다.
+                                            </p>
+
+                                            <span class="btn btn-outline-success btn-sm">
+                                                바로가기 →
+                                            </span>
+
                                         </div>
 
-                                        <h4 class="text-dark">
-                                            발주 관리
-                                        </h4>
-
-                                        <p class="text-muted">
-                                            의약품 발주 내역을 조회하고 관리합니다.
-                                        </p>
-
-                                        <span class="btn btn-outline-success btn-sm">
-                                            바로가기 →
-                                        </span>
-
                                     </div>
+                                </a>
 
-                                </div>
-                            </a>
+                            </div>
 
-                        </div>
+                        {% endif %}
 
                     {% endif %}
 
