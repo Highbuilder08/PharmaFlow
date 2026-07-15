@@ -1,27 +1,71 @@
 {% extends 'base.html' %}
-{% block content %} <!-- 블록명 확인 필요 -->
+{% block content %}
 
-<h2>🛡️ 시스템 작업 로그 (관리자 전용)</h2>
+<!-- 1. 상단 제목 영역 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0" style="color: #2c3e50;">🛡️ 시스템 작업 로그</h2>
+    <span class="badge bg-warning text-dark fs-6 shadow-sm px-3 py-2">관리자 전용</span>
+</div>
 
-<table border="1">
-    <tr>
-        <th>작업시간</th>
-        <th>작업자</th>
-        <th>구분</th>
-        <th>대상</th>
-        <th>상세내용 및 사유</th>
-    </tr>
-    {% for log in logs %}
-    <tr>
-        <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
-        <td>{{ log.user.username|default:"알수없음" }}</td>
-        <td style="font-weight: bold; color: {% if log.action == '삭제' %}red{% else %}blue{% endif %};">{{ log.action }}</td>
-        <td>{{ log.target }}</td>
-        <td>{{ log.detail }}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="5">아직 기록된 로그가 없습니다.</td></tr>
-    {% endfor %}
-</table>
+<!-- 2. 로그 목록 카드 영역 -->
+<div class="card shadow-sm border-0 rounded-3 mb-5">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th width="15%">작업시간</th>
+                        <th width="10%">작업자</th>
+                        <th width="10%">구분</th>
+                        <th width="15%">대상</th>
+                        <th width="50%">상세내용 및 사유</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    {% for log in logs %}
+                    <tr>
+                        <!-- 작업시간 -->
+                        <td class="text-muted" style="font-size: 14px;">
+                            {{ log.created_at|date:"Y-m-d H:i:s" }}
+                        </td>
+                        
+                        <!-- 작업자 -->
+                        <td class="fw-bold text-dark">
+                            {{ log.user.username|default:"알수없음" }}
+                        </td>
+                        
+                        <!-- 🚀 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) -->
+                        <td>
+                            {% if log.action == '삭제' %}
+                                <span class="badge bg-danger shadow-sm px-2 py-1">{{ log.action }}</span>
+                            {% elif log.action == '수정' %}
+                                <span class="badge bg-warning text-dark shadow-sm px-2 py-1">{{ log.action }}</span>
+                            {% else %}
+                                <span class="badge bg-primary shadow-sm px-2 py-1">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- 작업 대상 (회색 배지) -->
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-75 px-2 py-1">{{ log.target }}</span>
+                        </td>
+                        
+                        <!-- 상세내용 및 사유 (읽기 편하게 왼쪽 정렬) -->
+                        <td class="text-start px-4 text-muted" style="font-size: 14px;">
+                            {{ log.detail }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                            아직 기록된 시스템 로그가 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
