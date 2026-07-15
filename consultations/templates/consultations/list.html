@@ -1,26 +1,47 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="mb-4">
+<div class="mb-3">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
 </div>
 
-<!-- 2. 태그 필터 & 내가 쓴 글 버튼 (모두 왼쪽으로 나란히 정렬) -->
-<div class="d-flex align-items-center mb-4 flex-wrap gap-2">
-    <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
-    <a href="?tag=NOTICE{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'NOTICE' %}btn-danger{% else %}btn-outline-danger{% endif %}">공지</a>
-    <a href="?tag=CHAT{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'CHAT' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">잡담</a>
-    <a href="?tag=QUESTION{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'QUESTION' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">질문</a>
-    <a href="?tag=COUNSEL{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'COUNSEL' %}btn-success{% else %}btn-outline-success{% endif %}">상담</a>
-    <a href="?tag=INFO{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'INFO' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">정보</a>
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
     
-    <!-- 🚀 내가 쓴 글 버튼을 태그 바로 옆으로 이동 (ms-2로 살짝 간격 줌) -->
-    {% if user.is_authenticated %}
-        <a href="{% url 'consultations:mypost' %}" class="btn btn-sm btn-outline-primary shadow-sm fw-bold ms-2">📝 내가 쓴 글</a>
-    {% endif %}
+    <!-- 왼쪽: 태그 필터 영역 & 내가 쓴 글 -->
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        
+        <!-- 모바일용 토글 버튼 (mb-2를 빼서 세로 정렬을 맞췄습니다) -->
+        <button class="btn btn-sm btn-outline-secondary d-md-none fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#tagCollapse" aria-expanded="false" aria-controls="tagCollapse">
+            <span class="tag-toggle-icon">▶</span> 태그 선택
+        </button>
+
+        <!-- 태그 버튼들 (화면이 작을 때만 숨겨짐) -->
+        <div class="collapse d-md-block" id="tagCollapse">
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
+                <a href="?tag=NOTICE{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'NOTICE' %}btn-danger{% else %}btn-outline-danger{% endif %}">공지</a>
+                <a href="?tag=CHAT{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'CHAT' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">잡담</a>
+                <a href="?tag=QUESTION{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'QUESTION' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">질문</a>
+                <a href="?tag=COUNSEL{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'COUNSEL' %}btn-success{% else %}btn-outline-success{% endif %}">상담</a>
+                <a href="?tag=INFO{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'INFO' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">정보</a>
+            </div>
+        </div>
+
+        <!-- 🚀 내가 쓴 글 (Collapse 바깥으로 독립! 항상 보입니다) -->
+        {% if user.is_authenticated %}
+            <a href="{% url 'consultations:mypost' %}" class="btn btn-sm btn-outline-primary shadow-sm fw-bold">📝 내가 쓴 글</a>
+        {% endif %}
+        
+    </div>
+
+    <!-- 오른쪽: 글쓰기 버튼 -->
+    <div class="ms-auto">
+        <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
+    </div>
+    
 </div>
 
-<!-- 3. 표 카드 시작 -->
+<!-- 표 카드 시작 -->
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -55,7 +76,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 🚀 2. 일반 게시글 목록 루프 (10개씩 페이징되어 노출) -->
+                    <!-- 🚀 2. 일반 게시글 목록 루프 -->
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>
@@ -93,52 +114,51 @@
     <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
+<!-- 🚀 5개 단위 블록 페이징 네비게이션 바 -->
 {% if consultations.has_other_pages %}
 <nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
     <ul class="pagination shadow-sm">
         
-        <!-- ◀️ 이전 페이지 버튼 -->
-        {% if consultations.has_previous %}
-            <li class="page-item">
-                <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
-                <a class="page-link text-success" href="?page={{ consultations.previous_page_number }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-        {% else %}
-            <!-- 이전 페이지가 없으면 클릭 안 되게 막음(disabled) -->
-            <li class="page-item disabled">
-                <span class="page-link">&laquo;</span>
-            </li>
-        {% endif %}
+        <!-- 1. 맨 처음 페이지 (<<) -->
+        <li class="page-item {% if consultations.number == 1 %}disabled{% endif %}">
+            <a class="page-link text-success" href="?page=1{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="First">
+                <span aria-hidden="true">&laquo;</span> <!-- 겹화살표 -->
+            </a>
+        </li>
 
-        <!-- 1 2 3 페이지 번호들 -->
-        {% for num in consultations.paginator.page_range %}
+        <!-- 2. 이전 5개 블록 (<) -->
+        <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
+            <a class="page-link text-success" href="{% if has_prev_block %}?page={{ prev_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Previous Block">
+                <span aria-hidden="true">&lsaquo;</span> <!-- 홑화살표 -->
+            </a>
+        </li>
+
+        <!-- 3. 페이지 번호 (5개 단위로 출력) -->
+        {% for num in custom_page_range %}
             {% if consultations.number == num %}
                 <li class="page-item active" aria-current="page">
                     <span class="page-link bg-success border-success text-white">{{ num }}</span>
                 </li>
             {% else %}
                 <li class="page-item">
-                    <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
                     <a class="page-link text-success" href="?page={{ num }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}">{{ num }}</a>
                 </li>
             {% endif %}
         {% endfor %}
 
-        <!-- ▶️ 다음 페이지 버튼 -->
-        {% if consultations.has_next %}
-            <li class="page-item">
-                <!-- 🚀 &tag={{ selected_tag }} 가 추가되었습니다! -->
-                <a class="page-link text-success" href="?page={{ consultations.next_page_number }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-            <!-- 다음 페이지가 없으면 클릭 안 되게 막음(disabled) -->
-            <li class="page-item disabled">
-                <span class="page-link">&raquo;</span>
-            </li>
-        {% endif %}
+        <!-- 4. 다음 5개 블록 (>) -->
+        <li class="page-item {% if not has_next_block %}disabled{% endif %}">
+            <a class="page-link text-success" href="{% if has_next_block %}?page={{ next_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Next Block">
+                <span aria-hidden="true">&rsaquo;</span> <!-- 홑화살표 -->
+            </a>
+        </li>
+
+        <!-- 5. 맨 마지막 페이지 (>>) -->
+        <li class="page-item {% if consultations.number == last_page %}disabled{% endif %}">
+            <a class="page-link text-success" href="?page={{ last_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Last">
+                <span aria-hidden="true">&raquo;</span> <!-- 겹화살표 -->
+            </a>
+        </li>
         
     </ul>
 </nav>
@@ -153,9 +173,8 @@
         
         <!-- 검색 조건 선택 드롭다운 (flex-shrink-0으로 찌그러짐 방지) -->
         <select name="search_type" class="form-select shadow-sm" style="width: 130px; flex-shrink: 0;">
-            <option value="all" {% if search_type == 'all' %}selected{% endif %}>전체</option>
-            <!-- 처방전은 'patient', 게시판은 'title'로 알맞게 적어주세요! -->
-            <option value="patient" {% if search_type == 'patient' %}selected{% endif %}>환자명</option>
+            <option value="all" {% if search_type == 'all' or not search_type %}selected{% endif %}>전체</option>
+            <option value="title" {% if search_type == 'title' %}selected{% endif %}>제목</option>
             <option value="writer" {% if search_type == 'writer' %}selected{% endif %}>작성자</option>
         </select>
         
@@ -168,8 +187,41 @@
 </div>
 
 <style>
+    /* 기존에 있던 custom-link 스타일 유지 */
     .custom-link { transition: color 0.2s ease-in-out; }
     .custom-link:hover { color: #0d6efd !important; }
+
+    /* 🚀 새로 추가: 토글 버튼 화살표 애니메이션 */
+    .tag-toggle-icon {
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+    /* 버튼이 열린 상태(aria-expanded="true")가 되면 화살표를 90도 회전시킵니다 */
+    button[aria-expanded="true"] .tag-toggle-icon {
+        transform: rotate(90deg);
+    }
 </style>
 
 {% endblock %}
+
+<script>
+    // 🚀 상단과 하단 검색창 실시간 동기화 마법
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchTypes = document.querySelectorAll('select[name="search_type"]');
+        const searchInputs = document.querySelectorAll('input[name="q"]');
+
+        // 1. 검색 기준(드롭다운)을 바꿀 때 위아래 똑같이 맞추기
+        searchTypes.forEach(select => {
+            select.addEventListener('change', function() {
+                searchTypes.forEach(s => s.value = this.value);
+            });
+        });
+
+        // 2. 검색어(텍스트)를 입력할 때 위아래 똑같이 맞추기
+        searchInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                searchInputs.forEach(i => i.value = this.value);
+            });
+        });
+    });
+</script>

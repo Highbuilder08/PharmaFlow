@@ -43,18 +43,46 @@ def consultation_list(request):
             notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
             normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
 
-    # 4. 페이징 처리
-    paginator = Paginator(normal_posts, 10) 
-    page_number = request.GET.get('page')
+    # 1. 페이징 처리 (테스트용 1개)
+    paginator = Paginator(normal_posts, 1) 
+    page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # 🚀 5. selected_tag를 HTML 템플릿으로 전달하여 버튼 활성화에 씁니다.
+    # 🚀 2. [핵심 추가] 5개 단위 블록 페이징 계산 로직
+    block_size = 5 # 한 화면에 보여줄 페이지 번호 개수
+    current_page = page_obj.number
+    
+    # 현재 블록의 시작 페이지와 끝 페이지 계산 (예: 13페이지면 11 ~ 15)
+    start_page = ((current_page - 1) // block_size) * block_size + 1
+    end_page = start_page + block_size - 1
+    
+    # 끝 페이지가 전체 페이지 수보다 크면 전체 페이지 수로 맞춤
+    if end_page > paginator.num_pages:
+        end_page = paginator.num_pages
+        
+    custom_page_range = range(start_page, end_page + 1)
+    
+    # 이전 블록, 다음 블록 존재 여부 및 이동할 페이지 번호 계산
+    has_prev_block = start_page > 1
+    prev_block_page = start_page - 1 # 이전 블록의 마지막 페이지로 이동
+    
+    has_next_block = end_page < paginator.num_pages
+    next_block_page = end_page + 1 # 다음 블록의 첫 페이지로 이동
+
     return render(request, 'consultations/list.html', {
         'notices': notices,         
         'consultations': page_obj,  
         'q': q,
         'search_type': search_type,
-        'selected_tag': selected_tag # 👈 추가됨
+        'selected_tag': selected_tag,
+        
+        # 🚀 3. 계산된 블록 페이징 변수들을 HTML로 넘겨줍니다!
+        'custom_page_range': custom_page_range,
+        'has_prev_block': has_prev_block,
+        'prev_block_page': prev_block_page,
+        'has_next_block': has_next_block,
+        'next_block_page': next_block_page,
+        'last_page': paginator.num_pages,
     })
     
 @login_message_required
