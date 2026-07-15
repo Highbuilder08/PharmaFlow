@@ -1,32 +1,26 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="mb-4">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
-    <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<!-- 2. 태그 필터 & 내가 쓴 글 버튼 (모두 왼쪽으로 나란히 정렬) -->
+<div class="d-flex align-items-center mb-4 flex-wrap gap-2">
+    <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
+    <a href="?tag=NOTICE{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'NOTICE' %}btn-danger{% else %}btn-outline-danger{% endif %}">공지</a>
+    <a href="?tag=CHAT{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'CHAT' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">잡담</a>
+    <a href="?tag=QUESTION{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'QUESTION' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">질문</a>
+    <a href="?tag=COUNSEL{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'COUNSEL' %}btn-success{% else %}btn-outline-success{% endif %}">상담</a>
+    <a href="?tag=INFO{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'INFO' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">정보</a>
     
-    <!-- 왼쪽: 태그 버튼들 -->
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
-        <a href="?tag=NOTICE{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'NOTICE' %}btn-danger{% else %}btn-outline-danger{% endif %}">공지</a>
-        <a href="?tag=CHAT{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'CHAT' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">잡담</a>
-        <a href="?tag=QUESTION{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'QUESTION' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">질문</a>
-        <a href="?tag=COUNSEL{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'COUNSEL' %}btn-success{% else %}btn-outline-success{% endif %}">상담</a>
-        <a href="?tag=INFO{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'INFO' %}btn-info text-dark{% else %}btn-outline-info text-dark{% endif %}">정보</a>
-    </div>
-
-    <!-- 오른쪽: 내가 쓴 글 버튼 -->
-    <div>
-        {% if user.is_authenticated %}
-            <a href="{% url 'consultations:mypost' %}" class="btn btn-sm btn-outline-primary shadow-sm fw-bold">📝 내가 쓴 글</a>
-        {% endif %}
-    </div>
-    
+    <!-- 🚀 내가 쓴 글 버튼을 태그 바로 옆으로 이동 (ms-2로 살짝 간격 줌) -->
+    {% if user.is_authenticated %}
+        <a href="{% url 'consultations:mypost' %}" class="btn btn-sm btn-outline-primary shadow-sm fw-bold ms-2">📝 내가 쓴 글</a>
+    {% endif %}
 </div>
 
+<!-- 3. 표 카드 시작 -->
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -93,6 +87,10 @@
             </table>
         </div>
     </div>
+</div>
+
+<div class="d-flex justify-content-end mt-3">
+    <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
 {% if consultations.has_other_pages %}
