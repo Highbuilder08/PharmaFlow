@@ -7,176 +7,654 @@
 
 {% block content %}
 
-<div class="py-5">
+<style>
+    .dashboard-panel {
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.08);
+    }
 
-    <!-- 로고 및 서비스 소개 -->
-    <div class="text-center mb-5">
+    .dashboard-brand-logo {
+        width: 100%;
+        max-width: 255px;
+    }
 
-        <img
-            src="{% static 'images/logo_full.png' %}"
-            alt="PharmaFlow 로고"
-            class="img-fluid mb-4"
-            style="max-width:480px;"
-        >
+    .summary-card {
+        min-height: 92px;
+        border: 0;
+        border-radius: 0.7rem;
+    }
 
-        <h1 class="fw-bold mb-2">
-            PharmaFlow
-        </h1>
+    .summary-card-green {
+        background: #edf8f1;
+    }
 
-        <p class="lead text-muted mb-0">
-            약국 통합 관리 시스템
-        </p>
+    .summary-card-blue {
+        background: #edf5ff;
+    }
 
-    </div>
+    .summary-card-yellow {
+        background: #fff8e5;
+    }
+
+    .summary-card-purple {
+        background: #fbf0f8;
+    }
+    /* ==================================================
+    달력
+    ================================================== */
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: 72px 1fr 72px;
+        align-items: center;
+        gap: 0.5rem;
+
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
+
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .calendar-title {
+        margin: 0;
+        text-align: center;
+        font-size: 1.65rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .calendar-weekdays {
+        margin-bottom: 0.25rem;
+    }
+
+    .calendar-weekday {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 38px;
+
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .calendar-weekday.sunday {
+        color: #dc3545;
+    }
+
+    .calendar-weekday.saturday {
+        color: #0d6efd;
+    }
+
+    .calendar-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 0;
+        height: 44px;
+    }
+
+    .calendar-day {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 34px;
+        height: 34px;
+
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+
+        background: transparent;
+        color: #212529;
+
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1;
+
+        cursor: pointer;
+
+        transition:
+            background-color 0.15s ease,
+            color 0.15s ease,
+            transform 0.15s ease;
+    }
+
+    .calendar-day:hover {
+        background-color: #e9f7ef;
+        transform: scale(1.06);
+    }
+
+    .calendar-day.other-month {
+        color: #adb5bd;
+    }
+
+    .calendar-day.sunday {
+        color: #dc3545;
+    }
+
+    .calendar-day.saturday {
+        color: #0d6efd;
+    }
+
+    .calendar-day.today {
+        background-color: #198754;
+        color: #ffffff;
+        font-weight: 700;
+    }
+
+    .calendar-day.today:hover {
+        background-color: #157347;
+        color: #ffffff;
+    }
+
+    .calendar-footer {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+    @media (max-width: 575.98px) {
+        .calendar-header {
+            grid-template-columns: 64px 1fr 64px;
+        }
+
+        .calendar-title {
+            font-size: 1.35rem;
+        }
+
+        .calendar-cell {
+            height: 40px;
+        }
+
+        .calendar-day {
+            width: 32px;
+            height: 32px;
+            font-size: 0.9rem;
+        }
+    }
+
+    .dashboard-menu-card {
+        transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .dashboard-menu-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .inventory-table th,
+    .inventory-table td {
+        white-space: nowrap;
+    }
+
+</style>
+
+<div class="py-4">
 
     {% if user.is_authenticated %}
 
-        <!-- 공지사항 및 최근 게시글 -->
-        <div class="row g-4 mb-5">
+        <!-- 상단 3열 대시보드 -->
+        <div class="row g-3 align-items-stretch">
 
-            <!-- 공지사항 -->
-            <div class="col-lg-6">
+            <!-- 왼쪽: 로고 + 재고 현황 -->
+            <div class="col-xl-4 col-lg-5">
 
-                <div class="card shadow-sm h-100">
+                <section class="dashboard-panel h-100 p-3 p-md-4">
 
-                    <div
-                        class="card-header bg-success text-white d-flex justify-content-between align-items-center"
-                    >
-                        <span class="fw-bold">
-                            📢 공지사항
-                        </span>
+                    <div class="text-center pb-4 border-bottom">
 
-                        <a
-                            href="{% url 'consultations:list' %}?tag=NOTICE"
-                            class="text-white text-decoration-none small"
+                        <img
+                            src="{% static 'images/logo_full.png' %}"
+                            alt="PharmaFlow 로고"
+                            class="img-fluid dashboard-brand-logo mb-3"
                         >
-                            전체보기
-                        </a>
+
+                        <h1 class="fw-bold fs-2 mb-2">
+                            PharmaFlow
+                        </h1>
+
+                        <p class="text-muted mb-0">
+                            약국 통합 관리 시스템
+                        </p>
+
                     </div>
 
-                    <div class="list-group list-group-flush">
+                    <div class="pt-4">
 
-                        {% for notice in notices %}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+
+                            <h4 class="fw-bold mb-0">
+                                📦 재고 현황
+                            </h4>
 
                             <a
-                                href="{% url 'consultations:detail' notice.pk %}"
-                                class="list-group-item list-group-item-action"
+                                href="{% url 'inventory:medicine_list' %}"
+                                class="small text-success text-decoration-none"
                             >
-                                <div
-                                    class="d-flex justify-content-between align-items-center gap-3"
-                                >
-                                    <div class="text-truncate">
-
-                                        <span class="badge bg-danger me-2">
-                                            공지
-                                        </span>
-
-                                        <span class="fw-semibold">
-                                            {{ notice.title }}
-                                        </span>
-
-                                    </div>
-
-                                    <small class="text-muted flex-shrink-0">
-                                        {{ notice.smart_date }}
-                                    </small>
-                                </div>
+                                전체보기 →
                             </a>
 
-                        {% empty %}
+                        </div>
 
-                            <div
-                                class="list-group-item text-center text-muted py-4"
-                            >
-                                등록된 공지사항이 없습니다.
+                        <div class="row g-2 mb-4">
+
+                            <div class="col-6">
+                                <div class="card summary-card summary-card-green h-100">
+                                    <div class="card-body p-3">
+                                        <div class="small fw-semibold mb-1">
+                                            전체 의약품
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <strong class="fs-3">
+                                                {{ inventory_total|default:0 }}개
+                                            </strong>
+
+                                            <span class="fs-3">
+                                                🧴
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                        {% endfor %}
+                            <div class="col-6">
+                                <div class="card summary-card summary-card-blue h-100">
+                                    <div class="card-body p-3">
+                                        <div class="small fw-semibold mb-1">
+                                            재고 부족
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <strong class="fs-3">
+                                                {{ low_stock_count|default:0 }}개
+                                            </strong>
+
+                                            <span class="fs-3">
+                                                ⚠️
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="card summary-card summary-card-yellow h-100">
+                                    <div class="card-body p-3">
+                                        <div class="small fw-semibold mb-1">
+                                            정상 재고
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <strong class="fs-3">
+                                                {{ normal_stock_count|default:0 }}개
+                                            </strong>
+
+                                            <span class="fs-3">
+                                                ✅
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="card summary-card summary-card-purple h-100">
+                                    <div class="card-body p-3">
+                                        <div class="small fw-semibold mb-1">
+                                            최근 수정
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <strong class="fs-3">
+                                                {{ recently_updated_count|default:0 }}건
+                                            </strong>
+
+                                            <span class="fs-3">
+                                                📋
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+
+                            <h5 class="fw-bold mb-0">
+                                최근 재고 내역
+                            </h5>
+
+                            <a
+                                href="{% url 'inventory:medicine_list' %}"
+                                class="btn btn-outline-success btn-sm"
+                            >
+                                전체 보기
+                            </a>
+
+                        </div>
+
+                        <div class="table-responsive">
+
+                            <table class="table table-sm align-middle inventory-table mb-0">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>의약품명</th>
+                                        <th class="text-center">현재 재고</th>
+                                        <th class="text-center">상태</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    {% for medicine in recent_medicines %}
+
+                                        <tr>
+                                            <td class="fw-semibold">
+                                                {{ medicine.name }}
+                                            </td>
+
+                                            <td class="text-center">
+                                                {{ medicine.stock_quantity }}개
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                {% if medicine.stock_quantity <= medicine.minimum_stock %}
+                                                    <span class="badge bg-danger">
+                                                        재고 부족
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success">
+                                                        정상
+                                                    </span>
+                                                {% endif %}
+
+                                            </td>
+                                        </tr>
+
+                                    {% empty %}
+
+                                        <tr>
+                                            <td
+                                                colspan="3"
+                                                class="text-center text-muted py-4"
+                                            >
+                                                표시할 재고 내역이 없습니다.
+                                            </td>
+                                        </tr>
+
+                                    {% endfor %}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
 
                     </div>
 
-                </div>
+                </section>
 
             </div>
 
-            <!-- 최근 게시글 -->
-            <div class="col-lg-6">
+            <!-- 가운데: 달력 -->
+            <div class="col-xl-4 col-lg-7">
 
-                <div class="card shadow-sm h-100">
+                <section class="dashboard-panel h-100 p-3">
 
-                    <div
-                        class="card-header bg-light d-flex justify-content-between align-items-center"
-                    >
-                        <span class="fw-bold">
-                            📝 최근 게시글
-                        </span>
+                    <!-- 달력 상단 -->
+                    <div class="calendar-header">
 
-                        <a
-                            href="{% url 'consultations:list' %}"
-                            class="text-success text-decoration-none small"
+                        <div class="btn-group" role="group">
+
+                            <button
+                                type="button"
+                                id="calendar-prev"
+                                class="btn btn-outline-secondary btn-sm"
+                                aria-label="이전 달"
+                            >
+                                ‹
+                            </button>
+
+                            <button
+                                type="button"
+                                id="calendar-next"
+                                class="btn btn-outline-secondary btn-sm"
+                                aria-label="다음 달"
+                            >
+                                ›
+                            </button>
+
+                        </div>
+
+                        <h3
+                            id="calendar-title"
+                            class="calendar-title"
+                        ></h3>
+
+                        <button
+                            type="button"
+                            id="calendar-today"
+                            class="btn btn-outline-secondary btn-sm"
                         >
-                            전체보기
-                        </a>
+                            오늘
+                        </button>
+
                     </div>
 
-                    <div class="list-group list-group-flush">
+                    <!-- 요일 -->
+                    <div class="calendar-weekdays">
 
-                        {% for post in recent_posts %}
+                        <div class="calendar-weekday sunday">
+                            일
+                        </div>
 
-                            <a
-                                href="{% url 'consultations:detail' post.pk %}"
-                                class="list-group-item list-group-item-action"
-                            >
-                                <div
-                                    class="d-flex justify-content-between align-items-start gap-3"
+                        <div class="calendar-weekday">
+                            월
+                        </div>
+
+                        <div class="calendar-weekday">
+                            화
+                        </div>
+
+                        <div class="calendar-weekday">
+                            수
+                        </div>
+
+                        <div class="calendar-weekday">
+                            목
+                        </div>
+
+                        <div class="calendar-weekday">
+                            금
+                        </div>
+
+                        <div class="calendar-weekday saturday">
+                            토
+                        </div>
+
+                    </div>
+
+                    <!-- 날짜 -->
+                    <div
+                        id="calendar-grid"
+                        class="calendar-grid"
+                    ></div>
+
+                    <!-- 달력 하단 -->
+                    <div class="calendar-footer">
+
+                        <div class="d-flex gap-4 small text-muted mb-3">
+
+                            <span>
+                                <span class="text-success">●</span>
+                                오늘
+                            </span>
+
+                            <span>
+                                <span class="text-danger">●</span>
+                                일요일
+                            </span>
+
+                        </div>
+
+                        <div class="alert alert-success py-2 mb-0">
+                            📅 오늘:
+                            <strong id="calendar-today-label"></strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+            <!-- 오른쪽: 공지사항 + 최근 게시글 -->
+            <div class="col-xl-4 col-lg-12">
+
+                <div class="row g-3">
+
+                    <div class="col-xl-12 col-md-6">
+
+                        <section class="card shadow-sm h-100">
+
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+
+                                <span class="fw-bold">
+                                    📢 공지사항
+                                </span>
+
+                                <a
+                                    href="{% url 'consultations:list' %}?tag=NOTICE"
+                                    class="text-white text-decoration-none small"
                                 >
-                                    <div class="overflow-hidden">
+                                    전체보기 →
+                                </a>
 
-                                        <div class="fw-semibold text-truncate">
-                                            {{ post.title }}
-                                        </div>
-
-                                        <div class="small text-muted mt-1">
-
-                                            <span>
-                                                {{ post.get_tag_display }}
-                                            </span>
-
-                                            <span class="mx-1">
-                                                ·
-                                            </span>
-
-                                            <span>
-                                                {{ post.writer.name|default:post.writer.username }}
-                                            </span>
-
-                                            <span class="mx-1">
-                                                ·
-                                            </span>
-
-                                            <span>
-                                                조회 {{ post.views }}
-                                            </span>
-
-                                        </div>
-
-                                    </div>
-
-                                    <small class="text-muted flex-shrink-0">
-                                        {{ post.smart_date }}
-                                    </small>
-                                </div>
-                            </a>
-
-                        {% empty %}
-
-                            <div
-                                class="list-group-item text-center text-muted py-4"
-                            >
-                                등록된 게시글이 없습니다.
                             </div>
 
-                        {% endfor %}
+                            <div class="list-group list-group-flush">
+
+                                {% for notice in notices %}
+
+                                    <a
+                                        href="{% url 'consultations:detail' notice.pk %}"
+                                        class="list-group-item list-group-item-action py-3"
+                                    >
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
+
+                                            <div class="text-truncate">
+                                                <span class="badge bg-danger me-2">
+                                                    공지
+                                                </span>
+
+                                                <span class="fw-semibold">
+                                                    {{ notice.title }}
+                                                </span>
+                                            </div>
+
+                                            <small class="text-muted flex-shrink-0">
+                                                {{ notice.smart_date }}
+                                            </small>
+
+                                        </div>
+                                    </a>
+
+                                {% empty %}
+
+                                    <div class="list-group-item text-center text-muted py-4">
+                                        등록된 공지사항이 없습니다.
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        </section>
+
+                    </div>
+
+                    <div class="col-xl-12 col-md-6">
+
+                        <section class="card shadow-sm h-100">
+
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+
+                                <span class="fw-bold">
+                                    📝 최근 게시글
+                                </span>
+
+                                <a
+                                    href="{% url 'consultations:list' %}"
+                                    class="text-success text-decoration-none small"
+                                >
+                                    전체보기 →
+                                </a>
+
+                            </div>
+
+                            <div class="list-group list-group-flush">
+
+                                {% for post in recent_posts %}
+
+                                    <a
+                                        href="{% url 'consultations:detail' post.pk %}"
+                                        class="list-group-item list-group-item-action py-3"
+                                    >
+                                        <div class="d-flex justify-content-between align-items-start gap-3">
+
+                                            <div class="overflow-hidden">
+
+                                                <div class="fw-semibold text-truncate">
+                                                    {{ post.title }}
+                                                </div>
+
+                                                <div class="small text-muted mt-1">
+                                                    {{ post.get_tag_display }}
+                                                    ·
+                                                    {{ post.writer.name|default:post.writer.username }}
+                                                    ·
+                                                    조회 {{ post.views }}
+                                                </div>
+
+                                            </div>
+
+                                            <small class="text-muted flex-shrink-0">
+                                                {{ post.smart_date }}
+                                            </small>
+
+                                        </div>
+                                    </a>
+
+                                {% empty %}
+
+                                    <div class="list-group-item text-center text-muted py-4">
+                                        등록된 게시글이 없습니다.
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        </section>
 
                     </div>
 
@@ -186,279 +664,330 @@
 
         </div>
 
-        <!-- 관리자 메뉴 -->
-        {% if user.is_superuser %}
+        <!-- 하단 업무 메뉴 -->
+        <section class="dashboard-panel mt-3 p-3 p-md-4">
 
-            <div class="mb-3">
-                <h3 class="fw-bold">
-                    관리자 메뉴
-                </h3>
+            {% if user.is_superuser %}
 
-                <p class="text-muted">
-                    약국과 사용자 승인 및 시스템 기록을 관리합니다.
-                </p>
-            </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <h3 class="fw-bold mb-0">
+                        💼 관리자 메뉴
+                    </h3>
 
-            <div class="row g-4 justify-content-center">
-
-                <div class="col-md-6 col-lg-4">
-
-                    <a
-                        href="{% url 'accounts:pharmacy_list' %}"
-                        class="text-decoration-none"
-                    >
-                        <div class="card h-100 shadow-sm border-0">
-
-                            <div class="card-body p-4 text-center">
-
-                                <div class="fs-1 mb-3">
-                                    🏥
-                                </div>
-
-                                <h4 class="text-dark">
-                                    전체 약국 관리
-                                </h4>
-
-                                <p class="text-muted mb-0">
-                                    등록된 약국 정보를 확인하고 관리합니다.
-                                </p>
-
-                            </div>
-
-                        </div>
-                    </a>
-
+                    <span class="text-muted">
+                        약국과 시스템을 관리합니다.
+                    </span>
                 </div>
 
-                <div class="col-md-6 col-lg-4">
+                <div class="row g-3">
 
-                    <a
-                        href="{% url 'accounts:ownership_request_list' %}"
-                        class="text-decoration-none"
-                    >
-                        <div class="card h-100 shadow-sm border-0">
-
-                            <div class="card-body p-4 text-center">
-
-                                <div class="fs-1 mb-3">
-                                    ✅
-                                </div>
-
-                                <h4 class="text-dark">
-                                    점주 승인
-                                </h4>
-
-                                <p class="text-muted mb-0">
-                                    점주 권한 신청을 확인하고 처리합니다.
-                                </p>
-
-                            </div>
-
-                        </div>
-                    </a>
-
-                </div>
-
-                <div class="col-md-6 col-lg-4">
-
-                    <a
-                        href="{% url 'prescriptions:audit_logs' %}"
-                        class="text-decoration-none"
-                    >
-                        <div class="card h-100 shadow-sm border-0">
-
-                            <div class="card-body p-4 text-center">
-
-                                <div class="fs-1 mb-3">
-                                    📋
-                                </div>
-
-                                <h4 class="text-dark">
-                                    시스템 로그
-                                </h4>
-
-                                <p class="text-muted mb-0">
-                                    주요 시스템 기록을 확인합니다.
-                                </p>
-
-                            </div>
-
-                        </div>
-                    </a>
-
-                </div>
-
-            </div>
-
-        <!-- 일반 사용자 메뉴 -->
-        {% else %}
-
-            <div class="mb-3">
-                <h3 class="fw-bold">
-                    업무 메뉴
-                </h3>
-
-                <p class="text-muted">
-                    필요한 약국 관리 기능을 선택하세요.
-                </p>
-            </div>
-
-            <div class="row g-4 justify-content-center">
-
-                {% if user.pharmacy_id %}
-
-                    <div class="col-md-6 col-lg-3">
+                    <div class="col-md-6 col-xl-3">
 
                         <a
-                            href="{% url 'accounts:pharmacy_detail' %}"
+                            href="{% url 'accounts:pharmacy_list' %}"
                             class="text-decoration-none"
                         >
-                            <div class="card h-100 shadow-sm border-0">
-
+                            <div class="card dashboard-menu-card shadow-sm h-100">
                                 <div class="card-body p-4 text-center">
 
-                                    <div class="fs-1 mb-3">
-                                        🏪
-                                    </div>
+                                    <div class="fs-1 mb-3">🏥</div>
 
                                     <h4 class="text-dark">
-                                        약국 정보
+                                        전체 약국 관리
                                     </h4>
 
-                                    <p class="text-muted mb-0">
-                                        소속 약국 정보를 확인합니다.
+                                    <p class="text-muted">
+                                        등록된 약국 정보를 확인하고 관리합니다.
                                     </p>
 
-                                </div>
+                                    <span class="btn btn-outline-success btn-sm">
+                                        바로가기 →
+                                    </span>
 
+                                </div>
                             </div>
                         </a>
 
                     </div>
 
-                    <div class="col-md-6 col-lg-3">
+                    <div class="col-md-6 col-xl-3">
 
                         <a
-                            href="{% url 'inventory:medicine_list' %}"
+                            href="{% url 'accounts:ownership_request_list' %}"
                             class="text-decoration-none"
                         >
-                            <div class="card h-100 shadow-sm border-0">
-
+                            <div class="card dashboard-menu-card shadow-sm h-100">
                                 <div class="card-body p-4 text-center">
 
-                                    <div class="fs-1 mb-3">
-                                        💊
-                                    </div>
+                                    <div class="fs-1 mb-3">✅</div>
 
                                     <h4 class="text-dark">
-                                        재고 관리
+                                        점주 승인
                                     </h4>
 
-                                    <p class="text-muted mb-0">
-                                        의약품과 재고 현황을 관리합니다.
+                                    <p class="text-muted">
+                                        점주 권한 신청을 확인하고 처리합니다.
                                     </p>
 
-                                </div>
+                                    <span class="btn btn-outline-success btn-sm">
+                                        바로가기 →
+                                    </span>
 
+                                </div>
                             </div>
                         </a>
 
                     </div>
 
-                {% endif %}
+                    <div class="col-md-6 col-xl-3">
 
-                {% if user.is_approved %}
-                    {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                        <a
+                            href="{% url 'prescriptions:audit_logs' %}"
+                            class="text-decoration-none"
+                        >
+                            <div class="card dashboard-menu-card shadow-sm h-100">
+                                <div class="card-body p-4 text-center">
 
-                        <div class="col-md-6 col-lg-3">
+                                    <div class="fs-1 mb-3">📋</div>
+
+                                    <h4 class="text-dark">
+                                        시스템 로그
+                                    </h4>
+
+                                    <p class="text-muted">
+                                        주요 시스템 기록을 확인합니다.
+                                    </p>
+
+                                    <span class="btn btn-outline-success btn-sm">
+                                        바로가기 →
+                                    </span>
+
+                                </div>
+                            </div>
+                        </a>
+
+                    </div>
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <a
+                            href="{% url 'consultations:list' %}"
+                            class="text-decoration-none"
+                        >
+                            <div class="card dashboard-menu-card shadow-sm h-100">
+                                <div class="card-body p-4 text-center">
+
+                                    <div class="fs-1 mb-3">💬</div>
+
+                                    <h4 class="text-dark">
+                                        자유 게시판
+                                    </h4>
+
+                                    <p class="text-muted">
+                                        공지와 게시글을 확인합니다.
+                                    </p>
+
+                                    <span class="btn btn-outline-success btn-sm">
+                                        바로가기 →
+                                    </span>
+
+                                </div>
+                            </div>
+                        </a>
+
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <h3 class="fw-bold mb-0">
+                        💼 업무 메뉴
+                    </h3>
+
+                    <span class="text-muted">
+                        필요한 약국 관리 기능을 선택하세요.
+                    </span>
+                </div>
+
+                <div class="row g-3">
+
+                    {% if user.pharmacy_id %}
+
+                        <div class="col-md-6 col-xl-3">
 
                             <a
-                                href="{% url 'accounts:user_list' %}"
+                                href="{% url 'accounts:pharmacy_detail' %}"
                                 class="text-decoration-none"
                             >
-                                <div class="card h-100 shadow-sm border-0">
-
+                                <div class="card dashboard-menu-card shadow-sm h-100">
                                     <div class="card-body p-4 text-center">
 
-                                        <div class="fs-1 mb-3">
-                                            👥
-                                        </div>
+                                        <div class="fs-1 mb-3">🏪</div>
 
                                         <h4 class="text-dark">
-                                            직원 관리
+                                            약국 정보
                                         </h4>
 
-                                        <p class="text-muted mb-0">
-                                            약사와 직원 계정을 관리합니다.
+                                        <p class="text-muted">
+                                            소속 약국 정보를 확인하고 관리합니다.
                                         </p>
 
-                                    </div>
+                                        <span class="btn btn-outline-success btn-sm">
+                                            바로가기 →
+                                        </span>
 
+                                    </div>
+                                </div>
+                            </a>
+
+                        </div>
+
+                        <div class="col-md-6 col-xl-3">
+
+                            <a
+                                href="{% url 'inventory:medicine_list' %}"
+                                class="text-decoration-none"
+                            >
+                                <div class="card dashboard-menu-card shadow-sm h-100">
+                                    <div class="card-body p-4 text-center">
+
+                                        <div class="fs-1 mb-3">💊</div>
+
+                                        <h4 class="text-dark">
+                                            재고 관리
+                                        </h4>
+
+                                        <p class="text-muted">
+                                            의약품과 재고 현황을 관리합니다.
+                                        </p>
+
+                                        <span class="btn btn-outline-success btn-sm">
+                                            바로가기 →
+                                        </span>
+
+                                    </div>
                                 </div>
                             </a>
 
                         </div>
 
                     {% endif %}
-                {% endif %}
 
-                <div class="col-md-6 col-lg-3">
+                    {% if user.is_approved %}
+                        {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
 
-                    <a
-                        href="{% url 'consultations:list' %}"
-                        class="text-decoration-none"
-                    >
-                        <div class="card h-100 shadow-sm border-0">
+                            <div class="col-md-6 col-xl-3">
 
-                            <div class="card-body p-4 text-center">
+                                <a
+                                    href="{% url 'accounts:user_list' %}"
+                                    class="text-decoration-none"
+                                >
+                                    <div class="card dashboard-menu-card shadow-sm h-100">
+                                        <div class="card-body p-4 text-center">
 
-                                <div class="fs-1 mb-3">
-                                    💬
-                                </div>
+                                            <div class="fs-1 mb-3">👥</div>
 
-                                <h4 class="text-dark">
-                                    자유 게시판
-                                </h4>
+                                            <h4 class="text-dark">
+                                                직원 관리
+                                            </h4>
 
-                                <p class="text-muted mb-0">
-                                    자유롭게 게시글을 작성하고 확인합니다.
-                                </p>
+                                            <p class="text-muted">
+                                                약사와 직원 계정을 관리합니다.
+                                            </p>
+
+                                            <span class="btn btn-outline-success btn-sm">
+                                                바로가기 →
+                                            </span>
+
+                                        </div>
+                                    </div>
+                                </a>
 
                             </div>
 
-                        </div>
-                    </a>
+                        {% endif %}
+                    {% endif %}
+
+                    <div class="col-md-6 col-xl-3">
+
+                        <a
+                            href="{% url 'consultations:list' %}"
+                            class="text-decoration-none"
+                        >
+                            <div class="card dashboard-menu-card shadow-sm h-100">
+                                <div class="card-body p-4 text-center">
+
+                                    <div class="fs-1 mb-3">💬</div>
+
+                                    <h4 class="text-dark">
+                                        자유 게시판
+                                    </h4>
+
+                                    <p class="text-muted">
+                                        자유롭게 게시글을 작성하고 확인합니다.
+                                    </p>
+
+                                    <span class="btn btn-outline-success btn-sm">
+                                        바로가기 →
+                                    </span>
+
+                                </div>
+                            </div>
+                        </a>
+
+                    </div>
 
                 </div>
 
-            </div>
+            {% endif %}
 
-        {% endif %}
+        </section>
 
     {% else %}
 
-        <!-- 비로그인 사용자 -->
-        <div class="text-center">
+        <!-- 비로그인 화면 -->
+        <div class="row justify-content-center py-5">
 
-            <p class="text-muted mb-4">
-                PharmaFlow 서비스를 이용하려면 로그인하거나 회원가입해 주세요.
-            </p>
+            <div class="col-md-8 col-lg-6 text-center">
 
-            <div class="d-flex justify-content-center gap-2">
-
-                <a
-                    href="{% url 'login' %}"
-                    class="btn btn-success btn-lg"
+                <img
+                    src="{% static 'images/logo_full.png' %}"
+                    alt="PharmaFlow 로고"
+                    class="img-fluid mb-4"
+                    style="max-width: 420px;"
                 >
-                    로그인
-                </a>
 
-                <a
-                    href="{% url 'accounts:signup' %}"
-                    class="btn btn-outline-success btn-lg"
-                >
-                    회원가입
-                </a>
+                <h1 class="fw-bold mb-2">
+                    PharmaFlow
+                </h1>
+
+                <p class="lead text-muted mb-4">
+                    약국 통합 관리 시스템
+                </p>
+
+                <p class="text-muted mb-4">
+                    서비스를 이용하려면 로그인하거나 회원가입해 주세요.
+                </p>
+
+                <div class="d-flex justify-content-center gap-2">
+
+                    <a
+                        href="{% url 'login' %}"
+                        class="btn btn-success btn-lg"
+                    >
+                        로그인
+                    </a>
+
+                    <a
+                        href="{% url 'accounts:signup' %}"
+                        class="btn btn-outline-success btn-lg"
+                    >
+                        회원가입
+                    </a>
+
+                </div>
 
             </div>
 
@@ -467,5 +996,290 @@
     {% endif %}
 
 </div>
+
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+            const titleElement = document.getElementById(
+                "calendar-title"
+            );
+
+            const gridElement = document.getElementById(
+                "calendar-grid"
+            );
+
+            const todayLabelElement = document.getElementById(
+                "calendar-today-label"
+            );
+
+            const prevButton = document.getElementById(
+                "calendar-prev"
+            );
+
+            const nextButton = document.getElementById(
+                "calendar-next"
+            );
+
+            const todayButton = document.getElementById(
+                "calendar-today"
+            );
+
+            if (
+                !titleElement
+                || !gridElement
+                || !todayLabelElement
+                || !prevButton
+                || !nextButton
+                || !todayButton
+            ) {
+                return;
+            }
+
+            const realToday = new Date();
+
+            let displayedYear = realToday.getFullYear();
+            let displayedMonth = realToday.getMonth();
+
+            function formatTodayLabel(date) {
+                return new Intl.DateTimeFormat(
+                    "ko-KR",
+                    {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        weekday: "long",
+                    }
+                ).format(date);
+            }
+
+            function isSameDate(firstDate, secondDate) {
+                return (
+                    firstDate.getFullYear()
+                    === secondDate.getFullYear()
+                    &&
+                    firstDate.getMonth()
+                    === secondDate.getMonth()
+                    &&
+                    firstDate.getDate()
+                    === secondDate.getDate()
+                );
+            }
+
+            function createCalendarCell(targetDate) {
+                const cellElement =
+                    document.createElement("div");
+
+                cellElement.className =
+                    "calendar-cell";
+
+                const dayButton =
+                    document.createElement("button");
+
+                dayButton.type = "button";
+                dayButton.className = "calendar-day";
+                dayButton.textContent =
+                    targetDate.getDate();
+
+                const isCurrentMonth =
+                    targetDate.getFullYear()
+                    === displayedYear
+                    &&
+                    targetDate.getMonth()
+                    === displayedMonth;
+
+                if (!isCurrentMonth) {
+                    dayButton.classList.add(
+                        "other-month"
+                    );
+                }
+
+                const weekday =
+                    targetDate.getDay();
+
+                if (weekday === 0) {
+                    dayButton.classList.add(
+                        "sunday"
+                    );
+                }
+
+                if (weekday === 6) {
+                    dayButton.classList.add(
+                        "saturday"
+                    );
+                }
+
+                if (
+                    isSameDate(
+                        targetDate,
+                        realToday
+                    )
+                ) {
+                    dayButton.classList.add(
+                        "today"
+                    );
+
+                    dayButton.setAttribute(
+                        "aria-current",
+                        "date"
+                    );
+                }
+
+                const year =
+                    targetDate.getFullYear();
+
+                const month =
+                    String(
+                        targetDate.getMonth() + 1
+                    ).padStart(2, "0");
+
+                const day =
+                    String(
+                        targetDate.getDate()
+                    ).padStart(2, "0");
+
+                dayButton.dataset.date =
+                    `${year}-${month}-${day}`;
+
+                dayButton.setAttribute(
+                    "aria-label",
+                    `${year}년 `
+                    + `${targetDate.getMonth() + 1}월 `
+                    + `${targetDate.getDate()}일`
+                );
+
+                /*
+                 * 이후 메모 기능을 붙일 위치입니다.
+                 *
+                 * dayButton.addEventListener(
+                 *     "click",
+                 *     function () {
+                 *         메모 모달 열기
+                 *     }
+                 * );
+                 */
+
+                cellElement.appendChild(
+                    dayButton
+                );
+
+                return cellElement;
+            }
+
+            function renderCalendar() {
+                titleElement.textContent =
+                    `${displayedYear}년 `
+                    + `${displayedMonth + 1}월`;
+
+                gridElement.replaceChildren();
+
+                const firstDateOfMonth =
+                    new Date(
+                        displayedYear,
+                        displayedMonth,
+                        1
+                    );
+
+                const lastDateOfMonth =
+                    new Date(
+                        displayedYear,
+                        displayedMonth + 1,
+                        0
+                    );
+
+                const startWeekday =
+                    firstDateOfMonth.getDay();
+
+                const daysInMonth =
+                    lastDateOfMonth.getDate();
+
+                const requiredCells =
+                    startWeekday + daysInMonth;
+
+                const totalCells =
+                    Math.ceil(
+                        requiredCells / 7
+                    ) * 7;
+
+                const calendarStartDate =
+                    new Date(
+                        displayedYear,
+                        displayedMonth,
+                        1 - startWeekday
+                    );
+
+                for (
+                    let index = 0;
+                    index < totalCells;
+                    index += 1
+                ) {
+                    const targetDate =
+                        new Date(
+                            calendarStartDate
+                        );
+
+                    targetDate.setDate(
+                        calendarStartDate.getDate()
+                        + index
+                    );
+
+                    gridElement.appendChild(
+                        createCalendarCell(
+                            targetDate
+                        )
+                    );
+                }
+            }
+
+            prevButton.addEventListener(
+                "click",
+                function () {
+                    displayedMonth -= 1;
+
+                    if (displayedMonth < 0) {
+                        displayedMonth = 11;
+                        displayedYear -= 1;
+                    }
+
+                    renderCalendar();
+                }
+            );
+
+            nextButton.addEventListener(
+                "click",
+                function () {
+                    displayedMonth += 1;
+
+                    if (displayedMonth > 11) {
+                        displayedMonth = 0;
+                        displayedYear += 1;
+                    }
+
+                    renderCalendar();
+                }
+            );
+
+            todayButton.addEventListener(
+                "click",
+                function () {
+                    displayedYear =
+                        realToday.getFullYear();
+
+                    displayedMonth =
+                        realToday.getMonth();
+
+                    renderCalendar();
+                }
+            );
+
+            todayLabelElement.textContent =
+                formatTodayLabel(
+                    realToday
+                );
+
+            renderCalendar();
+        }
+    );
+</script>
 
 {% endblock %}

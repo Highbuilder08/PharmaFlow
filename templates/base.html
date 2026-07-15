@@ -163,11 +163,17 @@
 
                 <div class="ms-auto d-flex align-items-center gap-3 mt-3 mt-lg-0">
 
+                    <span
+                        id="navbar-current-datetime"
+                        class="text-white small d-none d-lg-inline text-nowrap"
+                    ></span>
+
                     <a
                         href="{% url 'accounts:my_page' %}"
-                        class="text-white text-decoration-none d-flex align-items-center gap-2"
+                        class="text-white text-decoration-none d-flex align-items-center gap-2 flex-nowrap"
                     >
                         {% if user.profile_image %}
+
                             <img
                                 src="{{ user.profile_image.url }}"
                                 alt="{{ user.name|default:user.username }} 프로필 사진"
@@ -178,7 +184,9 @@
                                     object-fit:cover;
                                 "
                             >
+
                         {% else %}
+
                             <div
                                 class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center fw-bold"
                                 style="
@@ -189,6 +197,7 @@
                             >
                                 👤
                             </div>
+
                         {% endif %}
 
                         <span>
@@ -244,6 +253,7 @@
 
     {% if messages %}
         {% for message in messages %}
+
             <div
                 class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
                 role="alert"
@@ -257,6 +267,7 @@
                     aria-label="알림 닫기"
                 ></button>
             </div>
+
         {% endfor %}
     {% endif %}
 
@@ -282,6 +293,55 @@
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
 ></script>
+
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+            const dateTimeElement = document.getElementById(
+                "navbar-current-datetime"
+            );
+
+            if (!dateTimeElement) {
+                return;
+            }
+
+            function updateNavbarDateTime() {
+                const now = new Date();
+
+                const dateText = new Intl.DateTimeFormat(
+                    "ko-KR",
+                    {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        weekday: "short"
+                    }
+                ).format(now);
+
+                const timeText = new Intl.DateTimeFormat(
+                    "ko-KR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false
+                    }
+                ).format(now);
+
+                dateTimeElement.textContent =
+                    `📅 ${dateText} ${timeText}`;
+            }
+
+            updateNavbarDateTime();
+
+            window.setInterval(
+                updateNavbarDateTime,
+                1000
+            );
+        }
+    );
+</script>
 
 </body>
 </html>
