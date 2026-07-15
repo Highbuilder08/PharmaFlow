@@ -27,32 +27,127 @@ footer {
 }
 
 /* ==========================================
-   Navbar Logo
+   Navbar 최종 확대
 ========================================== */
 
 .navbar {
-    min-height: 64px;
+    min-height: 82px;
+}
+
+.navbar .container {
+    align-items: center;
 }
 
 .navbar-brand {
     display: flex;
     align-items: center;
+
     padding-top: 0;
     padding-bottom: 0;
-    margin-right: 2rem;
+
+    margin-right: 1rem;
+
+    font-weight: bold;
 }
 
 .navbar-logo {
-    height: 46px;
-    width: auto;
     display: block;
+
+    width: auto;
+    height: 62px;
+}
+
+/* 메뉴 */
+.navbar-nav {
+    gap: 0.5rem;
 }
 
 .navbar-nav .nav-link {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+
+    font-size: 18px;
+    font-weight: 600;
 }
 
-.navbar .container {
-    align-items: center;
+/* 날짜 및 시간 */
+#navbar-current-datetime {
+    font-size: 17px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 사용자 이름 */
+.navbar-user-link {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 프로필 사진 및 기본 아이콘 */
+.navbar-profile-image,
+.navbar-profile-placeholder {
+    flex: 0 0 54px;
+
+    width: 54px;
+    height: 54px;
+}
+
+.navbar-profile-image {
+    object-fit: cover;
+}
+
+.navbar-profile-placeholder {
+    font-size: 24px;
+}
+
+/* 로그아웃 버튼 */
+.navbar-logout-button {
+    padding: 0.5rem 1rem;
+
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 태블릿 이하에서는 메뉴가 너무 커지지 않도록 조정 */
+@media (max-width: 991.98px) {
+    .navbar {
+        min-height: 72px;
+    }
+
+    .navbar-logo {
+        height: 54px;
+    }
+
+    .navbar-nav {
+        gap: 0;
+    }
+
+    .navbar-nav .nav-link {
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+
+        font-size: 17px;
+    }
+
+    .navbar-user-link {
+        font-size: 17px;
+    }
+
+    .navbar-profile-image,
+    .navbar-profile-placeholder {
+        flex-basis: 48px;
+
+        width: 48px;
+        height: 48px;
+    }
+
+    .navbar-profile-placeholder {
+        font-size: 22px;
+    }
+
+    .navbar-logout-button {
+        font-size: 15px;
+    }
 }

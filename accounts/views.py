@@ -4,8 +4,9 @@ import requests
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
@@ -53,12 +54,8 @@ def signup(request):
                         "pharmacy_name": data["pharmacy_name"],
                         "address": data["pharmacy_address"],
                         "phone": data.get("pharmacy_phone", ""),
-                        "latitude": (
-                            data.get("pharmacy_latitude") or None
-                        ),
-                        "longitude": (
-                            data.get("pharmacy_longitude") or None
-                        ),
+                        "latitude": (data.get("pharmacy_latitude") or None),
+                        "longitude": (data.get("pharmacy_longitude") or None),
                         "data_source": Pharmacy.DataSource.HIRA,
                         "is_verified": True,
                     },
@@ -76,9 +73,7 @@ def signup(request):
                         pharmacy=pharmacy,
                         defaults={
                             "business_number": data["business_number"],
-                            "status": (
-                                PharmacyOwnershipRequest.Status.PENDING
-                            ),
+                            "status": (PharmacyOwnershipRequest.Status.PENDING),
                         },
                     )
 
@@ -330,9 +325,7 @@ def pharmacy_update(request):
             "소속 약국 정보가 없습니다.",
         )
 
-        return redirect(
-            "accounts:pharmacy_detail"
-        )
+        return redirect("accounts:pharmacy_detail")
 
     if not _can_edit_pharmacy(
         request.user,
@@ -343,9 +336,7 @@ def pharmacy_update(request):
             "약국 정보를 수정할 권한이 없습니다.",
         )
 
-        return redirect(
-            "accounts:pharmacy_detail"
-        )
+        return redirect("accounts:pharmacy_detail")
 
     if request.method == "POST":
         form = PharmacyUpdateForm(
@@ -361,9 +352,7 @@ def pharmacy_update(request):
                 "약국 정보가 수정되었습니다.",
             )
 
-            return redirect(
-                "accounts:pharmacy_detail"
-            )
+            return redirect("accounts:pharmacy_detail")
 
     else:
         form = PharmacyUpdateForm(
@@ -386,10 +375,46 @@ def pharmacy_update(request):
 @login_required
 @superuser_required
 def pharmacy_list(request):
-    pharmacies = (
-        Pharmacy.objects
-        .all()
-        .order_by("pharmacy_name")
+    pharmacy_queryset = Pharmacy.objects.all().order_by("pharmacy_name")
+
+    paginator = Paginator(
+        pharmacy_queryset,
+        10,
+    )
+
+    page_number = request.GET.get("page")
+
+    pharmacies = paginator.get_page(
+        page_number,
+    )
+
+    page_block_size = 5
+
+    current_block = (pharmacies.number - 1) // page_block_size
+
+    block_start = current_block * page_block_size + 1
+
+    block_end = min(
+        block_start + page_block_size - 1,
+        paginator.num_pages,
+    )
+
+    custom_page_range = range(
+        block_start,
+        block_end + 1,
+    )
+
+    has_prev_block = block_start > 1
+    has_next_block = block_end < paginator.num_pages
+
+    prev_block_page = max(
+        1,
+        block_start - page_block_size,
+    )
+
+    next_block_page = min(
+        paginator.num_pages,
+        block_end + 1,
     )
 
     return render(
@@ -397,6 +422,12 @@ def pharmacy_list(request):
         "accounts/pharmacy_list.html",
         {
             "pharmacies": pharmacies,
+            "custom_page_range": custom_page_range,
+            "has_prev_block": has_prev_block,
+            "has_next_block": has_next_block,
+            "prev_block_page": prev_block_page,
+            "next_block_page": next_block_page,
+            "last_page": paginator.num_pages,
         },
     )
 
@@ -405,9 +436,7 @@ def pharmacy_list(request):
 @superuser_required
 def pharmacy_create(request):
     if request.method == "POST":
-        form = PharmacyUpdateForm(
-            request.POST
-        )
+        form = PharmacyUpdateForm(request.POST)
 
         if form.is_valid():
             form.save()
@@ -417,9 +446,7 @@ def pharmacy_create(request):
                 "약국이 등록되었습니다.",
             )
 
-            return redirect(
-                "accounts:pharmacy_list"
-            )
+            return redirect("accounts:pharmacy_list")
 
     else:
         form = PharmacyUpdateForm()
@@ -458,9 +485,7 @@ def pharmacy_admin_update(request, pk):
                 f"{pharmacy.pharmacy_name} 정보를 수정했습니다.",
             )
 
-            return redirect(
-                "accounts:pharmacy_list"
-            )
+            return redirect("accounts:pharmacy_list")
 
     else:
         form = PharmacyUpdateForm(
@@ -503,9 +528,7 @@ def pharmacy_delete(request, pk):
                 "소속 사용자가 존재하는 약국은 삭제할 수 없습니다.",
             )
 
-        return redirect(
-            "accounts:pharmacy_list"
-        )
+        return redirect("accounts:pharmacy_list")
 
     return render(
         request,
@@ -519,7 +542,7 @@ def pharmacy_delete(request, pk):
 @login_required
 @staff_manager_required
 def user_list(request):
-    users = (
+    user_queryset = (
         User.objects.filter(
             pharmacy=request.user.pharmacy,
             role__in=[
@@ -537,11 +560,57 @@ def user_list(request):
         )
     )
 
+    paginator = Paginator(
+        user_queryset,
+        10,
+    )
+
+    page_number = request.GET.get("page")
+
+    users = paginator.get_page(
+        page_number,
+    )
+
+    page_block_size = 5
+
+    current_block = (users.number - 1) // page_block_size
+
+    block_start = current_block * page_block_size + 1
+
+    block_end = min(
+        block_start + page_block_size - 1,
+        paginator.num_pages,
+    )
+
+    custom_page_range = range(
+        block_start,
+        block_end + 1,
+    )
+
+    has_prev_block = block_start > 1
+    has_next_block = block_end < paginator.num_pages
+
+    prev_block_page = max(
+        1,
+        block_start - page_block_size,
+    )
+
+    next_block_page = min(
+        paginator.num_pages,
+        block_end + 1,
+    )
+
     return render(
         request,
         "accounts/user_list.html",
         {
             "users": users,
+            "custom_page_range": custom_page_range,
+            "has_prev_block": has_prev_block,
+            "has_next_block": has_next_block,
+            "prev_block_page": prev_block_page,
+            "next_block_page": next_block_page,
+            "last_page": paginator.num_pages,
         },
     )
 
@@ -569,9 +638,7 @@ def user_create(request):
                 f"{staff.name} 직원을 추가했습니다.",
             )
 
-            return redirect(
-                "accounts:user_list"
-            )
+            return redirect("accounts:user_list")
 
     else:
         form = StaffCreateForm()
@@ -616,9 +683,7 @@ def user_update(request, pk):
                 f"{staff.name} 사용자 정보를 수정했습니다.",
             )
 
-            return redirect(
-                "accounts:user_list"
-            )
+            return redirect("accounts:user_list")
 
     else:
         form = StaffUpdateForm(
@@ -679,9 +744,7 @@ def user_approve(request, pk):
     )
 
     target_user.is_approved = True
-    target_user.save(
-        update_fields=["is_approved"]
-    )
+    target_user.save(update_fields=["is_approved"])
 
     messages.success(
         request,
@@ -707,9 +770,7 @@ def user_revoke(request, pk):
     )
 
     target_user.is_approved = False
-    target_user.save(
-        update_fields=["is_approved"]
-    )
+    target_user.save(update_fields=["is_approved"])
 
     messages.success(
         request,
@@ -722,9 +783,8 @@ def user_revoke(request, pk):
 @login_required
 @superuser_required
 def ownership_request_list(request):
-    ownership_requests = (
-        PharmacyOwnershipRequest.objects
-        .select_related(
+    ownership_request_queryset = (
+        PharmacyOwnershipRequest.objects.select_related(
             "user",
             "pharmacy",
         )
@@ -736,11 +796,57 @@ def ownership_request_list(request):
         )
     )
 
+    paginator = Paginator(
+        ownership_request_queryset,
+        10,
+    )
+
+    page_number = request.GET.get("page")
+
+    ownership_requests = paginator.get_page(
+        page_number,
+    )
+
+    page_block_size = 5
+
+    current_block = (ownership_requests.number - 1) // page_block_size
+
+    block_start = current_block * page_block_size + 1
+
+    block_end = min(
+        block_start + page_block_size - 1,
+        paginator.num_pages,
+    )
+
+    custom_page_range = range(
+        block_start,
+        block_end + 1,
+    )
+
+    has_prev_block = block_start > 1
+    has_next_block = block_end < paginator.num_pages
+
+    prev_block_page = max(
+        1,
+        block_start - page_block_size,
+    )
+
+    next_block_page = min(
+        paginator.num_pages,
+        block_end + 1,
+    )
+
     return render(
         request,
         "accounts/ownership_request_list.html",
         {
             "ownership_requests": ownership_requests,
+            "custom_page_range": custom_page_range,
+            "has_prev_block": has_prev_block,
+            "has_next_block": has_next_block,
+            "prev_block_page": prev_block_page,
+            "next_block_page": next_block_page,
+            "last_page": paginator.num_pages,
         },
     )
 
@@ -763,8 +869,7 @@ def ownership_request_approve(request, pk):
     business_number = ownership_request.business_number.strip()
 
     duplicate_pharmacy = (
-        Pharmacy.objects
-        .filter(business_number=business_number)
+        Pharmacy.objects.filter(business_number=business_number)
         .exclude(pk=pharmacy.pk)
         .first()
     )
@@ -779,15 +884,11 @@ def ownership_request_approve(request, pk):
             ),
         )
 
-        return redirect(
-            "accounts:ownership_request_list"
-        )
+        return redirect("accounts:ownership_request_list")
 
     try:
         with transaction.atomic():
-            ownership_request.status = (
-                PharmacyOwnershipRequest.Status.APPROVED
-            )
+            ownership_request.status = PharmacyOwnershipRequest.Status.APPROVED
             ownership_request.processed_at = timezone.now()
 
             ownership_request.save(
@@ -831,9 +932,7 @@ def ownership_request_approve(request, pk):
             ),
         )
 
-        return redirect(
-            "accounts:ownership_request_list"
-        )
+        return redirect("accounts:ownership_request_list")
 
     messages.success(
         request,
@@ -843,9 +942,7 @@ def ownership_request_approve(request, pk):
         ),
     )
 
-    return redirect(
-        "accounts:ownership_request_list"
-    )
+    return redirect("accounts:ownership_request_list")
 
 
 @login_required
@@ -861,9 +958,7 @@ def ownership_request_reject(request, pk):
         status=PharmacyOwnershipRequest.Status.PENDING,
     )
 
-    ownership_request.status = (
-        PharmacyOwnershipRequest.Status.REJECTED
-    )
+    ownership_request.status = PharmacyOwnershipRequest.Status.REJECTED
 
     ownership_request.processed_at = timezone.now()
 
@@ -888,9 +983,67 @@ def ownership_request_reject(request, pk):
         f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.",
     )
 
-    return redirect(
-        "accounts:ownership_request_list"
+    return redirect("accounts:ownership_request_list")
+
+
+@login_required
+@require_POST
+def my_page_deactivate(request):
+    if request.user.is_superuser:
+        messages.error(
+            request,
+            "시스템 관리자 계정은 마이페이지에서 해지할 수 없습니다.",
+        )
+
+        return redirect("accounts:my_page")
+
+    password = request.POST.get(
+        "password",
+        "",
     )
+
+    if not request.user.check_password(password):
+        password_form = PasswordConfirmForm(
+            user=request.user,
+        )
+
+        messages.error(
+            request,
+            "현재 비밀번호가 올바르지 않습니다.",
+        )
+
+        return render(
+            request,
+            "accounts/my_page.html",
+            {
+                "account": request.user,
+                "password_form": password_form,
+                "open_deactivate_modal": True,
+            },
+            status=400,
+        )
+
+    account = request.user
+
+    with transaction.atomic():
+        account.is_active = False
+        account.is_approved = False
+
+        account.save(
+            update_fields=[
+                "is_active",
+                "is_approved",
+            ]
+        )
+
+    logout(request)
+
+    messages.success(
+        request,
+        "계정 해지가 완료되었습니다.",
+    )
+
+    return redirect("login")
 
 
 @login_required
@@ -919,13 +1072,9 @@ def my_page_verify_password(request):
 
     if form.is_valid():
         request.session["mypage_verified"] = True
-        request.session["mypage_verified_at"] = (
-            timezone.now().timestamp()
-        )
+        request.session["mypage_verified_at"] = timezone.now().timestamp()
 
-        return redirect(
-            "accounts:my_page_update"
-        )
+        return redirect("accounts:my_page_update")
 
     return render(
         request,
@@ -950,9 +1099,7 @@ def my_page_update(request):
         0,
     )
 
-    elapsed_seconds = (
-        timezone.now().timestamp() - verified_at
-    )
+    elapsed_seconds = timezone.now().timestamp() - verified_at
 
     if not verified or elapsed_seconds > 300:
         request.session.pop(
@@ -969,9 +1116,7 @@ def my_page_update(request):
             "내 정보 수정 전에 비밀번호를 확인해 주세요.",
         )
 
-        return redirect(
-            "accounts:my_page"
-        )
+        return redirect("accounts:my_page")
 
     account = request.user
 
@@ -983,9 +1128,7 @@ def my_page_update(request):
         )
 
         if form.is_valid():
-            password_changed = bool(
-                form.cleaned_data.get("new_password1")
-            )
+            password_changed = bool(form.cleaned_data.get("new_password1"))
 
             account = form.save()
 
@@ -1009,9 +1152,7 @@ def my_page_update(request):
                 "내 정보가 수정되었습니다.",
             )
 
-            return redirect(
-                "accounts:my_page"
-            )
+            return redirect("accounts:my_page")
 
     else:
         form = MyPageUpdateForm(

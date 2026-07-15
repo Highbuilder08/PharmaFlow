@@ -9,12 +9,6 @@
 
 <style>
 
-    /* ==========================================
-       모바일 전환 기준
-       - 576px 이하에서만 모바일 레이아웃 적용
-       - 그 이상은 데스크톱 레이아웃 유지
-    ========================================== */
-
     .recent-post-header {
         background: linear-gradient(
             to bottom,
@@ -225,7 +219,7 @@
         resize: vertical;
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 575.98px) {
         .calendar-header {
             grid-template-columns: 64px 1fr 64px;
         }
@@ -261,57 +255,242 @@
         white-space: nowrap;
     }
 
-    /* 공지사항/최근 게시글 영역 전체 높이를 왼쪽·달력 카드와 맞춤 */
-    .dashboard-board-column {
+    /* ==================================================
+       상단 대시보드 고정 높이 및 내부 스크롤
+    ================================================== */
+
+    .dashboard-top-row > [class*="col-"] {
+        display: flex;
+    }
+
+    .dashboard-top-panel {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /*
+     * 상단이 3열로 배치되는 큰 화면에서는
+     * 재고/관리자, 달력, 게시판의 전체 높이를 동일하게 유지합니다.
+     */
+    @media (min-width: 1200px) {
+        .dashboard-top-row {
+            height: 780px;
+        }
+
+        .dashboard-top-row > [class*="col-"] {
+            height: 100%;
+            min-height: 0;
+            align-items: stretch;
+        }
+
+        .dashboard-top-panel,
+        .dashboard-board-stack {
+            height: 100%;
+            min-height: 0;
+        }
+    }
+
+    /* 왼쪽: 현황은 고정, 최근 내역만 스크롤 */
+    .dashboard-side-panel {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        overflow: hidden;
+    }
+
+    .dashboard-side-panel > .pt-4 {
+        display: flex;
+        flex-direction: column;
+
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /*
+     * 관리자와 일반 사용자 모두 최근 내역 영역을
+     * 같은 높이로 고정합니다.
+     */
+    .dashboard-table-scroll {
+        flex: 0 0 170px;
+        min-width: 0;
+        height: 170px;
+        min-height: 170px;
+        max-height: 170px;
+
+        margin-top: 0.25rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .dashboard-table-scroll.has-items {
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+
+    .dashboard-table-scroll.is-empty {
+        display: flex;
+        overflow: hidden;
+    }
+
+    .dashboard-empty-state {
+        display: flex;
+
+        align-items: flex-start;
+        justify-content: center;
+
         width: 100%;
         height: 100%;
+
+        padding-top: 1.5rem;
+
+        border-top: 1px solid #dee2e6;
+
+        text-align: center;
+        color: #6c757d;
+        background: #ffffff;
+        
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #6c757d;
     }
 
-    .dashboard-board-column > .dashboard-board-item {
-        display: flex;
-        width: 100%;
+
+    .dashboard-table-scroll.has-items thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8f9fa;
     }
 
-    .dashboard-board-column > .dashboard-board-item:first-child {
+    /* 가운데: 달력은 항상 6주(42칸), 메모 입력창만 내부 스크롤 */
+    .calendar-panel {
+        display: grid;
+        grid-template-rows:
+            auto
+            auto
+            auto
+            auto
+            minmax(0, 1fr);
+        overflow: hidden;
+    }
+
+    .calendar-grid {
+        grid-template-rows: repeat(6, 44px);
         flex: 0 0 auto;
     }
 
-    .dashboard-board-column > .dashboard-board-item:last-child {
-        flex: 1 1 auto;
+    .calendar-memo-panel {
+        min-height: 0;
+        margin-top: 1rem !important;
+        display: grid;
+        grid-template-rows:
+            auto
+            minmax(0, 1fr)
+            auto
+            auto;
+        overflow: hidden;
+    }
+
+    #calendar-memo-content {
+        width: 100%;
+        min-height: 0;
+        height: 100%;
+        resize: none;
+        overflow-y: auto;
+    }
+
+    /* 오른쪽: 공지사항과 최근 게시글 높이 고정, 목록만 스크롤 */
+    .dashboard-board-stack {
+        display: grid;
+        grid-template-rows: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        gap: 1rem;
+
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+
+        align-self: stretch;
+    }
+
+    .dashboard-board-item {
+        display: flex;
+        min-width: 0;
         min-height: 0;
     }
 
-    .dashboard-board-column .card {
+    .dashboard-board-card {
+        display: flex;
+        flex-direction: column;
         width: 100%;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
     }
 
-    .dashboard-board-column > .dashboard-board-item:last-child .card {
-        height: 100%;
+    .dashboard-scroll-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .dashboard-board-card .card-header {
+        flex: 0 0 auto;
     }
 
     @media (max-width: 1199.98px) {
-        .dashboard-board-column {
-            display: grid;
+        .dashboard-top-row {
+            height: auto;
+        }
+
+        .dashboard-top-panel,
+        .dashboard-board-stack {
+            height: auto;
+        }
+
+        .dashboard-board-stack {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            height: auto;
+            grid-template-rows: none;
         }
 
-        .dashboard-board-column > .dashboard-board-item {
-            min-width: 0;
+        .dashboard-table-scroll,
+        .dashboard-scroll-list {
+            max-height: 320px;
         }
 
-        .dashboard-board-column > .dashboard-board-item:last-child .card {
-            height: auto;
+        .calendar-panel {
+            display: block;
+            overflow: visible;
+        }
+
+        .calendar-memo-panel {
+            display: block;
+            overflow: visible;
+        }
+
+        #calendar-memo-content {
+            height: 130px;
+            min-height: 130px;
         }
     }
 
     @media (max-width: 576px) {
-        .dashboard-board-column {
+        .dashboard-board-stack {
             grid-template-columns: 1fr;
         }
+
+        .dashboard-table-scroll,
+        .dashboard-scroll-list {
+            max-height: 280px;
+        }
+
+        .calendar-grid {
+            grid-template-rows: repeat(6, 40px);
+        }
+    }
+
+    .dashboard-menu-section {
+        clear: both;
+        position: relative;
+        z-index: 0;
     }
 
 </style>
@@ -321,12 +500,12 @@
     {% if user.is_authenticated %}
 
         <!-- 상단 3열 대시보드 -->
-        <div class="row g-3 align-items-stretch">
+        <div class="row g-3 align-items-stretch dashboard-top-row">
 
             <!-- 왼쪽: 로고 + 재고 현황 -->
             <div class="col-xl-4 col-lg-5">
 
-                <section class="dashboard-panel h-100 p-3 p-md-4">
+                <section class="dashboard-panel dashboard-top-panel dashboard-side-panel h-100 p-3 p-md-4">
 
                     <div class="text-center pb-4 border-bottom">
 
@@ -348,173 +527,340 @@
 
                     <div class="pt-4">
 
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        {% if user.is_superuser %}
 
-                            <h4 class="fw-bold mb-0">
-                                📦 재고 현황
-                            </h4>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
 
-                            <a
-                                href="{% url 'inventory:medicine_list' %}"
-                                class="btn btn-outline-success btn-sm"
-                            >
-                                전체 보기
-                            </a>
+                                <h4 class="fw-bold mb-0">
+                                    🛡️ 관리자 현황
+                                </h4>
 
-                        </div>
+                                <a
+                                    href="{% url 'accounts:ownership_request_list' %}"
+                                    class="btn btn-outline-success btn-sm"
+                                >
+                                    승인 관리
+                                </a>
 
-                        <div class="row g-2 mb-4">
+                            </div>
 
-                            <div class="col-6">
-                                <div class="card summary-card summary-card-green h-100">
-                                    <div class="card-body p-3">
-                                        <div class="small fw-semibold mb-1">
-                                            전체 의약품
-                                        </div>
+                            <div class="row g-2 mb-4">
 
-                                        <div class="d-flex justify-content-between align-items-end">
-                                            <strong class="fs-3">
-                                                {{ inventory_total|default:0 }}개
-                                            </strong>
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-green h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                등록 약국
+                                            </div>
 
-                                            <span class="fs-3">
-                                                🧴
-                                            </span>
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ pharmacy_total|default:0 }}곳
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    🏥
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="col-6">
-                                <div class="card summary-card summary-card-blue h-100">
-                                    <div class="card-body p-3">
-                                        <div class="small fw-semibold mb-1">
-                                            재고 부족
-                                        </div>
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-yellow h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                승인 대기
+                                            </div>
 
-                                        <div class="d-flex justify-content-between align-items-end">
-                                            <strong class="fs-3">
-                                                {{ low_stock_count|default:0 }}개
-                                            </strong>
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ ownership_pending_count|default:0 }}건
+                                                </strong>
 
-                                            <span class="fs-3">
-                                                ⚠️
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-6">
-                                <div class="card summary-card summary-card-yellow h-100">
-                                    <div class="card-body p-3">
-                                        <div class="small fw-semibold mb-1">
-                                            정상 재고
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-end">
-                                            <strong class="fs-3">
-                                                {{ normal_stock_count|default:0 }}개
-                                            </strong>
-
-                                            <span class="fs-3">
-                                                ✅
-                                            </span>
+                                                <span class="fs-3">
+                                                    ⏳
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="col-6">
-                                <div class="card summary-card summary-card-purple h-100">
-                                    <div class="card-body p-3">
-                                        <div class="small fw-semibold mb-1">
-                                            최근 수정
-                                        </div>
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-blue h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                전체 회원
+                                            </div>
 
-                                        <div class="d-flex justify-content-between align-items-end">
-                                            <strong class="fs-3">
-                                                {{ recently_updated_count|default:0 }}건
-                                            </strong>
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ user_total|default:0 }}명
+                                                </strong>
 
-                                            <span class="fs-3">
-                                                📋
-                                            </span>
+                                                <span class="fs-3">
+                                                    👥
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-purple h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                오늘 가입
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ today_joined_count|default:0 }}명
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    🆕
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
-                        </div>
+                            <hr class="my-2">
 
-                        <hr class="my-4">
+                            <div class="mb-1">
 
-                        <div class="mb-2">
+                                <h5 class="fw-bold mb-0">
+                                    최근 승인 요청
+                                </h5>
 
-                            <h5 class="fw-bold mb-0">
-                                최근 재고 내역
-                            </h5>
+                            </div>
 
-                        </div>
+                            {% if recent_ownership_requests %}
 
-                        <div class="table-responsive">
+                                <div class="table-responsive dashboard-table-scroll has-items">
 
-                            <table class="table table-sm align-middle inventory-table mb-0">
+                                    <table class="table table-sm align-middle inventory-table mb-0">
 
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>의약품명</th>
-                                        <th class="text-center">현재 재고</th>
-                                        <th class="text-center">상태</th>
-                                    </tr>
-                                </thead>
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>신청자</th>
+                                                <th>약국명</th>
+                                                <th class="text-center">신청일</th>
+                                            </tr>
+                                        </thead>
 
-                                <tbody>
+                                        <tbody>
 
-                                    {% for medicine in recent_medicines %}
+                                            {% for ownership_request in recent_ownership_requests %}
 
-                                        <tr>
-                                            <td class="fw-semibold">
-                                                {{ medicine.name }}
-                                            </td>
+                                                <tr>
+                                                    <td class="fw-semibold">
+                                                        {{ ownership_request.user.name|default:ownership_request.user.username }}
+                                                    </td>
 
-                                            <td class="text-center">
-                                                {{ medicine.stock_quantity }}개
-                                            </td>
+                                                    <td>
+                                                        {{ ownership_request.pharmacy.pharmacy_name }}
+                                                    </td>
 
-                                            <td class="text-center">
+                                                    <td class="text-center text-nowrap">
+                                                        {{ ownership_request.created_at|date:"m/d" }}
+                                                    </td>
+                                                </tr>
 
-                                                {% if medicine.stock_quantity <= medicine.minimum_stock %}
-                                                    <span class="badge bg-danger">
-                                                        재고 부족
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge bg-success">
-                                                        정상
-                                                    </span>
-                                                {% endif %}
+                                            {% endfor %}
 
-                                            </td>
-                                        </tr>
+                                        </tbody>
 
-                                    {% empty %}
+                                    </table>
 
-                                        <tr>
-                                            <td
-                                                colspan="3"
-                                                class="text-center text-muted py-4"
-                                            >
-                                                표시할 재고 내역이 없습니다.
-                                            </td>
-                                        </tr>
+                                </div>
 
-                                    {% endfor %}
+                            {% else %}
 
-                                </tbody>
+                                <div class="dashboard-table-scroll is-empty">
+                                    <div class="dashboard-empty-state">
+                                        승인 대기 중인 요청이 없습니다.
+                                    </div>
+                                </div>
 
-                            </table>
+                            {% endif %}
 
-                        </div>
+                        {% else %}
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                                <h4 class="fw-bold mb-0">
+                                    📦 재고 현황
+                                </h4>
+
+                                <a
+                                    href="{% url 'inventory:medicine_list' %}"
+                                    class="btn btn-outline-success btn-sm"
+                                >
+                                    전체 보기
+                                </a>
+
+                            </div>
+
+                            <div class="row g-2 mb-4">
+
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-green h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                전체 의약품
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ inventory_total|default:0 }}개
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    🧴
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-blue h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                재고 부족
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ low_stock_count|default:0 }}개
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    ⚠️
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-yellow h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                정상 재고
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ normal_stock_count|default:0 }}개
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    ✅
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="card summary-card summary-card-purple h-100">
+                                        <div class="card-body p-3">
+                                            <div class="small fw-semibold mb-1">
+                                                최근 수정
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-end">
+                                                <strong class="fs-3">
+                                                    {{ recently_updated_count|default:0 }}건
+                                                </strong>
+
+                                                <span class="fs-3">
+                                                    📋
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <hr class="my-2">
+
+                            <div class="mb-1">
+
+                                <h5 class="fw-bold mb-0">
+                                    최근 재고 내역
+                                </h5>
+
+                            </div>
+
+                            {% if recent_medicines %}
+
+                                <div class="table-responsive dashboard-table-scroll has-items">
+
+                                    <table class="table table-sm align-middle inventory-table mb-0">
+
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>의약품명</th>
+                                                <th class="text-center">현재 재고</th>
+                                                <th class="text-center">상태</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                            {% for medicine in recent_medicines %}
+
+                                                <tr>
+                                                    <td class="fw-semibold">
+                                                        {{ medicine.name }}
+                                                    </td>
+
+                                                    <td class="text-center">
+                                                        {{ medicine.stock_quantity }}개
+                                                    </td>
+
+                                                    <td class="text-center">
+
+                                                        {% if medicine.stock_quantity <= medicine.minimum_stock %}
+                                                            <span class="badge bg-danger">
+                                                                재고 부족
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge bg-success">
+                                                                정상
+                                                            </span>
+                                                        {% endif %}
+
+                                                    </td>
+                                                </tr>
+
+                                            {% endfor %}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            {% else %}
+
+                                <div class="dashboard-table-scroll is-empty">
+                                    <div class="dashboard-empty-state">
+                                        표시할 재고 내역이 없습니다.
+                                    </div>
+                                </div>
+
+                            {% endif %}
+
+                        {% endif %}
+
 
                     </div>
 
@@ -525,7 +871,7 @@
             <!-- 가운데: 달력 -->
             <div class="col-xl-4 col-lg-7">
 
-                <section class="dashboard-panel h-100 p-3">
+                <section class="dashboard-panel dashboard-top-panel calendar-panel h-100 p-3">
 
                     <!-- 달력 상단 -->
                     <div class="calendar-header">
@@ -708,13 +1054,13 @@
             </div>
 
             <!-- 오른쪽: 공지사항 + 최근 게시글 -->
-            <div class="col-xl-4 col-lg-12 d-flex">
+            <div class="col-xl-4 col-lg-12 d-flex align-items-stretch">
 
-                <div class="dashboard-board-column">
+                <div class="dashboard-board-stack dashboard-top-panel">
 
                     <div class="dashboard-board-item">
 
-                        <section class="card shadow-sm h-100">
+                        <section class="card shadow-sm dashboard-board-card">
 
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
 
@@ -731,7 +1077,7 @@
 
                             </div>
 
-                            <div class="list-group list-group-flush">
+                            <div class="list-group list-group-flush dashboard-scroll-list">
 
                                 {% for notice in notices %}
 
@@ -774,7 +1120,7 @@
 
                     <div class="dashboard-board-item">
 
-                        <section class="card shadow-sm h-100">
+                        <section class="card shadow-sm dashboard-board-card">
 
                             <div class="card-header recent-post-header d-flex justify-content-between align-items-center">
 
@@ -791,7 +1137,7 @@
 
                             </div>
 
-                            <div class="list-group list-group-flush">
+                            <div class="list-group list-group-flush dashboard-scroll-list">
 
                                 {% for post in recent_posts %}
 
@@ -845,7 +1191,7 @@
         </div>
 
         <!-- 하단 업무 메뉴 -->
-        <section class="dashboard-panel mt-3 p-3 p-md-4">
+        <section class="dashboard-panel dashboard-menu-section mt-4 p-3 p-md-4">
 
             {% if user.is_superuser %}
 
@@ -1360,7 +1706,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const first = new Date(year, month, 1);
         const last = new Date(year, month+1, 0);
         const startWeekday = first.getDay();
-        const total = Math.ceil((startWeekday + last.getDate()) / 7) * 7;
+        const total = 42;
         const start = new Date(year, month, 1-startWeekday);
         for (let i=0; i<total; i+=1) {
             const date = new Date(start);

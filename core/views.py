@@ -5,8 +5,14 @@ from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+from accounts.models import (
+    Pharmacy,
+    PharmacyOwnershipRequest,
+    User,
+)
 from consultations.models import Consultation
 
 from .models import CalendarMemo
@@ -14,46 +20,62 @@ from .models import CalendarMemo
 
 def index(request):
     notices = (
-        Consultation.objects.filter(
-            tag="NOTICE",
-        )
-        .select_related(
-            "writer",
-        )
-        .order_by(
-            "-created_at",
-        )[:3]
+        Consultation.objects.filter(tag="NOTICE")
+        .select_related("writer")
+        .order_by("-created_at")[:3]
     )
 
     recent_posts = (
-        Consultation.objects.exclude(
-            tag="NOTICE",
-        )
-        .select_related(
-            "writer",
-        )
-        .order_by(
-            "-created_at",
-        )[:5]
+        Consultation.objects.exclude(tag="NOTICE")
+        .select_related("writer")
+        .order_by("-created_at")[:5]
     )
+
+    context = {
+        "notices": notices,
+        "recent_posts": recent_posts,
+    }
+
+    # 관리자 전용 대시보드 정보
+    if request.user.is_authenticated and request.user.is_superuser:
+        today = timezone.localdate()
+
+        context.update(
+            {
+                "pharmacy_total": Pharmacy.objects.count(),
+                "ownership_pending_count": (
+                    PharmacyOwnershipRequest.objects.filter(
+                        status=PharmacyOwnershipRequest.Status.PENDING,
+                    ).count()
+                ),
+                "user_total": User.objects.count(),
+                "today_joined_count": User.objects.filter(
+                    date_joined__date=today,
+                ).count(),
+                "recent_ownership_requests": (
+                    PharmacyOwnershipRequest.objects.filter(
+                        status=PharmacyOwnershipRequest.Status.PENDING,
+                    )
+                    .select_related(
+                        "user",
+                        "pharmacy",
+                    )
+                    .order_by("-created_at")[:5]
+                ),
+            },
+        )
 
     return render(
         request,
         "core/index.html",
-        {
-            "notices": notices,
-            "recent_posts": recent_posts,
-        },
+        context,
     )
 
 
 @login_required
 @require_GET
 def calendar_memo_detail(request):
-    date_text = request.GET.get(
-        "date",
-        "",
-    ).strip()
+    date_text = request.GET.get("date", "").strip()
 
     try:
         memo_date = datetime.strptime(
@@ -79,7 +101,7 @@ def calendar_memo_detail(request):
         {
             "success": True,
             "date": memo_date.isoformat(),
-            "content": (memo.content if memo else ""),
+            "content": memo.content if memo else "",
             "exists": memo is not None,
         },
     )
@@ -89,11 +111,7 @@ def calendar_memo_detail(request):
 @require_POST
 def calendar_memo_save(request):
     try:
-        data = json.loads(
-            request.body.decode(
-                "utf-8",
-            )
-        )
+        data = json.loads(request.body.decode("utf-8"))
 
     except json.JSONDecodeError:
         return JsonResponse(
@@ -104,19 +122,8 @@ def calendar_memo_save(request):
             status=400,
         )
 
-    date_text = str(
-        data.get(
-            "date",
-            "",
-        )
-    ).strip()
-
-    content = str(
-        data.get(
-            "content",
-            "",
-        )
-    ).strip()
+    date_text = str(data.get("date", "")).strip()
+    content = str(data.get("content", "")).strip()
 
     try:
         memo_date = datetime.strptime(
@@ -137,7 +144,7 @@ def calendar_memo_save(request):
         return JsonResponse(
             {
                 "success": False,
-                "message": ("메모는 2,000자 이하로 " "입력해 주세요."),
+                "message": "메모는 2,000자 이하로 입력해 주세요.",
             },
             status=400,
         )
@@ -177,24 +184,12 @@ def calendar_memo_save(request):
 @login_required
 @require_GET
 def calendar_memo_dates(request):
-    year_text = request.GET.get(
-        "year",
-        "",
-    )
-
-    month_text = request.GET.get(
-        "month",
-        "",
-    )
+    year_text = request.GET.get("year", "")
+    month_text = request.GET.get("month", "")
 
     try:
-        year = int(
-            year_text,
-        )
-
-        month = int(
-            month_text,
-        )
+        year = int(year_text)
+        month = int(month_text)
 
         if month < 1 or month > 12:
             raise ValueError
@@ -203,7 +198,7 @@ def calendar_memo_dates(request):
         return JsonResponse(
             {
                 "success": False,
-                "message": ("연도 또는 월이 " "올바르지 않습니다."),
+                "message": "연도 또는 월이 올바르지 않습니다.",
             },
             status=400,
         )
