@@ -43,8 +43,8 @@ def consultation_list(request):
             notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
             normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
 
-    # 1. 페이징 처리 (테스트용 1개)
-    paginator = Paginator(normal_posts, 1) 
+    # 1. 페이징 처리
+    paginator = Paginator(normal_posts, 10) # 한 페이지당 일반 게시글 표기 수
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
