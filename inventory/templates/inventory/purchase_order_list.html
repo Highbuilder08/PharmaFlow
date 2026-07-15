@@ -6,6 +6,7 @@
 
 {% block content %}
 
+<!-- 상단 제목 및 버튼 영역 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 mb-1">
@@ -18,12 +19,23 @@
     </div>
 
     <div class="d-flex gap-2">
-        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
-        <a href="{% url 'inventory:medicine_list' %}" class="btn btn-outline-secondary">의약품 목록</a>
-        <a href="{% url 'inventory:purchase_order_create' %}" class="btn btn-success">발주 등록</a>
+        <a
+            href="{% url 'inventory:medicine_list' %}"
+            class="btn btn-outline-secondary"
+        >
+            의약품 목록
+        </a>
+
+        <a
+            href="{% url 'inventory:purchase_order_create' %}"
+            class="btn btn-success"
+        >
+            발주 등록
+        </a>
     </div>
 </div>
 
+<!-- 발주 목록 카드 -->
 <div class="card shadow-sm">
     <div class="card-body">
 
@@ -38,6 +50,11 @@
                         <th>상태</th>
                         <th>발주자</th>
                         <th>발주일</th>
+
+                        <!-- 상태 변경 버튼을 표시할 관리 열 -->
+                        <th class="text-center">
+                            관리
+                        </th>
                     </tr>
                 </thead>
 
@@ -45,68 +62,162 @@
 
                     {% for purchase_order in purchase_orders %}
 
-                    <tr>
+                        <tr>
 
-                        <td>
-                            {{ purchase_order.medicine.name }}
-                        </td>
+                            <!-- 의약품명 -->
+                            <td>
+                                {{ purchase_order.medicine.name }}
+                            </td>
 
-                        <td>
-                            {{ purchase_order.quantity }}개
-                        </td>
+                            <!-- 발주 수량 -->
+                            <td>
+                                {{ purchase_order.quantity }}개
+                            </td>
 
-                        <td>
+                            <!-- 발주 상태 -->
+                            <td>
+                                {% if purchase_order.status == "WAIT" %}
+                                    <span class="badge bg-warning text-dark">
+                                        {{ purchase_order.get_status_display }}
+                                    </span>
 
-                            {% if purchase_order.status == "WAIT" %}
+                                {% elif purchase_order.status == "ORDERED" %}
+                                    <span class="badge bg-primary">
+                                        {{ purchase_order.get_status_display }}
+                                    </span>
 
-                                <span class="badge bg-warning text-dark">
-                                    {{ purchase_order.get_status_display }}
-                                </span>
+                                {% elif purchase_order.status == "RECEIVED" %}
+                                    <span class="badge bg-success">
+                                        {{ purchase_order.get_status_display }}
+                                    </span>
 
-                            {% elif purchase_order.status == "ORDERED" %}
+                                {% elif purchase_order.status == "CANCELLED" %}
+                                    <span class="badge bg-danger">
+                                        {{ purchase_order.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
 
-                                <span class="badge bg-primary">
-                                    {{ purchase_order.get_status_display }}
-                                </span>
+                            <!-- 발주자 -->
+                            <td>
+                                {% if purchase_order.ordered_by %}
+                                    {{ purchase_order.ordered_by.name|default:purchase_order.ordered_by.username }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
 
-                            {% elif purchase_order.status == "RECEIVED" %}
+                            <!-- 발주일 -->
+                            <td>
+                                {{ purchase_order.created_at|date:"Y-m-d H:i" }}
+                            </td>
 
-                                <span class="badge bg-success">
-                                    {{ purchase_order.get_status_display }}
-                                </span>
+                            <!-- 발주 상태별 관리 버튼 영역 -->
+                            <td class="text-center">
 
-                            {% else %}
+                                <div class="d-flex justify-content-center gap-2">
 
-                                <span class="badge bg-danger">
-                                    {{ purchase_order.get_status_display }}
-                                </span>
+                                    <!-- 발주 대기 상태 -->
+                                    {% if purchase_order.status == "WAIT" %}
 
-                            {% endif %}
+                                        <!-- 발주 완료 처리 버튼 -->
+                                        <form
+                                            method="post"
+                                            action="{% url 'inventory:purchase_order_mark_ordered' purchase_order.pk %}"
+                                        >
+                                            {% csrf_token %}
 
-                        </td>
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-primary"
+                                            >
+                                                발주 완료
+                                            </button>
+                                        </form>
 
-                        <td>
-                            {{ purchase_order.ordered_by.name|default:purchase_order.ordered_by.username }}
-                        </td>
+                                        <!-- 발주 취소 버튼 -->
+                                        <form
+                                            method="post"
+                                            action="{% url 'inventory:purchase_order_cancel' purchase_order.pk %}"
+                                        >
+                                            {% csrf_token %}
 
-                        <td>
-                            {{ purchase_order.created_at|date:"Y-m-d H:i" }}
-                        </td>
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('이 발주를 취소하시겠습니까?');"
+                                            >
+                                                취소
+                                            </button>
+                                        </form>
 
-                    </tr>
+                                    <!-- 발주 완료 상태 -->
+                                    {% elif purchase_order.status == "ORDERED" %}
+
+                                        <!-- 입고 완료 처리 버튼 -->
+                                        <form
+                                            method="post"
+                                            action="{% url 'inventory:purchase_order_receive' purchase_order.pk %}"
+                                        >
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-success"
+                                                onclick="return confirm('입고 완료 처리하시겠습니까? 재고가 증가합니다.');"
+                                            >
+                                                입고 완료
+                                            </button>
+                                        </form>
+
+                                        <!-- 발주 취소 버튼 -->
+                                        <form
+                                            method="post"
+                                            action="{% url 'inventory:purchase_order_cancel' purchase_order.pk %}"
+                                        >
+                                            {% csrf_token %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('이 발주를 취소하시겠습니까?');"
+                                            >
+                                                취소
+                                            </button>
+                                        </form>
+
+                                    <!-- 입고 완료 상태 -->
+                                    {% elif purchase_order.status == "RECEIVED" %}
+
+                                        <span class="text-muted small">
+                                            처리 완료
+                                        </span>
+
+                                    <!-- 취소 상태 -->
+                                    {% elif purchase_order.status == "CANCELLED" %}
+
+                                        <span class="text-muted small">
+                                            취소됨
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
 
                     {% empty %}
 
-                    <tr>
-
-                        <td
-                            colspan="5"
-                            class="text-center text-muted py-4"
-                        >
-                            등록된 발주 내역이 없습니다.
-                        </td>
-
-                    </tr>
+                        <tr>
+                            <td
+                                colspan="6"
+                                class="text-center text-muted py-4"
+                            >
+                                등록된 발주 내역이 없습니다.
+                            </td>
+                        </tr>
 
                     {% endfor %}
 
