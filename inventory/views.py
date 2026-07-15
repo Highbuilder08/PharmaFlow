@@ -5,8 +5,9 @@ from django.db import transaction
 from .forms import (
     MedicineForm,
     InventoryTransactionForm,
+    PurchaseOrderForm,
 )
-from .models import Medicine, InventoryTransaction
+from .models import Medicine, InventoryTransaction, PurchaseOrder
 
 
 # ============ 의약품 (Medicine) ==============
@@ -22,7 +23,10 @@ def medicine_list(request):
     
 def medicine_create(request):
     if request.method == "POST":
-        form = MedicineForm(request.POST)
+        form = MedicineForm(
+            request.POST,
+            request.FILES,
+        )
 
         if form.is_valid():
             form.save()
@@ -48,6 +52,7 @@ def medicine_update(request, pk):
     if request.method == "POST":
         form = MedicineForm(
             request.POST,
+            request.FILES,
             instance=medicine,
         )
 
@@ -66,6 +71,29 @@ def medicine_update(request, pk):
     return render(
         request,
         "inventory/medicine_form.html",
+        context,
+    )
+    
+def medicine_detail(request, pk):
+    medicine = get_object_or_404(
+        Medicine.objects.select_related("pharmacy"),
+        pk=pk,
+    )
+
+    recent_transactions = ( # 해당 의약품의 입출고 기록 가져오기
+        medicine.transactions
+        .select_related("medicine")
+        .all()[:5] # 최근 입출고는 가장 최근 5건까지 표시
+    )
+
+    context = {
+        "medicine": medicine,
+        "recent_transactions": recent_transactions,
+    }
+
+    return render(
+        request,
+        "inventory/medicine_detail.html",
         context,
     )
     
@@ -182,5 +210,61 @@ def transaction_create(request):
     )
 
 
+# ============ 발주 (PurchaseOrder) ============== 
+def purchase_order_list(request):
+    purchase_orders = (
+        PurchaseOrder.objects
+        .filter(medicine__pharmacy=request.user.pharmacy)
+        .select_related(
+            "medicine",
+            "ordered_by",
+        )
+    )
 
-# ============ 발주 (PurchaseOrder) ==============
+    return render(
+        request,
+        "inventory/purchase_order_list.html",
+        { "purchase_orders": purchase_orders },
+    )
+
+
+def purchase_order_create(request):
+    if request.method == "POST":
+        form = PurchaseOrderForm(request.POST)
+    else:
+        form = PurchaseOrderForm()
+
+    medicines = (
+        Medicine.objects
+        .filter(pharmacy=request.user.pharmacy)
+        .order_by("name")
+    )
+
+    form.fields["medicine"].queryset = medicines
+
+    if request.method == "POST" and form.is_valid():
+        purchase_order = form.save(commit=False)
+        purchase_order.ordered_by = request.user
+        purchase_order.save()
+
+        return redirect("inventory:purchase_order_list")
+
+    medicine_data = list(
+        medicines.values(
+            "id",
+            "manufacturer",
+            "stock",
+            "minimum_stock",
+        )
+    )
+
+    context = {
+        "form": form,
+        "medicine_data": medicine_data,
+    }
+
+    return render(
+        request,
+        "inventory/purchase_order_form.html",
+        context,
+    )

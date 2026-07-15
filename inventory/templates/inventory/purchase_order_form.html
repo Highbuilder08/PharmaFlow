@@ -1,0 +1,241 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}
+발주 등록 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body p-4">
+
+                <div class="mb-4">
+                    <h1 class="h3 mb-1">
+                        발주 등록
+                    </h1>
+
+                    <p class="text-muted mb-0">
+                        발주할 의약품과 수량을 입력합니다.
+                    </p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    {% for field in form %}
+                        <div class="mb-3">
+
+                            <label
+                                for="{{ field.id_for_label }}"
+                                class="form-label"
+                            >
+                                {{ field.label }}
+                            </label>
+
+                            {{ field }}
+
+                            {% if field.name == "medicine" %}
+                                <div
+                                    id="medicine-info"
+                                    class="alert alert-secondary mt-3 mb-0"
+                                >
+                                    <div class="mb-1">
+                                        제조사:
+                                        <strong id="manufacturer">
+                                            -
+                                        </strong>
+                                    </div>
+
+                                    <div class="mb-1">
+                                        현재 재고:
+                                        <strong id="current-stock">
+                                            -
+                                        </strong>
+                                    </div>
+
+                                    <div class="mb-1">
+                                        최소 재고:
+                                        <strong id="minimum-stock">
+                                            -
+                                        </strong>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        재고 상태:
+                                        <strong id="stock-status">
+                                            -
+                                        </strong>
+                                    </div>
+
+                                    <div
+                                        id="stock-message"
+                                        class="fw-semibold"
+                                    >
+                                        의약품을 선택하면 재고 상태가 표시됩니다.
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if field.help_text %}
+                                <div class="form-text">
+                                    {{ field.help_text }}
+                                </div>
+                            {% endif %}
+
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+
+                        <a
+                            href="{% url 'inventory:purchase_order_list' %}"
+                            class="btn btn-outline-secondary"
+                        >
+                            취소
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-success"
+                        >
+                            발주 등록
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+{{ medicine_data|json_script:"medicine-data" }}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const medicineSelect =
+            document.getElementById("id_medicine");
+
+        const medicineDataElement =
+            document.getElementById("medicine-data");
+
+        const medicineInfoElement =
+            document.getElementById("medicine-info");
+
+        const manufacturerElement =
+            document.getElementById("manufacturer");
+
+        const currentStockElement =
+            document.getElementById("current-stock");
+
+        const minimumStockElement =
+            document.getElementById("minimum-stock");
+
+        const stockStatusElement =
+            document.getElementById("stock-status");
+
+        const stockMessageElement =
+            document.getElementById("stock-message");
+
+        const medicineData = JSON.parse(
+            medicineDataElement.textContent
+        );
+
+        function resetMedicineInfo() {
+            manufacturerElement.textContent = "-";
+            currentStockElement.textContent = "-";
+            minimumStockElement.textContent = "-";
+            stockStatusElement.textContent = "-";
+            stockStatusElement.className = "";
+
+            stockMessageElement.textContent =
+                "의약품을 선택하면 재고 상태가 표시됩니다.";
+
+            medicineInfoElement.className =
+                "alert alert-secondary mt-3 mb-0";
+        }
+
+        function updateMedicineInfo() {
+            const selectedId = Number(
+                medicineSelect.value
+            );
+
+            const selectedMedicine =
+                medicineData.find(
+                    medicine =>
+                        medicine.id === selectedId
+                );
+
+            if (!selectedMedicine) {
+                resetMedicineInfo();
+                return;
+            }
+
+            manufacturerElement.textContent =
+                selectedMedicine.manufacturer;
+
+            currentStockElement.textContent =
+                `${selectedMedicine.stock}개`;
+
+            minimumStockElement.textContent =
+                `${selectedMedicine.minimum_stock}개`;
+
+            if (
+                selectedMedicine.stock
+                <= selectedMedicine.minimum_stock
+            ) {
+                stockStatusElement.textContent =
+                    "재고 부족";
+
+                stockStatusElement.className =
+                    "text-danger";
+
+                stockMessageElement.textContent =
+                    "⚠ 최소 재고 이하입니다. 발주를 권장합니다.";
+
+                medicineInfoElement.className =
+                    "alert alert-warning mt-3 mb-0";
+            } else {
+                stockStatusElement.textContent =
+                    "정상";
+
+                stockStatusElement.className =
+                    "text-success";
+
+                stockMessageElement.textContent =
+                    "✓ 현재 재고는 정상입니다.";
+
+                medicineInfoElement.className =
+                    "alert alert-success mt-3 mb-0";
+            }
+        }
+
+        medicineSelect.addEventListener(
+            "change",
+            updateMedicineInfo
+        );
+
+        updateMedicineInfo();
+    });
+</script>
+
+{% endblock %}

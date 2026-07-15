@@ -142,18 +142,20 @@ class InventoryTransaction(models.Model):
 class PurchaseOrder(models.Model):
 
     class Status(models.TextChoices):
-        WAIT = "WAIT", "대기"
-        DONE = "DONE", "완료"
-        CANCELLED = "CANCELLED", "취소"
+        WAIT = "WAIT", "발주 대기" # WAIT: 발주가 등록된 상태
+        ORDERED = "ORDERED", "발주 완료" # ORDERED: 공급업체에 발주한 상태
+        RECEIVED = "RECEIVED", "입고 완료" # RECEIVED: 실제 물품을 받고 재고가 증가한 상태
+        CANCELLED = "CANCELLED", "취소" # CANCELLED: 발주 취소
 
     medicine = models.ForeignKey(
         Medicine,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="purchase_orders",
         verbose_name="의약품",
     )
 
     quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name="발주 수량",
     )
 
@@ -162,6 +164,12 @@ class PurchaseOrder(models.Model):
         choices=Status.choices,
         default=Status.WAIT,
         verbose_name="상태",
+    )
+    
+    note = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="비고",
     )
 
     ordered_by = models.ForeignKey(
@@ -177,6 +185,12 @@ class PurchaseOrder(models.Model):
         auto_now_add=True,
         verbose_name="발주일",
     )
+    
+    received_at = models.DateTimeField( # 상태가 입고 완료로 바뀔때 현재 시간 넣기
+        null=True,
+        blank=True,
+        verbose_name="입고 완료일",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -184,4 +198,8 @@ class PurchaseOrder(models.Model):
         verbose_name_plural = "발주"
 
     def __str__(self):
-        return f"{self.medicine.name} - {self.quantity}"
+        return (
+            f"{self.medicine.name} - "
+            f"{self.quantity}개 - "
+            f"{self.get_status_display()}"
+        )

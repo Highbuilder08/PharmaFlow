@@ -13,22 +13,13 @@
         </p>
     </div>
 
-    <a
-        href="{% url 'inventory:transaction_create' %}"
-        class="btn btn-success"
-    >
-        입출고 등록
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
+        <a href="{% url 'inventory:medicine_list' %}" class="btn btn-outline-secondary">의약품 목록</a>
+        <a href="{% url 'inventory:transaction_create' %}" class="btn btn-success">입출고 등록</a>
+    </div>
 </div>
 
-<div class="mb-3">
-    <a
-        href="{% url 'inventory:medicine_list' %}"
-        class="btn btn-outline-secondary btn-sm"
-    >
-        의약품 목록
-    </a>
-</div>
 
 <div class="card shadow-sm">
     <div class="card-body p-0">
