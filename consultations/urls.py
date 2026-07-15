@@ -5,6 +5,7 @@ app_name = 'consultations'
 
 urlpatterns = [
     path('', views.consultation_list, name='list'),
+    path('mypost/', views.my_post_list, name='mypost'),
     path('create/', views.consultation_create, name='create'),
     path('<int:pk>/', views.consultation_detail, name='detail'),
     path('<int:pk>/update/', views.consultation_update, name='update'),

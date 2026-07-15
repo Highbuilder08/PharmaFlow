@@ -155,3 +155,17 @@ def comment_update(request, pk):
             
     # 작업이 끝나면 무조건 원래 있던 상세 페이지로 새로고침(이동)
     return redirect('consultations:detail', pk=consultation_pk)
+
+@login_message_required
+def my_post_list(request):
+    # 🚀 현재 로그인한 사용자(request.user)가 작성한 글만 최신순으로 필터링!
+    my_posts = Consultation.objects.filter(writer=request.user).order_by('-created_at')
+
+    # 페이징 처리 (10개씩)
+    paginator = Paginator(my_posts, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'consultations/mypost.html', {
+        'consultations': page_obj,
+    })
