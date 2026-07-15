@@ -7,22 +7,95 @@
                 <h3 class="fw-bold" style="color: #2c3e50;">✏️ 게시글 수정</h3>
             </div>
             <div class="card-body p-4">
-                <form method="POST" enctype="multipart/form-data">
+                <!-- 메인 수정 폼 -->
+                <form method="POST" enctype="multipart/form-data" id="main-update-form">
                     {% csrf_token %}
                     {{ form.as_p }}
 
-                    <div class="mt-4 mb-4 p-3 bg-light rounded border">
-                        <label class="fw-bold mb-2">📎 추가 첨부파일</label>
-                        <input type="file" name="attachments" multiple class="form-control bg-white">
+                    <!-- 🚀 1. 기존 첨부파일 목록 (삭제 가능) -->
+                    {% if consultation.attachments.all %}
+                    <div class="mt-4 mb-3 p-3 bg-white rounded border border-warning border-opacity-50">
+                        <label class="fw-bold mb-2 text-warning-emphasis">💾 기존 첨부파일</label>
+                        <ul class="list-unstyled mb-0">
+                            {% for attachment in consultation.attachments.all %}
+                                <li class="d-flex align-items-center justify-content-between bg-light border rounded px-3 py-2 mb-2 shadow-sm">
+                                    <span class="text-truncate text-secondary fw-bold" style="max-width: 80%; font-size: 14px;">
+                                        📄 {{ attachment.filename }}
+                                    </span>
+                                    <!-- 바깥에 있는 삭제 폼과 연결 -->
+                                    <button type="submit" form="delete-attachment-{{ attachment.id }}" onclick="return confirm('이 파일을 삭제하시겠습니까?');" class="btn btn-danger btn-sm py-0 px-2">삭제</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- 🚀 2. 새 첨부파일 추가 영역 -->
+                    <div class="mb-4 p-3 bg-light rounded border">
+                        <label class="fw-bold mb-2">📎 새 첨부파일 추가</label>
+                        <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
+                        <div id="file-list" class="mt-3 d-flex flex-column gap-2"></div>
                     </div>
                     
                     <div class="d-flex justify-content-end gap-2">
                         <a href="{% url 'consultations:detail' consultation.id %}" class="btn btn-light border shadow-sm px-4">취소</a>
-                        <button type="submit" class="btn btn-success shadow-sm px-4">수정완료</button>
+                        <button type="submit" form="main-update-form" class="btn btn-success shadow-sm px-4">수정완료</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 🚀 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
+{% for attachment in consultation.attachments.all %}
+    <form id="delete-attachment-{{ attachment.id }}" action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:none;">
+        {% csrf_token %}
+    </form>
+{% endfor %}
+
+<!-- 🚀 새 파일 추가용 자바스크립트 -->
+<script>
+    const fileInput = document.getElementById('file-input');
+    const fileListContainer = document.getElementById('file-list');
+    let selectedFiles = [];
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const newFiles = Array.from(e.target.files);
+            selectedFiles = selectedFiles.concat(newFiles);
+            updateFileInput();
+            renderFileList();
+        });
+    }
+
+    function renderFileList() {
+        fileListContainer.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center justify-content-between bg-white border rounded px-3 py-2 shadow-sm';
+            fileItem.innerHTML = `
+                <span class="text-truncate text-secondary fw-bold" style="max-width: 85%; font-size: 14px;">
+                    📄 ${file.name}
+                </span>
+                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeFile(${index})">✕</button>
+            `;
+            fileListContainer.appendChild(fileItem);
+        });
+    }
+
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        updateFileInput();
+        renderFileList();
+    };
+
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+</script>
 {% endblock %}
