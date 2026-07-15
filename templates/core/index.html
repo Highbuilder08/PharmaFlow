@@ -8,6 +8,21 @@
 {% block content %}
 
 <style>
+
+    .recent-post-header {
+        background: linear-gradient(
+            to bottom,
+            #d0edcf,
+            #b9ddb8
+        );
+
+        border-bottom: 1px solid #8fb88f;
+    }
+
+    .recent-post-header .fw-bold {
+        color: #1f5e2b;
+    }
+    
     .dashboard-panel {
         border: 1px solid #dee2e6;
         border-radius: 0.75rem;
@@ -196,6 +211,7 @@
 
     .calendar-day.selected {
         box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.28);
+        transform: scale(1.08);
     }
 
     #calendar-memo-content {
@@ -281,9 +297,9 @@
 
                             <a
                                 href="{% url 'inventory:medicine_list' %}"
-                                class="small text-success text-decoration-none"
+                                class="btn btn-outline-success btn-sm"
                             >
-                                전체보기 →
+                                전체 보기
                             </a>
 
                         </div>
@@ -372,18 +388,13 @@
 
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <hr class="my-4">
+
+                        <div class="mb-2">
 
                             <h5 class="fw-bold mb-0">
                                 최근 재고 내역
                             </h5>
-
-                            <a
-                                href="{% url 'inventory:medicine_list' %}"
-                                class="btn btn-outline-success btn-sm"
-                            >
-                                전체 보기
-                            </a>
 
                         </div>
 
@@ -581,7 +592,7 @@
                                 id="calendar-memo-status"
                                 class="text-muted"
                             >
-                                새 메모
+                                메모 없음
                             </small>
 
                         </div>
@@ -593,7 +604,7 @@
                             class="form-control"
                             rows="5"
                             maxlength="2000"
-                            placeholder="메모를 입력하세요."
+                            placeholder="이 날짜의 메모를 입력하세요."
                             disabled
                         ></textarea>
 
@@ -706,15 +717,15 @@
 
                         <section class="card shadow-sm h-100">
 
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <div class="card-header recent-post-header d-flex justify-content-between align-items-center">
 
-                                <span class="fw-bold">
+                                <span class="fw-bold text-dark">
                                     📝 최근 게시글
                                 </span>
 
                                 <a
                                     href="{% url 'consultations:list' %}"
-                                    class="text-success text-decoration-none small"
+                                    class="text-success text-decoration-none small fw-semibold"
                                 >
                                     전체보기 →
                                 </a>
@@ -983,6 +994,39 @@
 
                         </div>
 
+                        <div class="col-md-6 col-xl-3">
+
+                            <a
+                                href="{% url 'inventory:purchase_order_list' %}"
+                                class="text-decoration-none"
+                            >
+                                <div class="card dashboard-menu-card shadow-sm h-100">
+
+                                    <div class="card-body p-4 text-center">
+
+                                        <div class="fs-1 mb-3">
+                                            🚚
+                                        </div>
+
+                                        <h4 class="text-dark">
+                                            발주 관리
+                                        </h4>
+
+                                        <p class="text-muted">
+                                            의약품 발주 내역을 조회하고 관리합니다.
+                                        </p>
+
+                                        <span class="btn btn-outline-success btn-sm">
+                                            바로가기 →
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            </a>
+
+                        </div>
+
                     {% endif %}
 
                     {% if user.is_approved %}
@@ -1160,6 +1204,14 @@ document.addEventListener("DOMContentLoaded", function () {
         memoMessage.textContent = message;
     }
 
+    function clearSuccessMessageLater() {
+        window.setTimeout(() => {
+            if (memoMessage.classList.contains("text-success")) {
+                setMessage("");
+            }
+        }, 2000);
+    }
+
     function updateLength() {
         memoLength.textContent = `${memoContent.value.length} / 2000`;
     }
@@ -1207,7 +1259,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!response.ok || !data.success) throw new Error(data.message || "메모를 불러오지 못했습니다.");
             memoContent.value = data.content;
             selectedExists = data.exists;
-            memoStatus.textContent = data.exists ? "저장된 메모" : "새 메모";
+            memoStatus.textContent = data.exists ? "저장 완료" : "메모 없음";
             updateLength();
             setControls(true);
         } catch (error) {
@@ -1277,8 +1329,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const content = memoContent.value.trim();
             await saveMemo(content);
             selectedExists = content.length>0;
-            memoStatus.textContent = selectedExists ? "저장된 메모" : "새 메모";
+            memoStatus.textContent = selectedExists ? "저장 완료" : "메모 없음";
             setMessage(selectedExists ? "메모가 저장되었습니다." : "빈 메모가 삭제되었습니다.", "success");
+            clearSuccessMessageLater();
             await renderCalendar();
         } catch(error) { setMessage(error.message, "danger"); }
         setControls(true);
@@ -1292,9 +1345,10 @@ document.addEventListener("DOMContentLoaded", function () {
             await saveMemo("");
             memoContent.value="";
             selectedExists=false;
-            memoStatus.textContent="새 메모";
+            memoStatus.textContent="메모 없음";
             updateLength();
             setMessage("메모가 삭제되었습니다.", "success");
+            clearSuccessMessageLater();
             await renderCalendar();
         } catch(error) { setMessage(error.message, "danger"); }
         setControls(true);
