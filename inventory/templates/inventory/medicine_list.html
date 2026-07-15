@@ -3,7 +3,7 @@
 {% block title %} 의약품 재고 관리 | PharmaFlow {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-header-responsive">
     <div>
         <h1 class="h3 mb-1">의약품 재고 관리</h1>
         <p class="text-muted mb-0">
@@ -11,17 +11,10 @@
         </p>
     </div>
     <div class="d-flex flex-column align-items-end">
-
-        <!-- 첫 번째 줄 -->
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 page-actions-responsive">
             <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
             <a href="{% url 'inventory:transaction_list' %}" class="btn btn-outline-success">입출고 내역</a>
             <a href="{% url 'inventory:medicine_create' %}" class="btn btn-success">의약품 등록</a>
-        </div>
-
-        <!-- 두 번째 줄 -->
-        <div class="mt-2">
-            <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn-outline-primary">발주 관리</a>
         </div>
     </div>
 </div>
@@ -31,9 +24,11 @@
     class="card shadow-sm mb-3"
 >
     <div class="card-body">
-        <div class="row g-2 align-items-center">
 
-            <div class="col-md">
+        <!-- 첫 번째 줄: 검색 -->
+        <div class="d-flex align-items-center gap-2 mb-3 filter-row-responsive">
+
+            <div style="width: 240px; max-width: 100%;">
                 <input
                     type="search"
                     name="q"
@@ -43,51 +38,91 @@
                 >
             </div>
 
-            <div class="col-md-auto">
-                <div class="form-check">
-                    <input
-                        type="checkbox"
-                        name="low_stock"
-                        value="1"
-                        class="form-check-input"
-                        id="low-stock-filter"
-                        {% if low_stock == "1" %}checked{% endif %}
-                    >
+            <button
+                type="submit"
+                class="btn btn-success text-nowrap"
+            >
+                검색
+            </button>
 
-                    <label
-                        for="low-stock-filter"
-                        class="form-check-label"
-                    >
-                        재고 부족만 보기
-                    </label>
-                </div>
-            </div>
-
-            <div class="col-md-auto">
-                <button
-                    type="submit"
-                    class="btn btn-success"
-                >
-                    검색
-                </button>
-            </div>
-
-            <div class="col-md-auto">
-                <a
-                    href="{% url 'inventory:medicine_list' %}"
-                    class="btn btn-outline-secondary"
-                >
-                    초기화
-                </a>
-            </div>
+            <a
+                href="{% url 'inventory:medicine_list' %}"
+                class="btn btn-outline-secondary text-nowrap"
+            >
+                초기화
+            </a>
 
         </div>
+
+        <!-- 두 번째 줄: 재고 필터 + 발주 관리 -->
+        <div class="d-flex justify-content-between align-items-center gap-3 stock-filter-row">
+
+            <!-- 왼쪽: 필터 버튼 -->
+            <div class="d-flex align-items-center gap-2">
+
+                <button
+                    type="submit"
+                    name="stock_filter"
+                    value="all"
+                    class="btn text-nowrap
+                        {% if stock_filter == 'all' %}
+                            btn-secondary
+                        {% else %}
+                            btn-outline-secondary
+                        {% endif %}
+                    "
+                >
+                    전체
+                </button>
+
+                <button
+                    type="submit"
+                    name="stock_filter"
+                    value="normal"
+                    class="btn text-nowrap
+                        {% if stock_filter == 'normal' %}
+                            btn-success
+                        {% else %}
+                            btn-outline-success
+                        {% endif %}
+                    "
+                >
+                    정상 재고
+                </button>
+
+                <button
+                    type="submit"
+                    name="stock_filter"
+                    value="low"
+                    class="btn text-nowrap
+                        {% if stock_filter == 'low' %}
+                            btn-danger
+                        {% else %}
+                            btn-outline-danger
+                        {% endif %}
+                    "
+                >
+                    재고 부족
+                </button>
+
+            </div>
+
+            <!-- 오른쪽: 발주 관리 -->
+            <a
+                href="{% url 'inventory:purchase_order_list' %}"
+                class="btn btn-outline-primary text-nowrap"
+            >
+                발주 관리
+            </a>
+
+        </div>
+
     </div>
 </form>
 
 <div class="card shadow-sm">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-scroll">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
@@ -132,14 +167,13 @@
                                     </span>
                                 {% endif %}
                             </td>
-
                             <td>
                                 {{ medicine.updated_at|date:"Y-m-d H:i" }}
                             </td>
                             
                             <!-- ========== 관리 ============ -->
                             <td>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 page-actions-responsive">
                                     <a
                                         href="{% url 'inventory:medicine_detail' medicine.pk %}"
                                         class="btn btn-sm btn-outline-primary"
@@ -156,7 +190,6 @@
                                     -->
                                 </div>
                             </td>
-
                         </tr>
                     {% empty %}
                         <tr>
