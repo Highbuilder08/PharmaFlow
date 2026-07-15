@@ -5,7 +5,7 @@ from functools import wraps          # 👈 데코레이터 만들기용
 from .models import Prescription, PrescriptionAttachment, PrescriptionItem, AuditLog
 from inventory.models import Medicine, InventoryTransaction # 약국 재고 가져오기
 from django.forms import inlineformset_factory 
-from .forms import PrescriptionForm, PrescriptionItemForm 
+from .forms import PrescriptionForm, PrescriptionItemForm, PrescriptionItemFormSet
 from django.db.models import Q
 
 def login_message_required(view_func):
@@ -28,6 +28,9 @@ def login_message_required(view_func):
 # 1. 처방전 (Prescription) CRUD
 # ==========================================
 def prescription_list(request):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
+
     prescriptions = Prescription.objects.all().order_by('-id')
     
     # 🚀 1. HTML 검색창에서 날아온 검색 조건(search_type)과 검색어(q) 받기
@@ -54,17 +57,23 @@ def prescription_list(request):
 
 @login_message_required
 def prescription_detail(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
+    
     prescription = get_object_or_404(Prescription, pk=pk)
     return render(request, 'prescriptions/detail.html', {'prescription': prescription})
 
 @login_message_required
 def prescription_create(request):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     # 🌟 부모(처방전)와 자식(약품) 폼을 하나로 묶어주는 마법의 폼셋!
     ItemFormSet = inlineformset_factory(
         Prescription, 
         PrescriptionItem, 
         form=PrescriptionItemForm, 
-        extra=1, # 처방할 때 기본으로 보여줄 약품 입력 칸 개수
+        formset=PrescriptionItemFormSet,
+        extra=0, # 처방할 때 기본으로 보여줄 약품 입력 칸 개수
         can_delete=False
     )
 
@@ -86,19 +95,19 @@ def prescription_create(request):
             formset.instance = prescription # 약품들에 처방전 ID를 싹 연결해줌
             items = formset.save(commit=False)
             for item in items:
-                item.save() # 개별 약품 저장
+                item.save() 
                 
-                # 🚀 개발자 2님의 DB에 재고 차감 및 출고 기록 남기기
                 medicine = item.medicine
                 medicine.stock -= item.total_quantity
                 medicine.save()
                 
+                # 🚀 1. 개발자 2님의 새 모델에 맞춰 처리자와 비고 추가!
                 InventoryTransaction.objects.create(
                     medicine=medicine,
                     transaction_type='OUT',
                     quantity=item.total_quantity,
-                    created_by=request.user,
-                    note=f"처방전 #{prescription.id} 발급 출고"
+                    created_by=request.user,                     # 👈 추가됨
+                    note=f"처방전 #{prescription.id} 발급 출고"  # 👈 추가됨
                 )
                 
             return redirect('prescriptions:detail', pk=prescription.id)
@@ -106,18 +115,20 @@ def prescription_create(request):
         form = PrescriptionForm()
         formset = ItemFormSet()
         
-        medicines = Medicine.objects.filter(stock__gt=0)
-        med_pharmacy_map = {med.id: med.pharmacy_id for med in medicines}
+    # 🚀 2. JS 필터링을 위한 데이터 만들기 (약품ID : 약국ID)
+    medicines = Medicine.objects.all()
+    med_pharmacy_map = {med.id: med.pharmacy_id for med in medicines}
 
-        
     return render(request, 'prescriptions/create.html', {
         'form': form, 
         'formset': formset,
-        'med_pharmacy_json': json.dumps(med_pharmacy_map) 
+        'med_pharmacy_json': json.dumps(med_pharmacy_map) # 👈 HTML로 지도 넘겨주기!
     })
 
 @login_message_required
 def prescription_update(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     prescription = get_object_or_404(Prescription, pk=pk)
     
     # 권한 체크
@@ -129,7 +140,8 @@ def prescription_update(request, pk):
         Prescription, 
         PrescriptionItem, 
         form=PrescriptionItemForm, 
-        extra=1, # 수정 창에도 빈칸 1개를 띄워 약을 추가할 수 있게 함
+        formset=PrescriptionItemFormSet,
+        extra=0, # 수정 창에도 빈칸 1개를 띄워 약을 추가할 수 있게 함
         can_delete=False # 복잡한 재고 꼬임을 막기 위해 삭제는 일단 비활성화
     )
 
@@ -147,7 +159,6 @@ def prescription_update(request, pk):
             # 약품 정보 저장 및 재고 차감 로직
             items = formset.save(commit=False)
             for item in items:
-                # 🚀 핵심: '수정' 창이므로, 기존 약의 재고가 또 깎이지 않게 "새로 추가된 약"인지 확인!
                 is_new = item.pk is None 
                 item.save()
                 
@@ -156,35 +167,37 @@ def prescription_update(request, pk):
                     medicine.stock -= item.total_quantity
                     medicine.save()
                     
+                    # 🚀 1. 처리자와 비고 추가!
                     InventoryTransaction.objects.create(
                         medicine=medicine,
                         transaction_type='OUT',
                         quantity=item.total_quantity,
-                        created_by=request.user,
-                        note=f"처방전 #{prescription.id} 추가 처방 출고"
+                        created_by=request.user,                         # 👈 추가됨
+                        note=f"처방전 #{prescription.id} 추가 처방 출고" # 👈 추가됨
                     )
             return redirect('prescriptions:detail', pk=pk)
     else:
         form = PrescriptionForm(instance=prescription)
         formset = ItemFormSet(instance=prescription)
 
-    # 💡 화면에 '재고 없음' 문구를 띄우기 위해 재고가 있는지 미리 검사
     has_stock = Medicine.objects.filter(stock__gt=0).exists()
-    
-    # 👇 추가: JS가 약국별로 약을 필터링할 수 있게 지도(Map)를 만듭니다.
-    medicines = Medicine.objects.filter(stock__gt=0)
+
+    # 🚀 2. JS 필터링을 위한 데이터 만들기
+    medicines = Medicine.objects.all()
     med_pharmacy_map = {med.id: med.pharmacy_id for med in medicines}
 
     return render(request, 'prescriptions/update.html', {
         'form': form, 
         'formset': formset, 
         'prescription': prescription,
-        'has_stock': has_stock, # HTML로 검사 결과 전달
-        'med_pharmacy_json': json.dumps(med_pharmacy_map) # 👈 추가: HTML로 지도 넘겨주기
+        'has_stock': has_stock,
+        'med_pharmacy_json': json.dumps(med_pharmacy_map) # 👈 HTML로 지도 넘겨주기!
     })
 
 @login_message_required
 def prescription_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     prescription = get_object_or_404(Prescription, pk=pk)
     if request.user == prescription.writer or request.user.is_superuser:
         if request.method == 'POST':
@@ -194,6 +207,8 @@ def prescription_delete(request, pk):
 
 @login_message_required
 def attachment_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     attachment = get_object_or_404(PrescriptionAttachment, pk=pk)
     prescription_pk = attachment.prescription.pk
     if request.user == attachment.prescription.writer or request.user.is_superuser:
@@ -203,6 +218,8 @@ def attachment_delete(request, pk):
 
 @login_message_required
 def prescription_item_delete(request, pk):
+    messages.warning(request, "처방전 기능은 의원 처방전 연동 준비 중으로 현재 비활성화되었습니다.")
+    return redirect('consultations:list')
     item = get_object_or_404(PrescriptionItem, pk=pk)
     prescription_pk = item.prescription.pk
     
@@ -220,15 +237,15 @@ def prescription_item_delete(request, pk):
             medicine.stock += item.total_quantity
             medicine.save()
             
+            # 🚀 처리자와 비고 추가!
             InventoryTransaction.objects.create(
                 medicine=medicine,
                 transaction_type='IN',
                 quantity=item.total_quantity,
-                created_by=request.user,
-                note=f"처방전 #{prescription_pk} 처방 취소로 인한 복구"
+                created_by=request.user,                                 # 👈 추가됨
+                note=f"처방전 #{prescription_pk} 처방 취소로 인한 복구"  # 👈 추가됨
             )
             
-            # 🚀 2. 관리자용 로그에 삭제 기록 및 사유 남기기
             AuditLog.objects.create(
                 user=request.user,
                 action='삭제',

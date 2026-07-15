@@ -21,7 +21,6 @@
             </div>
         </div>
 
-        <!-- 2. 약품 추가 폼셋 영역 -->
         <div class="card shadow-sm border-0 rounded-3 mb-4">
             <div class="card-header bg-light border-bottom-0 pt-3 pb-2">
                 <h5 class="fw-bold mb-0 text-success">💊 처방 약품 관리</h5>
@@ -29,41 +28,45 @@
             <div class="card-body p-4">
                 {{ formset.management_form }} 
             
-                {% if has_stock %}
-                    <div id="formset-container">
-                        {% for item_form in formset %}
-                            <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
-                                {{ item_form.as_p }}
-                        
-                                <!-- 삭제 영역 디자인 개선 -->
-                                {% if item_form.instance.pk %}
-                                    <div class="bg-light p-3 rounded mt-3 border border-danger border-opacity-25">
-                                        <label class="text-danger fw-bold mb-2">🚨 이 약품 삭제하기:</label>
-                                        <div class="d-flex gap-2">
-                                            <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required class="form-control w-50">
-                                            <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn btn-danger text-nowrap">처방 취소</button>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-danger fw-bold">
+                        {{ formset.non_form_errors }}
                     </div>
+                {% endif %}
 
+                <!-- 🚀 수정 1: 기존 처방 내역은 재고 유무와 상관없이 무조건 보여줍니다! -->
+                <div id="formset-container">
+                    {% for item_form in formset %}
+                        <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
+                            {{ item_form.as_p }}
+                    
+                            {% if item_form.instance.pk %}
+                                <div class="bg-light p-3 rounded mt-3 border border-danger border-opacity-25">
+                                    <label class="text-danger fw-bold mb-2">🚨 이 약품 삭제하기:</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="text" name="delete_reason" form="delete-form-{{ item_form.instance.pk }}" placeholder="삭제 사유 (필수)" required class="form-control w-50">
+                                        <button type="submit" form="delete-form-{{ item_form.instance.pk }}" onclick="return confirm('이 약품을 처방에서 제외하시겠습니까? (재고 복구됨)');" class="btn btn-danger text-nowrap">처방 취소</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 🚀 수정 2: 재고가 있을 때만 '추가 버튼'을 보여줍니다 -->
+                {% if has_stock %}
                     <button type="button" id="add-form-btn" class="btn btn-outline-success fw-bold mt-2 shadow-sm">+ 약품 칸 추가하기</button>
                     
                     <div id="empty-form" style="display: none;">
-                        <div class="item-form bg-white border rounded p-3 mb-3 shadow-sm">
+                        <div class="item-form bg-white border rounded p-4 mb-3 shadow-sm position-relative">
+                            <!-- 🚀 동적 삭제용 ✕ 버튼 추가 -->
+                            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 remove-form-btn" aria-label="삭제"></button>
                             {{ formset.empty_form.as_p }}
                         </div>
                     </div>
                 {% else %}
-                    <div class="alert alert-danger fw-bold mb-0">
+                    <div class="alert alert-danger fw-bold mt-3 mb-0">
                         🚨 현재 추가 가능한 약품(재고)이 없습니다. 재고 관리자에게 문의하세요.
-                    </div>
-                    <div style="display: none;">
-                        {% for item_form in formset %}
-                            {{ item_form.as_p }}
-                        {% endfor %}
                     </div>
                 {% endif %}
             </div>
@@ -85,57 +88,77 @@
     {% endif %}
 {% endfor %}
 
-<!-- 🚀 업데이트 화면용 자바스크립트 -->
-{% if has_stock %}
+<!-- 자바스크립트 -->
 <script>
-    // 1. views.py에서 넘겨준 약품-약국 지도를 가져옵니다.
     const medPharmacyMap = {{ med_pharmacy_json|safe }};
-    const pharmacySelect = document.getElementById('id_pharmacy'); // 약국 선택 드롭다운
+    const pharmacySelect = document.getElementById('id_pharmacy');
 
-    // 2. 약품을 필터링하는 마법의 함수
+    // 1. 약품 필터링 및 중복 차단 함수
     function filterMedicines() {
-        if (!pharmacySelect) return;
-        
-        const selectedPharmacyId = pharmacySelect.value;
-        const medicineSelects = document.querySelectorAll('select[name$="-medicine"]'); // 모든 약품 드롭다운 찾기
+        const selectedPharmacyId = pharmacySelect ? pharmacySelect.value : null;
+        const medicineSelects = document.querySelectorAll('select[name$="-medicine"]');
+
+        const selectedMedIds = Array.from(medicineSelects)
+                                    .map(select => select.value)
+                                    .filter(value => value !== "");
 
         medicineSelects.forEach(select => {
             const currentValue = select.value;
             let valueStillValid = false;
 
-            // 드롭다운 안의 모든 <option>을 검사합니다.
             Array.from(select.options).forEach(option => {
-                if (option.value === "") return; // '약을 선택하세요'는 항상 보임
+                if (option.value === "") return;
 
                 const medId = option.value;
                 const medPharmId = medPharmacyMap[medId];
 
-                // 선택된 약국이 없거나, 이 약이 선택된 약국 소속이면 보여줌!
-                if (!selectedPharmacyId || String(medPharmId) === String(selectedPharmacyId)) {
+                const isPharmacyValid = !selectedPharmacyId || String(medPharmId) === String(selectedPharmacyId);
+                const isDuplicate = selectedMedIds.includes(medId) && currentValue !== medId;
+
+                if (isPharmacyValid && !isDuplicate) {
                     option.hidden = false;
                     option.disabled = false;
                     if (option.value === currentValue) valueStillValid = true;
                 } else {
-                    // 다른 약국 약이면 숨김!
                     option.hidden = true;
                     option.disabled = true;
                 }
             });
 
-            // 만약 기존에 골라둔 약이 다른 약국 약이라서 숨겨졌다면, 선택 초기화
             if (currentValue && !valueStillValid) {
                 select.value = "";
             }
         });
     }
 
-    // 3. 약국을 바꿀 때마다 필터링 실행
-    if (pharmacySelect) {
-        pharmacySelect.addEventListener('change', filterMedicines);
-        filterMedicines(); // 페이지 처음 켜질 때도 한 번 실행
+    // 2. 투약 수치 실시간 계산 함수
+    function calculateTotal(prefix) {
+        const medicineSelect = document.querySelector(`[name="${prefix}-medicine"]`);
+        const totalQuantityInput = document.querySelector(`[name="${prefix}-total_quantity"]`);
+        
+        if (!medicineSelect || !medicineSelect.value) {
+            if (totalQuantityInput) totalQuantityInput.value = "";
+            return;
+        }
+
+        const doseAmount = parseInt(document.querySelector(`[name="${prefix}-dose_amount"]`).value) || 0;
+        const dailyDoses = parseInt(document.querySelector(`[name="${prefix}-daily_doses"]`).value) || 0;
+        const durationDays = parseInt(document.querySelector(`[name="${prefix}-duration_days"]`).value) || 0;
+        
+        if (totalQuantityInput) {
+            totalQuantityInput.value = doseAmount * dailyDoses * durationDays;
+        }
     }
 
-    // 4. [+ 약품 칸 추가하기] 버튼을 눌렀을 때도 필터링 적용
+    // 3. 페이지가 처음 켜질 때 기존 약품들의 오차 자동 교정
+    function calculateAllOnLoad() {
+        document.querySelectorAll('input[name$="-dose_amount"]').forEach(input => {
+            const prefix = input.name.substring(0, input.name.lastIndexOf('-'));
+            calculateTotal(prefix);
+        });
+    }
+
+    // 4. [+ 약품 칸 추가하기] 버튼 클릭 시
     document.getElementById('add-form-btn').addEventListener('click', function() {
         const container = document.getElementById('formset-container');
         const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS'); 
@@ -147,10 +170,66 @@
         container.insertAdjacentHTML('beforeend', newFormHtml);
         totalFormsInput.value = formCount + 1;
         
-        // 👇 새 칸이 추가된 직후에 필터링 함수를 한 번 더 실행해 줍니다!
         filterMedicines();
     });
+
+    // 🚀 5. [핵심 추가] 동적으로 추가한 칸 우측 상단 ✕ 버튼 클릭 시 삭제 및 재정렬
+    document.getElementById('formset-container').addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('remove-form-btn')) {
+            const formRow = e.target.closest('.item-form');
+            formRow.remove(); // 화면에서 칸 삭제
+            
+            reindexForms();    // 폼셋 인덱스 번호 재정렬
+            filterMedicines(); // 필터링 다시 계산
+        }
+    });
+
+    // 🚀 6. [핵심 추가] 장고 폼셋 번호(Index) 재정렬 함수
+    function reindexForms() {
+        const rows = document.querySelectorAll('#formset-container .item-form');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+        totalFormsInput.value = rows.length; // 전체 개수 정보 갱신
+
+        rows.forEach((row, index) => {
+            row.querySelectorAll('input, select, textarea, label').forEach(element => {
+                // name 속성 변경 (예: items-2-medicine -> items-1-medicine)
+                if (element.name) {
+                    element.name = element.name.replace(/items-\d+-/, `items-${index}-`);
+                }
+                // id 속성 변경
+                if (element.id) {
+                    element.id = element.id.replace(/id_items-\d+-/, `id_items-${index}-`);
+                }
+                // label의 for 속성 변경
+                if (element.htmlFor) {
+                    element.htmlFor = element.htmlFor.replace(/id_items-\d+-/, `id_items-${index}-`);
+                }
+            });
+        });
+    }
+
+    // 7. 실시간 변경 이벤트 감지
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name && e.target.name.endsWith('-medicine')) {
+            filterMedicines();
+        }
+    });
+
+    document.addEventListener('input', function(e) {
+        const target = e.target;
+        if (target.name && (target.name.endsWith('-dose_amount') || target.name.endsWith('-daily_doses') || target.name.endsWith('-duration_days'))) {
+            const prefix = target.name.substring(0, target.name.lastIndexOf('-'));
+            calculateTotal(prefix);
+        }
+    });
+
+    if (pharmacySelect) {
+        pharmacySelect.addEventListener('change', filterMedicines);
+    }
+
+    // 초기 실행
+    filterMedicines();
+    calculateAllOnLoad();
 </script>
-{% endif %}
 
 {% endblock %}

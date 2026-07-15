@@ -8,6 +8,7 @@ from django.contrib import messages
 from .models import Consultation, ConsultationComment, ConsultationAttachment
 from .forms import ConsultationForm
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 # 🚨 핵심: consultations 앱에 있는 데코레이터를 빌려옵니다!
 from prescriptions.views import login_message_required 
@@ -16,27 +17,46 @@ from prescriptions.views import login_message_required
 # 2. 복약 상담 게시판 (Consultation) CRUD
 # ==========================================
 def consultation_list(request):
-    consultations = Consultation.objects.all().order_by('-created_at')
-    
     search_type = request.GET.get('search_type', '')
     q = request.GET.get('q', '')
+    # 🚀 1. 선택된 태그가 있는지 GET 파라미터에서 꺼냅니다. (기본값은 'all' 전체)
+    selected_tag = request.GET.get('tag', 'all') 
 
+    # 공지글과 일반글 기본 쿼리셋 준비
+    notices = Consultation.objects.filter(tag='NOTICE').order_by('created_at')
+    normal_posts = Consultation.objects.exclude(tag='NOTICE').order_by('-created_at')
+
+    # 🚀 2. [핵심] 사용자가 특정 태그를 선택했다면, 그 태그에 해당하는 글만 필터링!
+    if selected_tag and selected_tag != 'all':
+        notices = notices.filter(tag=selected_tag)
+        normal_posts = normal_posts.filter(tag=selected_tag)
+
+    # 🚀 3. 태그 필터링이 완료된 상태에서 '검색어' 필터링 진행 (태그 안에서 검색 가능!)
     if q:
         if search_type == 'title':
-            consultations = consultations.filter(title__icontains=q)
+            notices = notices.filter(title__icontains=q)
+            normal_posts = normal_posts.filter(title__icontains=q)
         elif search_type == 'writer':
-            consultations = consultations.filter(writer__username__icontains=q)
-        else: # '전체' 선택 시 (제목 OR 작성자)
-            consultations = consultations.filter(
-                Q(title__icontains=q) | Q(writer__username__icontains=q)
-            )
+            notices = notices.filter(writer__username__icontains=q)
+            normal_posts = normal_posts.filter(writer__username__icontains=q)
+        else: # 전체 검색
+            notices = notices.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
+            normal_posts = normal_posts.filter(Q(title__icontains=q) | Q(writer__username__icontains=q))
 
+    # 4. 페이징 처리
+    paginator = Paginator(normal_posts, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # 🚀 5. selected_tag를 HTML 템플릿으로 전달하여 버튼 활성화에 씁니다.
     return render(request, 'consultations/list.html', {
-        'consultations': consultations,
+        'notices': notices,         
+        'consultations': page_obj,  
         'q': q,
-        'search_type': search_type
+        'search_type': search_type,
+        'selected_tag': selected_tag # 👈 추가됨
     })
-
+    
 @login_message_required
 def consultation_detail(request, pk):
     consultation = get_object_or_404(Consultation, pk=pk)
@@ -54,20 +74,18 @@ def consultation_detail(request, pk):
 @login_message_required
 def consultation_create(request):
     if request.method == 'POST':
-        # 👇 request.FILES 추가
-        form = ConsultationForm(request.POST, request.FILES)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             consultation = form.save(commit=False)
             consultation.writer = request.user
             consultation.save()
-            
-            # 🚀 넘겨받은 첨부파일들 저장하기
             for f in request.FILES.getlist('attachments'):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
-                
             return redirect('consultations:list')
     else:
-        form = ConsultationForm()
+        # 👇 user=request.user 추가
+        form = ConsultationForm(user=request.user)
     return render(request, 'consultations/create.html', {'form': form})
 
 @login_message_required
@@ -77,18 +95,16 @@ def consultation_update(request, pk):
         return redirect('consultations:detail', pk=pk)
 
     if request.method == 'POST':
-        # 👇 request.FILES 추가
-        form = ConsultationForm(request.POST, request.FILES, instance=consultation)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(request.POST, request.FILES, instance=consultation, user=request.user)
         if form.is_valid():
             form.save()
-            
-            # 🚀 수정할 때 새로 넘겨받은 첨부파일들 추가 저장하기
             for f in request.FILES.getlist('attachments'):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
-                
             return redirect('consultations:detail', pk=pk)
     else:
-        form = ConsultationForm(instance=consultation)
+        # 👇 user=request.user 추가
+        form = ConsultationForm(instance=consultation, user=request.user)
     return render(request, 'consultations/update.html', {'form': form, 'consultation': consultation})
 
 @login_message_required
