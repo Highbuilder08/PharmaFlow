@@ -46,10 +46,12 @@
                 <thead class="table-success">
                     <tr>
                         <th>의약품</th>
+                        <th>현재 재고</th>
                         <th>발주 수량</th>
                         <th>상태</th>
                         <th>발주자</th>
                         <th>발주일</th>
+                        <th>입고 완료일</th>
 
                         <!-- 상태 변경 버튼을 표시할 관리 열 -->
                         <th class="text-center">
@@ -67,6 +69,11 @@
                             <!-- 의약품명 -->
                             <td>
                                 {{ purchase_order.medicine.name }}
+                            </td>
+
+                            <!-- 현재 재고 -->
+                            <td>
+                                {{ purchase_order.medicine.stock }}개
                             </td>
 
                             <!-- 발주 수량 -->
@@ -110,6 +117,15 @@
                             <!-- 발주일 -->
                             <td>
                                 {{ purchase_order.created_at|date:"Y-m-d H:i" }}
+                            </td>
+
+                            <!-- 입고 완료일 -->
+                            <td>
+                                {% if purchase_order.received_at %}
+                                    {{ purchase_order.received_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
                             </td>
 
                             <!-- 발주 상태별 관리 버튼 영역 -->
@@ -212,7 +228,7 @@
 
                         <tr>
                             <td
-                                colspan="6"
+                                colspan="8"
                                 class="text-center text-muted py-4"
                             >
                                 등록된 발주 내역이 없습니다.
