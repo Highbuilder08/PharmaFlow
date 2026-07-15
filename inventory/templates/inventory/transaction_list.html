@@ -14,19 +14,9 @@
     </div>
 
     <div class="d-flex gap-2">
-        <a
-            href="{% url 'inventory:medicine_list' %}"
-            class="btn btn-outline-secondary"
-        >
-            의약품 목록
-        </a>
-
-        <a
-            href="{% url 'inventory:transaction_create' %}"
-            class="btn btn-success"
-        >
-            입출고 등록
-        </a>
+        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
+        <a href="{% url 'inventory:medicine_list' %}" class="btn btn-outline-secondary">의약품 목록</a>
+        <a href="{% url 'inventory:transaction_create' %}" class="btn btn-success">입출고 등록</a>
     </div>
 </div>
 

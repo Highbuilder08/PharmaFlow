@@ -83,6 +83,10 @@ class PurchaseOrderForm(forms.ModelForm):
         self.fields["medicine"].queryset = (
             Medicine.objects.order_by("name")
         )
+        
+        self.fields["medicine"].label_from_instance = (
+            lambda medicine: medicine.name
+        )
 
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"

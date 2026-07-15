@@ -231,25 +231,40 @@ def purchase_order_list(request):
 def purchase_order_create(request):
     if request.method == "POST":
         form = PurchaseOrderForm(request.POST)
-
-        if form.is_valid():
-            purchase_order = form.save(commit=False)
-            purchase_order.ordered_by = request.user
-            purchase_order.save()
-
-            return redirect("inventory:purchase_order_list")
-
     else:
         form = PurchaseOrderForm()
 
-    form.fields["medicine"].queryset = (
+    medicines = (
         Medicine.objects
         .filter(pharmacy=request.user.pharmacy)
         .order_by("name")
     )
 
+    form.fields["medicine"].queryset = medicines
+
+    if request.method == "POST" and form.is_valid():
+        purchase_order = form.save(commit=False)
+        purchase_order.ordered_by = request.user
+        purchase_order.save()
+
+        return redirect("inventory:purchase_order_list")
+
+    medicine_data = list(
+        medicines.values(
+            "id",
+            "manufacturer",
+            "stock",
+            "minimum_stock",
+        )
+    )
+
+    context = {
+        "form": form,
+        "medicine_data": medicine_data,
+    }
+
     return render(
         request,
         "inventory/purchase_order_form.html",
-        { "form": form },
+        context,
     )

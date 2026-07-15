@@ -1,0 +1,122 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}
+발주 관리 | PharmaFlow
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            발주 관리
+        </h1>
+
+        <p class="text-muted mb-0">
+            의약품 발주 현황을 관리합니다.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
+        <a href="{% url 'inventory:medicine_list' %}" class="btn btn-outline-secondary">의약품 목록</a>
+        <a href="{% url 'inventory:purchase_order_create' %}" class="btn btn-success">발주 등록</a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead class="table-success">
+                    <tr>
+                        <th>의약품</th>
+                        <th>발주 수량</th>
+                        <th>상태</th>
+                        <th>발주자</th>
+                        <th>발주일</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for purchase_order in purchase_orders %}
+
+                    <tr>
+
+                        <td>
+                            {{ purchase_order.medicine.name }}
+                        </td>
+
+                        <td>
+                            {{ purchase_order.quantity }}개
+                        </td>
+
+                        <td>
+
+                            {% if purchase_order.status == "WAIT" %}
+
+                                <span class="badge bg-warning text-dark">
+                                    {{ purchase_order.get_status_display }}
+                                </span>
+
+                            {% elif purchase_order.status == "ORDERED" %}
+
+                                <span class="badge bg-primary">
+                                    {{ purchase_order.get_status_display }}
+                                </span>
+
+                            {% elif purchase_order.status == "RECEIVED" %}
+
+                                <span class="badge bg-success">
+                                    {{ purchase_order.get_status_display }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+                                    {{ purchase_order.get_status_display }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            {{ purchase_order.ordered_by.name|default:purchase_order.ordered_by.username }}
+                        </td>
+
+                        <td>
+                            {{ purchase_order.created_at|date:"Y-m-d H:i" }}
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="text-center text-muted py-4"
+                        >
+                            등록된 발주 내역이 없습니다.
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
