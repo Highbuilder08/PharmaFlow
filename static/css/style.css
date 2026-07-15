@@ -25,3 +25,34 @@ footer {
     border: 1px solid #ced4da;
     border-radius: 6px;
 }
+
+/* ==========================================
+   Navbar Logo
+========================================== */
+
+.navbar {
+    min-height: 64px;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-right: 2rem;
+}
+
+.navbar-logo {
+    height: 46px;
+    width: auto;
+    display: block;
+}
+
+.navbar-nav .nav-link {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.navbar .container {
+    align-items: center;
+}
