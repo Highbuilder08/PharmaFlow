@@ -10,11 +10,19 @@
             등록된 의약품의 현재 재고를 확인합니다.
         </p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
-        <a href="{% url 'inventory:transaction_list' %}" class="btn btn-outline-success">입출고 내역</a>
-        <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn-outline-primary">발주 관리</a>
-        <a href="{% url 'inventory:medicine_create' %}" class="btn btn-success">의약품 등록</a>
+    <div class="d-flex flex-column align-items-end">
+
+        <!-- 첫 번째 줄 -->
+        <div class="d-flex gap-2">
+            <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">메인 페이지</a>
+            <a href="{% url 'inventory:transaction_list' %}" class="btn btn-outline-success">입출고 내역</a>
+            <a href="{% url 'inventory:medicine_create' %}" class="btn btn-success">의약품 등록</a>
+        </div>
+
+        <!-- 두 번째 줄 -->
+        <div class="mt-2">
+            <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn-outline-primary">발주 관리</a>
+        </div>
     </div>
 </div>
 

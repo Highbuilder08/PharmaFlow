@@ -211,6 +211,7 @@ def transaction_create(request):
 
 
 # ============ 발주 (PurchaseOrder) ============== 
+
 def purchase_order_list(request):
     purchase_orders = (
         PurchaseOrder.objects
@@ -268,3 +269,137 @@ def purchase_order_create(request):
         "inventory/purchase_order_form.html",
         context,
     )
+    
+from django.contrib import messages
+from django.utils import timezone
+
+def purchase_order_mark_ordered(request, pk):
+    purchase_order = get_object_or_404(
+        PurchaseOrder,
+        pk=pk,
+        medicine__pharmacy=request.user.pharmacy,
+    )
+
+    if request.method != "POST":
+        return redirect("inventory:purchase_order_list")
+
+    if purchase_order.status != PurchaseOrder.Status.WAIT:
+        messages.warning(
+            request,
+            "발주 대기 상태인 내역만 발주 완료 처리할 수 있습니다.",
+        )
+
+        return redirect("inventory:purchase_order_list")
+
+    purchase_order.status = PurchaseOrder.Status.ORDERED
+    purchase_order.save(
+        update_fields=[
+            "status",
+        ]
+    )
+
+    messages.success(
+        request,
+        "발주 완료 상태로 변경했습니다.",
+    )
+
+    return redirect("inventory:purchase_order_list")
+
+def purchase_order_receive(request, pk):
+    purchase_order = get_object_or_404(
+        PurchaseOrder.objects.select_related("medicine"),
+        pk=pk,
+        medicine__pharmacy=request.user.pharmacy,
+    )
+
+    if request.method != "POST":
+        return redirect("inventory:purchase_order_list")
+
+    if purchase_order.status != PurchaseOrder.Status.ORDERED:
+        messages.warning(
+            request,
+            "발주 완료 상태인 내역만 입고 완료 처리할 수 있습니다.",
+        )
+
+        return redirect("inventory:purchase_order_list")
+
+    with transaction.atomic():
+        medicine = Medicine.objects.select_for_update().get(
+            pk=purchase_order.medicine_id
+        )
+
+        InventoryTransaction.objects.create(
+            medicine=medicine,
+            transaction_type=InventoryTransaction.TransactionType.IN,
+            quantity=purchase_order.quantity,
+            note=f"발주 #{purchase_order.pk} 입고 완료",
+            created_by=request.user,
+        )
+
+        medicine.stock += purchase_order.quantity
+        medicine.save(
+            update_fields=[
+                "stock",
+                "updated_at",
+            ]
+        )
+
+        purchase_order.status = PurchaseOrder.Status.RECEIVED
+        purchase_order.received_at = timezone.now()
+        purchase_order.save(
+            update_fields=[
+                "status",
+                "received_at",
+            ]
+        )
+
+    messages.success(
+        request,
+        (
+            f"{purchase_order.medicine.name} "
+            f"{purchase_order.quantity}개를 입고 처리했습니다."
+        ),
+    )
+
+    return redirect("inventory:purchase_order_list")
+
+#취소 함수
+def purchase_order_cancel(request, pk):
+    purchase_order = get_object_or_404(
+        PurchaseOrder,
+        pk=pk,
+        medicine__pharmacy=request.user.pharmacy,
+    )
+
+    if request.method != "POST":
+        return redirect("inventory:purchase_order_list")
+
+    if purchase_order.status == PurchaseOrder.Status.RECEIVED:
+        messages.warning(
+            request,
+            "이미 입고 완료된 발주는 취소할 수 없습니다.",
+        )
+
+        return redirect("inventory:purchase_order_list")
+
+    if purchase_order.status == PurchaseOrder.Status.CANCELLED:
+        messages.warning(
+            request,
+            "이미 취소된 발주입니다.",
+        )
+
+        return redirect("inventory:purchase_order_list")
+
+    purchase_order.status = PurchaseOrder.Status.CANCELLED
+    purchase_order.save(
+        update_fields=[
+            "status",
+        ]
+    )
+
+    messages.success(
+        request,
+        "발주를 취소했습니다.",
+    )
+
+    return redirect("inventory:purchase_order_list")

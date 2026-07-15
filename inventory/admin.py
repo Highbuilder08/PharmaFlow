@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Medicine, InventoryTransaction
+from .models import Medicine, InventoryTransaction, PurchaseOrder
 
 
 # Register your models here.
@@ -54,4 +54,35 @@ class InventoryTransactionAdmin(admin.ModelAdmin):
 
     autocomplete_fields = (
         "medicine",
+    )
+    
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "medicine",
+        "quantity",
+        "status",
+        "ordered_by",
+        "created_at",
+        "received_at",
+    )
+
+    list_filter = (
+        "status",
+        "created_at",
+        "received_at",
+    )
+
+    search_fields = (
+        "medicine__name",
+        "medicine__manufacturer",
+        "ordered_by__username",
+        "ordered_by__name",
+        "note",
+    )
+
+    readonly_fields = (
+        "created_at",
+        "received_at",
     )
