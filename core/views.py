@@ -191,7 +191,7 @@ def calendar_memo_dates(request):
         year = int(year_text)
         month = int(month_text)
 
-        if month < 1 or month > 12:
+        if year < 1900 or year > 2100 or month < 1 or month > 12:
             raise ValueError
 
     except ValueError:

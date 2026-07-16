@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Q
@@ -7,6 +6,7 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from .decorators import approved_pharmacy_required
 from .forms import InventoryTransactionForm, MedicineForm, PurchaseOrderForm
 from .models import InventoryTransaction, Medicine, PurchaseOrder
 
@@ -14,7 +14,7 @@ from .models import InventoryTransaction, Medicine, PurchaseOrder
 # ============ 의약품 (Medicine) ==============
 
 
-@login_required
+@approved_pharmacy_required
 def medicine_list(request):
     medicines = Medicine.objects.filter(
         pharmacy=request.user.pharmacy,
@@ -49,7 +49,7 @@ def medicine_list(request):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def medicine_create(request):
     if request.method == "POST":
         form = MedicineForm(request.POST, request.FILES)
@@ -75,7 +75,7 @@ def medicine_create(request):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def medicine_update(request, pk):
     medicine = get_object_or_404(
         Medicine,
@@ -108,7 +108,7 @@ def medicine_update(request, pk):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def medicine_detail(request, pk):
     medicine = get_object_or_404(
         Medicine.objects.select_related("pharmacy"),
@@ -130,7 +130,7 @@ def medicine_detail(request, pk):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def medicine_delete(request, pk):
     medicine = get_object_or_404(
         Medicine,
@@ -166,7 +166,7 @@ def medicine_delete(request, pk):
 # ============ 입출고 (InventoryTransaction) ==============
 
 
-@login_required
+@approved_pharmacy_required
 def transaction_list(request):
     transactions = (
         InventoryTransaction.objects.filter(
@@ -213,7 +213,7 @@ def transaction_list(request):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def transaction_create(request):
     pharmacy = request.user.pharmacy
 
@@ -301,7 +301,7 @@ def transaction_create(request):
 # ============ 발주 (PurchaseOrder) ==============
 
 
-@login_required
+@approved_pharmacy_required
 def purchase_order_list(request):
     purchase_orders = (
         PurchaseOrder.objects.filter(
@@ -324,7 +324,7 @@ def purchase_order_list(request):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def purchase_order_create(request):
     pharmacy = request.user.pharmacy
 
@@ -373,7 +373,7 @@ def purchase_order_create(request):
     )
 
 
-@login_required
+@approved_pharmacy_required
 def purchase_order_mark_ordered(request, pk):
     if request.method != "POST":
         return redirect("inventory:purchase_order_list")
@@ -399,7 +399,7 @@ def purchase_order_mark_ordered(request, pk):
     return redirect("inventory:purchase_order_list")
 
 
-@login_required
+@approved_pharmacy_required
 def purchase_order_receive(request, pk):
     if request.method != "POST":
         return redirect("inventory:purchase_order_list")
@@ -451,7 +451,7 @@ def purchase_order_receive(request, pk):
     return redirect("inventory:purchase_order_list")
 
 
-@login_required
+@approved_pharmacy_required
 def purchase_order_cancel(request, pk):
     if request.method != "POST":
         return redirect("inventory:purchase_order_list")

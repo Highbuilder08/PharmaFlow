@@ -47,8 +47,30 @@ def signup(request):
         if form.is_valid():
             data = form.cleaned_data
 
+            selected_pharmacies = request.session.get("pharmacy_search_results", {})
+            selected = selected_pharmacies.get(data["pharmacy_external_id"])
+
+            if not selected:
+                form.add_error(
+                    None,
+                    "약국 검색 결과를 다시 선택해 주세요.",
+                )
+                return render(request, "accounts/signup.html", {"form": form})
+
+            expected_values = {
+                "pharmacy_name": selected.get("name", ""),
+                "pharmacy_address": selected.get("address", ""),
+                "pharmacy_phone": selected.get("phone", ""),
+            }
+            if any(data.get(key, "").strip() != value.strip() for key, value in expected_values.items()):
+                form.add_error(
+                    None,
+                    "선택한 약국 정보가 변경되었습니다. 다시 검색해 선택해 주세요.",
+                )
+                return render(request, "accounts/signup.html", {"form": form})
+
             with transaction.atomic():
-                pharmacy, created = Pharmacy.objects.update_or_create(
+                pharmacy, created = Pharmacy.objects.get_or_create(
                     external_place_id=data["pharmacy_external_id"],
                     defaults={
                         "pharmacy_name": data["pharmacy_name"],
@@ -121,6 +143,15 @@ def get_xml_text(item, *names):
 @require_GET
 def pharmacy_search(request):
     query = request.GET.get("q", "").strip()
+
+    now_timestamp = timezone.now().timestamp()
+    last_search = request.session.get("pharmacy_search_last_at", 0)
+    if now_timestamp - last_search < 1.0:
+        return JsonResponse(
+            {"results": [], "error": "검색 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요."},
+            status=429,
+        )
+    request.session["pharmacy_search_last_at"] = now_timestamp
 
     if len(query) < 2:
         return JsonResponse(
@@ -262,6 +293,11 @@ def pharmacy_search(request):
             }
         )
 
+    request.session["pharmacy_search_results"] = {
+        item["external_id"]: item for item in results
+    }
+    request.session.modified = True
+
     return JsonResponse(
         {
             "results": results,
@@ -277,7 +313,7 @@ def _get_user_pharmacy(user):
 
 
 def _can_edit_pharmacy(user, pharmacy):
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
 
     return (
@@ -718,11 +754,13 @@ def user_delete(request, pk):
     )
 
     staff_name = staff.name
-    staff.delete()
+    staff.is_active = False
+    staff.is_approved = False
+    staff.save(update_fields=["is_active", "is_approved"])
 
     messages.success(
         request,
-        f"{staff_name} 사용자를 삭제했습니다.",
+        f"{staff_name} 사용자 계정을 비활성화했습니다.",
     )
 
     return redirect("accounts:user_list")
@@ -855,93 +893,50 @@ def ownership_request_list(request):
 @superuser_required
 @require_POST
 def ownership_request_approve(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest.objects.select_related(
-            "user",
-            "pharmacy",
-        ),
-        pk=pk,
-        status=PharmacyOwnershipRequest.Status.PENDING,
-    )
-
-    user = ownership_request.user
-    pharmacy = ownership_request.pharmacy
-    business_number = ownership_request.business_number.strip()
-
-    duplicate_pharmacy = (
-        Pharmacy.objects.filter(business_number=business_number)
-        .exclude(pk=pharmacy.pk)
-        .first()
-    )
-
-    if duplicate_pharmacy:
-        messages.error(
-            request,
-            (
-                f"사업자등록번호 {business_number}는 이미 "
-                f"{duplicate_pharmacy.pharmacy_name}에 등록되어 있습니다. "
-                "신청 정보를 확인해 주세요."
-            ),
-        )
-
-        return redirect("accounts:ownership_request_list")
-
     try:
         with transaction.atomic():
+            ownership_request = get_object_or_404(
+                PharmacyOwnershipRequest.objects
+                .select_for_update()
+                .select_related("user", "pharmacy"),
+                pk=pk,
+                status=PharmacyOwnershipRequest.Status.PENDING,
+            )
+            user = ownership_request.user
+            pharmacy = ownership_request.pharmacy
+            business_number = ownership_request.business_number.strip()
+
+            duplicate_pharmacy = (
+                Pharmacy.objects.select_for_update()
+                .filter(business_number=business_number)
+                .exclude(pk=pharmacy.pk)
+                .first()
+            )
+            if duplicate_pharmacy:
+                messages.error(
+                    request,
+                    f"사업자등록번호 {business_number}는 이미 {duplicate_pharmacy.pharmacy_name}에 등록되어 있습니다.",
+                )
+                return redirect("accounts:ownership_request_list")
+
             ownership_request.status = PharmacyOwnershipRequest.Status.APPROVED
             ownership_request.processed_at = timezone.now()
-
-            ownership_request.save(
-                update_fields=[
-                    "status",
-                    "processed_at",
-                ]
-            )
+            ownership_request.save(update_fields=["status", "processed_at"])
 
             user.pharmacy = pharmacy
             user.role = User.Role.OWNER
             user.is_approved = True
-
-            user.save(
-                update_fields=[
-                    "pharmacy",
-                    "role",
-                    "is_approved",
-                ]
-            )
+            user.save(update_fields=["pharmacy", "role", "is_approved"])
 
             pharmacy.business_number = business_number
-
             if not pharmacy.owner_name:
                 pharmacy.owner_name = user.name
-
-            pharmacy.save(
-                update_fields=[
-                    "business_number",
-                    "owner_name",
-                    "updated_at",
-                ]
-            )
-
+            pharmacy.save(update_fields=["business_number", "owner_name", "updated_at"])
     except IntegrityError:
-        messages.error(
-            request,
-            (
-                "승인 처리 중 중복된 사업자등록번호가 확인되었습니다. "
-                "신청 정보를 다시 확인해 주세요."
-            ),
-        )
-
+        messages.error(request, "중복된 사업자등록번호로 승인할 수 없습니다.")
         return redirect("accounts:ownership_request_list")
 
-    messages.success(
-        request,
-        (
-            f"{user.name} 사용자의 "
-            f"{pharmacy.pharmacy_name} 점주 권한을 승인했습니다."
-        ),
-    )
-
+    messages.success(request, f"{user.name} 사용자의 점주 권한을 승인했습니다.")
     return redirect("accounts:ownership_request_list")
 
 
@@ -949,40 +944,23 @@ def ownership_request_approve(request, pk):
 @superuser_required
 @require_POST
 def ownership_request_reject(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest.objects.select_related(
-            "user",
-            "pharmacy",
-        ),
-        pk=pk,
-        status=PharmacyOwnershipRequest.Status.PENDING,
-    )
+    with transaction.atomic():
+        ownership_request = get_object_or_404(
+            PharmacyOwnershipRequest.objects
+            .select_for_update()
+            .select_related("user", "pharmacy"),
+            pk=pk,
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        )
+        ownership_request.status = PharmacyOwnershipRequest.Status.REJECTED
+        ownership_request.processed_at = timezone.now()
+        ownership_request.save(update_fields=["status", "processed_at"])
 
-    ownership_request.status = PharmacyOwnershipRequest.Status.REJECTED
+        user = ownership_request.user
+        user.is_approved = False
+        user.save(update_fields=["is_approved"])
 
-    ownership_request.processed_at = timezone.now()
-
-    ownership_request.save(
-        update_fields=[
-            "status",
-            "processed_at",
-        ]
-    )
-
-    user = ownership_request.user
-    user.is_approved = False
-
-    user.save(
-        update_fields=[
-            "is_approved",
-        ]
-    )
-
-    messages.success(
-        request,
-        f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.",
-    )
-
+    messages.success(request, f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.")
     return redirect("accounts:ownership_request_list")
 
 
@@ -1034,6 +1012,13 @@ def my_page_deactivate(request):
                 "is_active",
                 "is_approved",
             ]
+        )
+        PharmacyOwnershipRequest.objects.filter(
+            user=account,
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        ).update(
+            status=PharmacyOwnershipRequest.Status.REJECTED,
+            processed_at=timezone.now(),
         )
 
     logout(request)

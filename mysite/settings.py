@@ -13,10 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #
 # 개발 환경:
 # 환경변수가 없으면 아래 개발용 키 사용
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    ("django-insecure-" "pharmaflow-development-secret-key-only"),
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+
+# 개발 환경에서는 임시 키를 허용하지만 운영 환경에서는 필수입니다.
+if not SECRET_KEY:
+    if os.environ.get("DJANGO_DEBUG", "False").lower() == "true":
+        SECRET_KEY = "django-insecure-development-only-change-me"
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY 환경변수가 필요합니다.")
 
 # 운영 서버의 EnvironmentFile:
 # DJANGO_DEBUG=False
@@ -26,7 +30,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = (
     os.environ.get(
         "DJANGO_DEBUG",
-        "True",
+        "False",
     ).lower()
     == "true"
 )
@@ -116,19 +120,19 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.environ.get(
             "DB_NAME",
-            "pharmaflow", # DB 이름
+            "pharmaflow",
         ),
         "USER": os.environ.get(
             "DB_USER",
-            "pharmaflow", # DB '사용자' 이름
+            "pharmaflow",
         ),
         "PASSWORD": os.environ.get(
             "DB_PASSWORD",
-            "", # 환경변수에서만 읽음
+            "",
         ),
         "HOST": os.environ.get(
             "DB_HOST",
-            "192.168.32.77", # DB 서버 주소
+            "192.168.32.77",
         ),
         "PORT": os.environ.get(
             "DB_PORT",
@@ -371,5 +375,13 @@ HIRA_SERVICE_KEY = os.environ.get(
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # SECURE_HSTS_PRELOAD = False
 
+
+# 운영 환경 보안 기본값
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
