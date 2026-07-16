@@ -30,8 +30,8 @@
                             <a href="{% url 'consultations:detail' post.id %}" class="text-dark text-decoration-none fw-bold custom-link">
                                 {{ post.title }}
                             </a>
-                            {% if post.comments.count > 0 %}
-                                <span class="badge bg-danger rounded-pill ms-1">{{ post.comments.count }}</span>
+                            {% if post.comment_count > 0 %}
+                                <span class="badge bg-danger rounded-pill ms-1">{{ post.comment_count }}</span>
                             {% endif %}
                         </td>
                         <td class="text-muted">{{ post.smart_date }}</td>
