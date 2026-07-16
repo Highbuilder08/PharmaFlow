@@ -117,19 +117,19 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.environ.get(
             "DB_NAME",
-            "pharmaflow",
+            "pharmaflow", # DB 이름
         ),
         "USER": os.environ.get(
             "DB_USER",
-            "admin",
+            "pharmaflow", # DB '사용자' 이름
         ),
         "PASSWORD": os.environ.get(
             "DB_PASSWORD",
-            "1234",
+            "", # 환경변수에서만 읽음
         ),
         "HOST": os.environ.get(
             "DB_HOST",
-            "192.168.32.87",
+            "192.168.32.77", # DB 서버 주소
         ),
         "PORT": os.environ.get(
             "DB_PORT",
@@ -137,7 +137,7 @@ DATABASES = {
         ),
         "OPTIONS": {
             "charset": "utf8mb4",
-            "init_command": ("SET sql_mode='STRICT_TRANS_TABLES'"),
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
