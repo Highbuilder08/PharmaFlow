@@ -1,7 +1,10 @@
 # Create your views here.
 # consultations/views.py
 
+import mimetypes
 import os
+
+from PIL import Image, UnidentifiedImageError
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -22,6 +25,9 @@ def login_message_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             messages.warning(request, '로그인 전엔 글 목록만 확인 가능합니다.')
+            return redirect('consultations:list')
+        if not request.user.is_superuser and not request.user.is_approved:
+            messages.warning(request, '승인된 사용자만 게시판 기능을 이용할 수 있습니다.')
             return redirect('consultations:list')
 
         return view_func(request, *args, **kwargs)
@@ -69,6 +75,20 @@ def validate_attachments(files, existing_count=0):
                 f'"{f.name}"의 용량이 너무 큽니다. '
                 f'파일당 {MAX_ATTACHMENT_SIZE // (1024 * 1024)}MB 이하만 등록할 수 있습니다.'
             )
+
+        guessed_type, _ = mimetypes.guess_type(f.name)
+        supplied_type = getattr(f, "content_type", "") or ""
+        if guessed_type and supplied_type and guessed_type.split("/")[0] != supplied_type.split("/")[0]:
+            errors.append(f'"{f.name}"의 파일 형식 정보가 일치하지 않습니다.')
+
+        if extension in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
+            try:
+                image = Image.open(f)
+                image.verify()
+            except (UnidentifiedImageError, OSError):
+                errors.append(f'"{f.name}"은 올바른 이미지 파일이 아닙니다.')
+            finally:
+                f.seek(0)
 
     return errors
 
@@ -228,6 +248,12 @@ def consultation_update(request, pk):
 def consultation_delete(request, pk):
     consultation = get_object_or_404(Consultation, pk=pk)
     if request.user == consultation.writer or request.user.is_superuser:
+        AuditLog.objects.create(
+            user=request.user,
+            action="게시글 삭제",
+            target=f"Consultation #{consultation.pk}",
+            detail=consultation.title,
+        )
         consultation.delete()
         return redirect('consultations:list')
     return redirect('consultations:detail', pk=pk)
@@ -238,6 +264,12 @@ def comment_delete(request, pk):
     comment = get_object_or_404(ConsultationComment, pk=pk)
     consultation_pk = comment.consultation_id
     if request.user == comment.writer or request.user.is_superuser:
+        AuditLog.objects.create(
+            user=request.user,
+            action="댓글 삭제",
+            target=f"Comment #{comment.pk}",
+            detail=comment.content[:200],
+        )
         comment.delete()
     return redirect('consultations:detail', pk=consultation_pk)
 
@@ -251,6 +283,12 @@ def attachment_delete(request, pk):
     consultation_pk = attachment.consultation_id
 
     if request.user == attachment.consultation.writer or request.user.is_superuser:
+        AuditLog.objects.create(
+            user=request.user,
+            action="첨부파일 삭제",
+            target=f"Attachment #{attachment.pk}",
+            detail=attachment.filename,
+        )
         attachment.delete()
 
     return redirect('consultations:detail', pk=consultation_pk)

@@ -1,21 +1,11 @@
-# Python
 __pycache__/
 *.py[cod]
-
-# Virtual environment
-venv/
-.venv/
-env/
-
-# Django
-db.sqlite3
-*.log
-staticfiles/
-media/
-
-# Environment variables
 .env
-
-# IDE
-.vscode/
-.idea/
+.venv/
+venv/
+djangoenv/
+media/
+staticfiles/
+*.sqlite3
+.pytest_cache/
+.coverage

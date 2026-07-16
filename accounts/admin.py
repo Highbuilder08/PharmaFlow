@@ -202,61 +202,50 @@ class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
     @admin.action(description="선택한 점주 신청 승인")
     def approve_requests(self, request, queryset):
         approved_count = 0
+        skipped_count = 0
 
         with transaction.atomic():
-            for ownership_request in queryset.select_related(
-                "user",
-                "pharmacy",
-            ):
-                ownership_request.status = (
-                    PharmacyOwnershipRequest.Status.APPROVED
-                )
+            pending_requests = (
+                queryset.select_for_update()
+                .select_related("user", "pharmacy")
+                .filter(status=PharmacyOwnershipRequest.Status.PENDING)
+            )
+            for ownership_request in pending_requests:
+                pharmacy = ownership_request.pharmacy
+                business_number = ownership_request.business_number.strip()
+                duplicate = Pharmacy.objects.filter(
+                    business_number=business_number,
+                ).exclude(pk=pharmacy.pk).exists()
+                if duplicate:
+                    skipped_count += 1
+                    continue
 
+                ownership_request.status = PharmacyOwnershipRequest.Status.APPROVED
                 ownership_request.processed_at = timezone.now()
-
-                ownership_request.save(
-                    update_fields=[
-                        "status",
-                        "processed_at",
-                    ]
-                )
+                ownership_request.save(update_fields=["status", "processed_at"])
 
                 user = ownership_request.user
                 user.role = User.Role.OWNER
-                user.pharmacy = ownership_request.pharmacy
+                user.pharmacy = pharmacy
                 user.is_approved = True
+                user.save(update_fields=["role", "pharmacy", "is_approved"])
 
-                user.save(
-                    update_fields=[
-                        "role",
-                        "pharmacy",
-                        "is_approved",
-                    ]
-                )
-
-                pharmacy = ownership_request.pharmacy
-
-                if not pharmacy.business_number:
-                    pharmacy.business_number = (
-                        ownership_request.business_number
-                    )
-
-                    pharmacy.save(
-                        update_fields=[
-                            "business_number",
-                        ]
-                    )
-
+                pharmacy.business_number = business_number
+                if not pharmacy.owner_name:
+                    pharmacy.owner_name = user.name
+                pharmacy.save(update_fields=["business_number", "owner_name", "updated_at"])
                 approved_count += 1
 
         self.message_user(
             request,
-            f"{approved_count}건의 점주 신청을 승인했습니다.",
+            f"{approved_count}건 승인, {skipped_count}건 중복으로 건너뛰었습니다.",
         )
 
     @admin.action(description="선택한 점주 신청 거절")
     def reject_requests(self, request, queryset):
-        updated = queryset.update(
+        updated = queryset.filter(
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        ).update(
             status=PharmacyOwnershipRequest.Status.REJECTED,
             processed_at=timezone.now(),
         )
