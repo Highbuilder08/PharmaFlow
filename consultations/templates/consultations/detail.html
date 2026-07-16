@@ -6,7 +6,6 @@
     </span>
     {{ consultation.title }}
 </h2>
-</h2>
 <p style="color: #666; font-size: 14px;">
     작성자: {{ consultation.writer.username }} | 조회수: {{ consultation.views }} | 
     작성일: {{ consultation.created_at|date:"Y-m-d H:i" }}
@@ -71,7 +70,7 @@
                 <input type="text" name="content" id="edit-input-{{ comment.id }}" required style="width: 50%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;">
                 
                 <button type="submit" class="btn btn-primary">저장</button>
-                <button type="button" class="btn btn-secondary" data-id="{{ comment.id }}">취소</button>
+                <button type="button" class="btn btn-secondary cancel-edit-btn" data-id="{{ comment.id }}">취소</button>
             </form>
 
             <small style="color: #999; margin-left: 10px;">
@@ -82,10 +81,10 @@
             </small>
 
             <div class="mt-2">
-                <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm" data-username="{{ comment.writer.username }}">답글</button>
+                <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm reply-btn" data-username="{{ comment.writer.username }}">답글</button>
 
                 {% if request.user == comment.writer %}
-                    <button type="button" id="edit-btn-{{ comment.id }}" class="btn btn-secondary btn-sm" data-id="{{ comment.id }}">수정</button>
+                    <button type="button" id="edit-btn-{{ comment.id }}" class="btn btn-secondary btn-sm edit-btn" data-id="{{ comment.id }}">수정</button>
                 {% endif %}
 
                 {% if request.user == comment.writer or request.user.is_superuser %}
