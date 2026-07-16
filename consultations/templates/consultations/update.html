@@ -12,7 +12,7 @@
                     {% csrf_token %}
                     {{ form.as_p }}
 
-                    <!-- 🚀 1. 기존 첨부파일 목록 (삭제 가능) -->
+                    <!-- 1. 기존 첨부파일 목록 (삭제 가능) -->
                     {% if consultation.attachments.all %}
                     <div class="mt-4 mb-3 p-3 bg-white rounded border border-warning border-opacity-50">
                         <label class="fw-bold mb-2 text-warning-emphasis">💾 기존 첨부파일</label>
@@ -30,7 +30,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- 🚀 2. 새 첨부파일 추가 영역 -->
+                    <!-- 2. 새 첨부파일 추가 영역 -->
                     <div class="mb-4 p-3 bg-light rounded border">
                         <label class="fw-bold mb-2">📎 새 첨부파일 추가</label>
                         <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
@@ -47,14 +47,14 @@
     </div>
 </div>
 
-<!-- 🚀 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
+<!-- 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
 {% for attachment in consultation.attachments.all %}
     <form id="delete-attachment-{{ attachment.id }}" action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:none;">
         {% csrf_token %}
     </form>
 {% endfor %}
 
-<!-- 🚀 새 파일 추가용 자바스크립트 -->
+<!-- 새 파일 추가용 자바스크립트 -->
 <script>
     const fileInput = document.getElementById('file-input');
     const fileListContainer = document.getElementById('file-list');

@@ -1,37 +1,45 @@
-from django.shortcuts import render
-
 # Create your views here.
 # consultations/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Consultation, ConsultationComment, ConsultationAttachment
-from .forms import ConsultationForm
-from django.db.models import Q
+from functools import wraps 
 from django.core.paginator import Paginator
+from django.db.models import Q
 
-# 🚨 핵심: consultations 앱에 있는 데코레이터를 빌려옵니다!
-from prescriptions.views import login_message_required 
+from .models import Consultation, ConsultationComment, ConsultationAttachment, AuditLog
+from .forms import ConsultationForm
 
 # ==========================================
 # 2. 복약 상담 게시판 (Consultation) CRUD
 # ==========================================
+def login_message_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.warning(request, '로그인 전엔 글 목록만 확인 가능합니다.')
+            return redirect('consultations:list') 
+                
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 def consultation_list(request):
     search_type = request.GET.get('search_type', '')
     q = request.GET.get('q', '')
-    # 🚀 1. 선택된 태그가 있는지 GET 파라미터에서 꺼냅니다. (기본값은 'all' 전체)
+    # 선택된 태그가 있는지 GET 파라미터에서 꺼냄
     selected_tag = request.GET.get('tag', 'all') 
 
     # 공지글과 일반글 기본 쿼리셋 준비
     notices = Consultation.objects.filter(tag='NOTICE').order_by('created_at')
     normal_posts = Consultation.objects.exclude(tag='NOTICE').order_by('-created_at')
 
-    # 🚀 2. [핵심] 사용자가 특정 태그를 선택했다면, 그 태그에 해당하는 글만 필터링!
+    # 사용자가 특정 태그를 선택했다면, 그 태그에 해당하는 글만 필터링
     if selected_tag and selected_tag != 'all':
         notices = notices.filter(tag=selected_tag)
         normal_posts = normal_posts.filter(tag=selected_tag)
 
-    # 🚀 3. 태그 필터링이 완료된 상태에서 '검색어' 필터링 진행 (태그 안에서 검색 가능!)
+    # 태그 필터링이 완료된 상태에서 '검색어' 필터링 진행 (태그 안에서 검색 가능)
     if q:
         if search_type == 'title':
             notices = notices.filter(title__icontains=q)
@@ -48,7 +56,7 @@ def consultation_list(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # 🚀 2. [핵심 추가] 5개 단위 블록 페이징 계산 로직
+    # [핵심 추가] 5개 단위 블록 페이징 계산 로직
     block_size = 5 # 한 화면에 보여줄 페이지 번호 개수
     current_page = page_obj.number
     
@@ -76,7 +84,7 @@ def consultation_list(request):
         'search_type': search_type,
         'selected_tag': selected_tag,
         
-        # 🚀 3. 계산된 블록 페이징 변수들을 HTML로 넘겨줍니다!
+        # 계산된 블록 페이징 변수들을 HTML로 넘겨줌
         'custom_page_range': custom_page_range,
         'has_prev_block': has_prev_block,
         'prev_block_page': prev_block_page,
@@ -102,7 +110,6 @@ def consultation_detail(request, pk):
 @login_message_required
 def consultation_create(request):
     if request.method == 'POST':
-        # 👇 user=request.user 추가
         form = ConsultationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             consultation = form.save(commit=False)
@@ -112,7 +119,6 @@ def consultation_create(request):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
             return redirect('consultations:list')
     else:
-        # 👇 user=request.user 추가
         form = ConsultationForm(user=request.user)
     return render(request, 'consultations/create.html', {'form': form})
 
@@ -123,7 +129,6 @@ def consultation_update(request, pk):
         return redirect('consultations:detail', pk=pk)
 
     if request.method == 'POST':
-        # 👇 user=request.user 추가
         form = ConsultationForm(request.POST, request.FILES, instance=consultation, user=request.user)
         if form.is_valid():
             form.save()
@@ -131,7 +136,6 @@ def consultation_update(request, pk):
                 ConsultationAttachment.objects.create(consultation=consultation, file=f)
             return redirect('consultations:detail', pk=pk)
     else:
-        # 👇 user=request.user 추가
         form = ConsultationForm(instance=consultation, user=request.user)
     return render(request, 'consultations/update.html', {'form': form, 'consultation': consultation})
 
@@ -169,7 +173,7 @@ def comment_update(request, pk):
     comment = get_object_or_404(ConsultationComment, pk=pk)
     consultation_pk = comment.consultation.pk
     
-    # 🚀 권한 체크: 오직 '작성자 본인'만 수정 가능! (관리자도 남의 댓글 수정 불가)
+    # 권한 체크: 오직 작성자 본인만 수정 가능 (관리자도 남의 댓글 수정 불가)
     if request.user != comment.writer:
         messages.warning(request, "본인의 댓글만 수정할 수 있습니다.")
         return redirect('consultations:detail', pk=consultation_pk)
@@ -186,10 +190,10 @@ def comment_update(request, pk):
 
 @login_message_required
 def my_post_list(request):
-    # 🚀 현재 로그인한 사용자(request.user)가 작성한 글만 최신순으로 필터링!
+    # 현재 로그인한 사용자(request.user)가 작성한 글만 최신순으로 필터링
     my_posts = Consultation.objects.filter(writer=request.user).order_by('-created_at')
 
-    # 페이징 처리 (10개씩)
+    # 페이징 처리 (아래 189줄 숫자만큼 페이징)
     paginator = Paginator(my_posts, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -197,3 +201,12 @@ def my_post_list(request):
     return render(request, 'consultations/mypost.html', {
         'consultations': page_obj,
     })
+    
+@login_message_required
+def audit_log_list(request):
+    if not request.user.is_superuser:
+        messages.warning(request, "관리자만 접근 가능한 페이지입니다.")
+        return redirect('core:index') # 메인 화면으로 튕겨냄
+    
+    logs = AuditLog.objects.all()
+    return render(request, 'consultations/audit_logs.html', {'logs': logs})

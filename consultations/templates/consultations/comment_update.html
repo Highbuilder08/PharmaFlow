@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block content %} <!-- 본인 프로젝트의 블록명(main_content 등)에 맞게 확인해 주세요 -->
+{% block content %}
 
 <h2>💬 댓글 수정</h2>
 
@@ -11,7 +11,6 @@
             <strong>원래 게시글:</strong> {{ comment.consultation.title }}
         </p>
         
-        <!-- value 속성에 기존 댓글 내용을 미리 채워 넣어줍니다 -->
         <input type="text" name="content" value="{{ comment.content }}" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
         
         <div style="margin-top: 15px;">

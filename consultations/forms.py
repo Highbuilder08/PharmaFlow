@@ -14,7 +14,7 @@ class ConsultationForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
         
-        # 🚀 관리자(superuser)가 아니면 '공지(NOTICE)' 선택지를 선택 목록에서 삭제합니다!
+        # 관리자(superuser)가 아니면 '공지(NOTICE)' 선택지를 선택 목록에서 삭제
         if user and not user.is_superuser:
             self.fields['tag'].choices = [
                 choice for choice in Consultation.TAG_CHOICES if choice[0] != 'NOTICE'
