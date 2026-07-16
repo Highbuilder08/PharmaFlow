@@ -29,7 +29,7 @@
 <div class="card shadow-sm">
     <div class="card-body">
 
-        <div class="table-responsive">
+        <div class="app-table-scroll">
 
             <table class="table table-hover align-middle mb-0">
 
@@ -235,5 +235,78 @@
 
     </div>
 </div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+    <nav
+        class="mt-4"
+        aria-label="발주 목록 페이지"
+    >
+        <ul class="pagination justify-content-center mb-0">
+
+            <!-- 이전 페이지 -->
+            <li
+                class="page-item
+                {% if not page_obj.has_previous %}
+                    disabled
+                {% endif %}
+                "
+            >
+                {% if page_obj.has_previous %}
+                    <a
+                        class="page-link"
+                        href="?page={{ page_obj.previous_page_number }}"
+                    >
+                        &lsaquo; 이전
+                    </a>
+                {% else %}
+                    <span class="page-link">
+                        &lsaquo; 이전
+                    </span>
+                {% endif %}
+            </li>
+
+            <!-- 페이지 번호 -->
+            {% for page_number in page_obj.paginator.page_range %}
+                <li
+                    class="page-item
+                    {% if page_obj.number == page_number %}
+                        active
+                    {% endif %}
+                    "
+                >
+                    <a
+                        class="page-link"
+                        href="?page={{ page_number }}"
+                    >
+                        {{ page_number }}
+                    </a>
+                </li>
+            {% endfor %}
+
+            <!-- 다음 페이지 -->
+            <li
+                class="page-item
+                {% if not page_obj.has_next %}
+                    disabled
+                {% endif %}
+                "
+            >
+                {% if page_obj.has_next %}
+                    <a
+                        class="page-link"
+                        href="?page={{ page_obj.next_page_number }}"
+                    >
+                        다음 &rsaquo;
+                    </a>
+                {% else %}
+                    <span class="page-link">
+                        다음 &rsaquo;
+                    </span>
+                {% endif %}
+            </li>
+
+        </ul>
+    </nav>
+{% endif %}
 
 {% endblock %}
