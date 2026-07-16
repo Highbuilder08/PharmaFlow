@@ -10,7 +10,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 운영 서버:
 # /etc/pharmaflow/pharmaflow.env의 DJANGO_SECRET_KEY 사용
-#
+
+# 건강보험심사평가워(API 인증 기관)
+# https://www.data.go.kr/iim/api/selectApiKeyList.do
+
+# SECRET_KEY 발급 명령어
+# python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+# 환경변수 + DB 계정 연동 설정값
+# sudo vim /etc/pharmaflow/pharmaflow.env
+
+# 시스템 리로드
+# sudo systemctl daemon-reload
+# sudo systemctl restart pharmaflow
+
 # 개발 환경:
 # 환경변수가 없으면 아래 개발용 키 사용
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
