@@ -39,6 +39,28 @@
             margin-bottom: 0;
         }
 
+        /* 공통 목록 테이블 가로 스크롤 */
+        .app-table-scroll {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 목록 테이블 기본 크기 유지 */
+        .app-table-scroll .table {
+            width: 100%;
+            min-width: 900px;
+            margin-bottom: 0;
+        }
+
+        /* 헤더와 데이터가 두 줄로 나뉘지 않게 처리 */
+        .app-table-scroll .table th,
+        .app-table-scroll .table td {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
         @media (max-width:768px){
 
             .page-actions-responsive .btn{
