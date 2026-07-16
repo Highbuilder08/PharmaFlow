@@ -13,35 +13,26 @@ from .forms import (
 )
 from .models import Medicine, InventoryTransaction, PurchaseOrder
 
-
 # ============ 의약품 (Medicine) ==============
 
+
 def medicine_list(request):
-    medicines = (
-        Medicine.objects
-        .filter(pharmacy=request.user.pharmacy)
-        .order_by("name")
-    )
+    medicines = Medicine.objects.filter(pharmacy=request.user.pharmacy).order_by("name")
 
     query = request.GET.get("q", "").strip()
     stock_filter = request.GET.get("stock_filter", "all")
 
     if query:
         medicines = medicines.filter(
-            Q(name__icontains=query)
-            | Q(manufacturer__icontains=query)
+            Q(name__icontains=query) | Q(manufacturer__icontains=query)
         )
 
     if stock_filter == "low":
-        medicines = medicines.filter(
-            stock__lte=F("minimum_stock")
-        )
+        medicines = medicines.filter(stock__lte=F("minimum_stock"))
 
     elif stock_filter == "normal":
-        medicines = medicines.filter(
-            stock__gt=F("minimum_stock")
-        )
-        
+        medicines = medicines.filter(stock__gt=F("minimum_stock"))
+
     paginator = Paginator(medicines, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -59,7 +50,8 @@ def medicine_list(request):
         context,
     )
 
-#의약품 등록
+
+# 의약품 등록
 def medicine_create(request):
     if request.method == "POST":
         form = MedicineForm(
@@ -92,8 +84,9 @@ def medicine_create(request):
         "inventory/medicine_form.html",
         context,
     )
-    
-#의약품 수정
+
+
+# 의약품 수정
 def medicine_update(request, pk):
     medicine = get_object_or_404(Medicine, pk=pk, pharmacy=request.user.pharmacy)
 
@@ -131,7 +124,8 @@ def medicine_update(request, pk):
         context,
     )
 
-#의약품 상세
+
+# 의약품 상세
 def medicine_detail(request, pk):
     medicine = get_object_or_404(
         Medicine.objects.select_related("pharmacy"),
@@ -139,10 +133,10 @@ def medicine_detail(request, pk):
         pharmacy=request.user.pharmacy,
     )
 
-    recent_transactions = ( # 해당 의약품의 입출고 기록 가져오기
-        medicine.transactions
-        .select_related("medicine")
-        .all()[:5] # 최근 입출고는 가장 최근 5건까지 표시
+    recent_transactions = (  # 해당 의약품의 입출고 기록 가져오기
+        medicine.transactions.select_related("medicine").all()[
+            :5
+        ]  # 최근 입출고는 가장 최근 5건까지 표시
     )
 
     context = {
@@ -156,7 +150,8 @@ def medicine_detail(request, pk):
         context,
     )
 
-#의약품 삭제
+
+# 의약품 삭제
 def medicine_delete(request, pk):
     medicine = get_object_or_404(Medicine, pk=pk, pharmacy=request.user.pharmacy)
 
@@ -179,13 +174,12 @@ def medicine_delete(request, pk):
             "medicine": medicine,
         },
     )
-    
-    
+
+
 # ============ 입출고 (Transaction) ==============
 def transaction_list(request):
     transactions = (
-        InventoryTransaction.objects
-        .filter(
+        InventoryTransaction.objects.filter(
             medicine__pharmacy=request.user.pharmacy,
         )
         .select_related(
@@ -210,18 +204,14 @@ def transaction_list(request):
 
     if transaction_filter == "in":
         transactions = transactions.filter(
-            transaction_type=(
-                InventoryTransaction.TransactionType.IN
-            )
+            transaction_type=(InventoryTransaction.TransactionType.IN)
         )
 
     elif transaction_filter == "out":
         transactions = transactions.filter(
-            transaction_type=(
-                InventoryTransaction.TransactionType.OUT
-            )
+            transaction_type=(InventoryTransaction.TransactionType.OUT)
         )
-        
+
     paginator = Paginator(transactions, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -238,8 +228,9 @@ def transaction_list(request):
         "inventory/transaction_list.html",
         context,
     )
-    
-#입출고 등록
+
+
+# 입출고 등록
 def transaction_create(request):
     if request.method == "POST":
         form = InventoryTransactionForm(request.POST)
@@ -251,19 +242,17 @@ def transaction_create(request):
             quantity = form.cleaned_data["quantity"]
             note = form.cleaned_data["note"]
 
-            with transaction.atomic(): 
+            with transaction.atomic():
                 # Medicine 재고 변경
                 # InventoryTransaction 기록 생성
                 # 이 두가지 작업을 하나로 묶음
-                medicine = (
-                    Medicine.objects
-                    .select_for_update() # 처리하는 동안 해당 의약품 DB 행을 잠금.
-                    .get(pk=medicine_id)
+                medicine = Medicine.objects.select_for_update().get(
+                    pk=medicine_id,
+                    pharmacy=request.user.pharmacy,
                 )
 
                 if (
-                    transaction_type
-                    == InventoryTransaction.TransactionType.OUT
+                    transaction_type == InventoryTransaction.TransactionType.OUT
                     and medicine.stock < quantity
                 ):
                     form.add_error(
@@ -274,10 +263,7 @@ def transaction_create(request):
                         ),
                     )
                 else:
-                    if (
-                        transaction_type
-                        == InventoryTransaction.TransactionType.IN
-                    ):
+                    if transaction_type == InventoryTransaction.TransactionType.IN:
                         medicine.stock += quantity
                     else:
                         medicine.stock -= quantity
@@ -313,9 +299,9 @@ def transaction_create(request):
     else:
         form = InventoryTransactionForm()
 
-    medicine_stocks = { # transaction_form.html의 javascript가 선택된 의약품 id를 이용해 재고 표시
+    medicine_stocks = {
         str(medicine.pk): medicine.stock
-        for medicine in Medicine.objects.all()
+        for medicine in Medicine.objects.filter(pharmacy=request.user.pharmacy)
     }
 
     context = {
@@ -332,18 +318,17 @@ def transaction_create(request):
     )
 
 
-# ============ 발주 (PurchaseOrder) ============== 
+# ============ 발주 (PurchaseOrder) ==============
+
 
 def purchase_order_list(request):
-    purchase_orders = (
-        PurchaseOrder.objects
-        .filter(medicine__pharmacy=request.user.pharmacy)
-        .select_related(
-            "medicine",
-            "ordered_by",
-        )
+    purchase_orders = PurchaseOrder.objects.filter(
+        medicine__pharmacy=request.user.pharmacy
+    ).select_related(
+        "medicine",
+        "ordered_by",
     )
-    
+
     paginator = Paginator(purchase_orders, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -354,21 +339,18 @@ def purchase_order_list(request):
         {
             "purchase_orders": page_obj,
             "page_obj": page_obj,
-        }
+        },
     )
 
-#발주 등록
+
+# 발주 등록
 def purchase_order_create(request):
     if request.method == "POST":
         form = PurchaseOrderForm(request.POST)
     else:
         form = PurchaseOrderForm()
 
-    medicines = (
-        Medicine.objects
-        .filter(pharmacy=request.user.pharmacy)
-        .order_by("name")
-    )
+    medicines = Medicine.objects.filter(pharmacy=request.user.pharmacy).order_by("name")
 
     form.fields["medicine"].queryset = medicines
 
@@ -407,7 +389,8 @@ def purchase_order_create(request):
         context,
     )
 
-#발주 완료
+
+# 발주 완료
 def purchase_order_mark_ordered(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder,
@@ -440,7 +423,8 @@ def purchase_order_mark_ordered(request, pk):
 
     return redirect("inventory:purchase_order_list")
 
-#입고 완료
+
+# 입고 완료
 def purchase_order_receive(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder.objects.select_related("medicine"),
@@ -499,7 +483,8 @@ def purchase_order_receive(request, pk):
 
     return redirect("inventory:purchase_order_list")
 
-#취소
+
+# 취소
 def purchase_order_cancel(request, pk):
     purchase_order = get_object_or_404(
         PurchaseOrder,
