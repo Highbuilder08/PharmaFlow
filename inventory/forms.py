@@ -1,10 +1,9 @@
 from django import forms
 
-from .models import Medicine, InventoryTransaction, PurchaseOrder
+from .models import InventoryTransaction, Medicine, PurchaseOrder
 
 
 class MedicineForm(forms.ModelForm):
-
     class Meta:
         model = Medicine
         fields = (
@@ -12,16 +11,13 @@ class MedicineForm(forms.ModelForm):
             "manufacturer",
             "box_image",
             "medicine_image",
-            "stock",
             "minimum_stock",
         )
-
         labels = {
             "name": "의약품명",
             "manufacturer": "제조사",
             "box_image": "약 상자 이미지",
             "medicine_image": "약 이미지",
-            "stock": "현재 재고",
             "minimum_stock": "최소 재고",
         }
 
@@ -33,7 +29,6 @@ class MedicineForm(forms.ModelForm):
 
 
 class InventoryTransactionForm(forms.ModelForm):
-
     class Meta:
         model = InventoryTransaction
         fields = (
@@ -42,7 +37,6 @@ class InventoryTransactionForm(forms.ModelForm):
             "quantity",
             "note",
         )
-
         labels = {
             "medicine": "의약품",
             "transaction_type": "구분",
@@ -50,19 +44,28 @@ class InventoryTransactionForm(forms.ModelForm):
             "note": "비고",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["medicine"].queryset = (
-            Medicine.objects.order_by("name")
+        if pharmacy is None:
+            self.fields["medicine"].queryset = Medicine.objects.none()
+        else:
+            self.fields["medicine"].queryset = (
+                Medicine.objects.filter(pharmacy=pharmacy).order_by(
+                    "name",
+                    "manufacturer",
+                )
+            )
+
+        self.fields["medicine"].label_from_instance = (
+            lambda medicine: f"{medicine.name} ({medicine.manufacturer})"
         )
 
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
-            
+
 
 class PurchaseOrderForm(forms.ModelForm):
-
     class Meta:
         model = PurchaseOrder
         fields = (
@@ -70,22 +73,27 @@ class PurchaseOrderForm(forms.ModelForm):
             "quantity",
             "note",
         )
-
         labels = {
             "medicine": "의약품",
             "quantity": "발주 수량",
             "note": "비고",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["medicine"].queryset = (
-            Medicine.objects.order_by("name")
-        )
-        
+        if pharmacy is None:
+            self.fields["medicine"].queryset = Medicine.objects.none()
+        else:
+            self.fields["medicine"].queryset = (
+                Medicine.objects.filter(pharmacy=pharmacy).order_by(
+                    "name",
+                    "manufacturer",
+                )
+            )
+
         self.fields["medicine"].label_from_instance = (
-            lambda medicine: medicine.name
+            lambda medicine: f"{medicine.name} ({medicine.manufacturer})"
         )
 
         for field in self.fields.values():
