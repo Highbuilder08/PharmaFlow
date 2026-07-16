@@ -3,6 +3,7 @@ from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import F, Q
+from django.core.paginator import Paginator
 
 # Create your views here.
 from .forms import (
@@ -40,9 +41,14 @@ def medicine_list(request):
         medicines = medicines.filter(
             stock__gt=F("minimum_stock")
         )
+        
+    paginator = Paginator(medicines, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        "medicines": medicines,
+        "medicines": page_obj,
+        "page_obj": page_obj,
         "query": query,
         "stock_filter": stock_filter,
     }
@@ -106,7 +112,10 @@ def medicine_update(request, pk):
                 "의약품 정보가 수정되었습니다.",
             )
 
-            return redirect("inventory:medicine_list")
+            return redirect(
+                "inventory:medicine_detail",
+                pk=medicine.pk,
+            )
     else:
         form = MedicineForm(instance=medicine)
 
@@ -174,12 +183,54 @@ def medicine_delete(request, pk):
     
 # ============ 입출고 (Transaction) ==============
 def transaction_list(request):
-    transactions = InventoryTransaction.objects.select_related(
-        "medicine",
-    ).all()
+    transactions = (
+        InventoryTransaction.objects
+        .filter(
+            medicine__pharmacy=request.user.pharmacy,
+        )
+        .select_related(
+            "medicine",
+            "created_by",
+        )
+        .order_by("-created_at")
+    )
+
+    query = request.GET.get("q", "").strip()
+    transaction_filter = request.GET.get(
+        "transaction_filter",
+        "all",
+    )
+
+    if query:
+        transactions = transactions.filter(
+            Q(medicine__name__icontains=query)
+            | Q(medicine__manufacturer__icontains=query)
+            | Q(note__icontains=query)
+        )
+
+    if transaction_filter == "in":
+        transactions = transactions.filter(
+            transaction_type=(
+                InventoryTransaction.TransactionType.IN
+            )
+        )
+
+    elif transaction_filter == "out":
+        transactions = transactions.filter(
+            transaction_type=(
+                InventoryTransaction.TransactionType.OUT
+            )
+        )
+        
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        "transactions": transactions,
+        "transactions": page_obj,
+        "page_obj": page_obj,
+        "query": query,
+        "transaction_filter": transaction_filter,
     }
 
     return render(
@@ -292,11 +343,18 @@ def purchase_order_list(request):
             "ordered_by",
         )
     )
+    
+    paginator = Paginator(purchase_orders, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
     return render(
         request,
         "inventory/purchase_order_list.html",
-        { "purchase_orders": purchase_orders },
+        {
+            "purchase_orders": page_obj,
+            "page_obj": page_obj,
+        }
     )
 
 #발주 등록
