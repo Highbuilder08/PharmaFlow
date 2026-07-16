@@ -124,7 +124,7 @@ DATABASES = {
         ),
         "USER": os.environ.get(
             "DB_USER",
-            "",
+            "pharmaflow",
         ),
         "PASSWORD": os.environ.get(
             "DB_PASSWORD",
@@ -132,7 +132,7 @@ DATABASES = {
         ),
         "HOST": os.environ.get(
             "DB_HOST",
-            "127.0.0.1",
+            "192.168.32.77",
         ),
         "PORT": os.environ.get(
             "DB_PORT",
@@ -140,7 +140,7 @@ DATABASES = {
         ),
         "OPTIONS": {
             "charset": "utf8mb4",
-            "init_command": ("SET sql_mode='STRICT_TRANS_TABLES'"),
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
