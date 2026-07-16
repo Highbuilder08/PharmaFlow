@@ -7,7 +7,7 @@ from functools import wraps
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from .models import Consultation, ConsultationComment, ConsultationAttachment
+from .models import Consultation, ConsultationComment, ConsultationAttachment, AuditLog
 from .forms import ConsultationForm
 
 # ==========================================
@@ -201,3 +201,12 @@ def my_post_list(request):
     return render(request, 'consultations/mypost.html', {
         'consultations': page_obj,
     })
+    
+@login_message_required
+def audit_log_list(request):
+    if not request.user.is_superuser:
+        messages.warning(request, "관리자만 접근 가능한 페이지입니다.")
+        return redirect('core:index') # 메인 화면으로 튕겨냄
+    
+    logs = AuditLog.objects.all()
+    return render(request, 'consultations/audit_logs.html', {'logs': logs})
