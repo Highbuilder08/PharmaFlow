@@ -1,15 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- 🚀 1. [수정] 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
+<!-- 1. [수정] 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
 <div class="d-flex align-items-center mb-4 gap-3">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
     {% if user.is_authenticated %}
         <a href="{% url 'consultations:mypost' %}" class="btn btn-sm btn-outline-primary shadow-sm fw-bold text-nowrap">📝 내가 쓴 글</a>
     {% endif %}
 </div>
-
-<!-- ❌ 상단 검색창 영역은 완전히 삭제되었습니다! -->
 
 <!-- 2. 태그 버튼(좌)과 글쓰기 버튼(우) -->
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
@@ -58,7 +56,7 @@
                 </thead>
                 <tbody class="text-center">
                     
-                    <!-- 🚀 1. 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+                    <!-- 1. 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
                     {% for post in notices %}
                     <tr class="table-warning fw-bold">
                         <td class="text-muted">📢</td>
@@ -77,7 +75,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 🚀 2. 일반 게시글 목록 루프 -->
+                    <!-- 2. 일반 게시글 목록 루프 -->
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>
@@ -98,7 +96,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 🚀 3. 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
+                    <!-- 3. 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
                     {% if not notices and not consultations %}
                     <tr>
                         <td colspan="5" class="text-center text-muted py-5">등록된 게시글이 없습니다.</td>
@@ -115,7 +113,7 @@
     <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
-<!-- 🚀 5개 단위 블록 페이징 네비게이션 바 -->
+<!-- 5개 단위 블록 페이징 네비게이션 바 -->
 {% if consultations.has_other_pages %}
 <nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
     <ul class="pagination shadow-sm">
@@ -182,22 +180,20 @@
         <!-- 검색어 입력칸 -->
         <input type="text" name="q" class="form-control shadow-sm" placeholder="검색어를 입력하세요" value="{{ q }}">
         
-        <!-- 검색 버튼 (text-nowrap과 flex-shrink-0으로 세로 꺾임 완벽 방지!) -->
+        <!-- 검색 버튼 (text-nowrap과 flex-shrink-0으로 세로 꺾임 방지) -->
         <button type="submit" class="btn btn-secondary shadow-sm px-4 text-nowrap" style="flex-shrink: 0;">검색</button>
     </form>
 </div>
 
 <style>
-    /* 기존에 있던 custom-link 스타일 유지 */
     .custom-link { transition: color 0.2s ease-in-out; }
     .custom-link:hover { color: #0d6efd !important; }
 
-    /* 🚀 새로 추가: 토글 버튼 화살표 애니메이션 */
     .tag-toggle-icon {
         display: inline-block;
         transition: transform 0.3s ease;
     }
-    /* 버튼이 열린 상태(aria-expanded="true")가 되면 화살표를 90도 회전시킵니다 */
+
     button[aria-expanded="true"] .tag-toggle-icon {
         transform: rotate(90deg);
     }
@@ -206,7 +202,6 @@
 {% endblock %}
 
 <script>
-    // 🚀 상단과 하단 검색창 실시간 동기화 마법
     document.addEventListener('DOMContentLoaded', function() {
         const searchTypes = document.querySelectorAll('select[name="search_type"]');
         const searchInputs = document.querySelectorAll('input[name="q"]');

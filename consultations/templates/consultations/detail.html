@@ -40,12 +40,10 @@
 
 <a href="{% url 'consultations:list' %}" class="btn btn-secondary">목록으로</a>
 {% if request.user == consultation.writer or request.user.is_superuser %}
-    <!-- 수정: button 태그를 없애고 a 태그에 btn 클래스 부여 -->
     <a href="{% url 'consultations:update' consultation.id %}" class="btn btn-secondary">수정</a>
     
     <form action="{% url 'consultations:delete' consultation.id %}" method="POST" style="display:inline;">
         {% csrf_token %}
-        <!-- 삭제: 여기도 btn 클래스와 빨간색(danger) 스타일 부여 -->
         <button type="submit" class="btn btn-danger" onclick="return confirm('게시글을 삭제하시겠습니까?');">삭제</button>
     </form>
 {% endif %}
@@ -53,34 +51,29 @@
 <h3>💬 댓글</h3>
 <ul class="list-unstyled mb-4">
     {% for comment in consultation.comments.all %}
-        <!-- 💡 data-raw 속성에 원본 텍스트를 숨겨둡니다 -->
         <li class="comment-item" data-author="{{ comment.writer.username }}" data-raw="{{ comment.content }}" style="margin-bottom: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
             
             <strong>{{ comment.writer.username }}</strong>: 
             
-            <!-- 1. 평소에 보이는 댓글 내용 -->
+            <!-- 댓글 내용 -->
             <span class="comment-text" id="comment-text-{{ comment.id }}">{{ comment.content }}</span> 
             
-            <!-- 🚀 2. 업그레이드된 인라인 수정 폼 -->
+            <!-- 인라인 수정 폼 -->
             <form method="POST" action="{% url 'consultations:comment_update' comment.id %}" id="edit-form-{{ comment.id }}" class="edit-form" style="display: none; margin-top: 10px; align-items: center;">
                 {% csrf_token %}
                 
-                <!-- @태그가 예쁘게 표시될 배지 (클릭하면 삭제됨) -->
                 <span id="reply-badge-{{ comment.id }}" style="display: none; background-color: #e2e3e5; color: #0056b3; padding: 4px 8px; border-radius: 15px; font-size: 12px; margin-right: 5px; cursor: pointer; font-weight: bold;" title="클릭하면 답글 해제">
                     <span class="badge-text"></span> <span style="color: #dc3545; margin-left: 3px;">✕</span>
                 </span>
                 
-                <!-- 서버로 몰래 보낼 태그 저장소 -->
                 <input type="hidden" id="reply-target-{{ comment.id }}" value="">
                 
-                <!-- 실제 내용 입력창 -->
                 <input type="text" name="content" id="edit-input-{{ comment.id }}" required style="width: 50%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;">
                 
                 <button type="submit" class="btn btn-primary">저장</button>
                 <button type="button" class="btn btn-secondary" data-id="{{ comment.id }}">취소</button>
             </form>
 
-            <!-- 시간 표시 -->
             <small style="color: #999; margin-left: 10px;">
                 ({{ comment.created_at|date:"Y-m-d H:i" }}
                 {% if comment.created_at|date:"YmdHi" != comment.updated_at|date:"YmdHi" %}
@@ -88,7 +81,6 @@
                 {% endif %})
             </small>
 
-            <!-- 버튼들 -->
             <div class="mt-2">
                 <button type="button" id="reply-btn-{{ comment.id }}" class="btn btn-primary btn-sm" data-username="{{ comment.writer.username }}">답글</button>
 
@@ -109,7 +101,6 @@
     {% endfor %}
 </ul>
 
-<!-- 👇 댓글 입력창에 id="comment-input" 추가 -->
 <form method="POST">
     {% csrf_token %}
     <input type="text" name="content" id="comment-input" placeholder="댓글을 입력하세요" required style="width: 70%; padding: 10px;">
@@ -154,16 +145,14 @@
             item.style.marginLeft = margin + 'px';
             item.style.backgroundColor = '#e9ecef';
             
-            // 🚀 1. <li> 태그 맨 앞(작성자 이름 왼쪽)에 화살표(↳)를 꽂아 넣습니다!
             item.insertAdjacentHTML('afterbegin', `<span style="color: #0056b3; font-weight: bold; margin-right: 5px; font-size: 1.1em;">↳</span>`);
             
-            // 🚀 2. 본문 텍스트에는 화살표를 빼고 @태그만 파란색으로 표시합니다.
             textSpan.innerHTML = `<span style="color: #0056b3; font-weight: bold;">@${targetUser}</span> ${actualMessage}`;
         }
         previousComments.push({ author: author, depth: depth });
     });
 
-    // 🚀 3. [수정] 버튼 클릭 시 (태그 분리 마법)
+    // 3. [수정] 버튼 클릭 시 
     document.querySelectorAll('.edit-btn').forEach(button => {
         button.addEventListener('click', function() {
             const commentId = this.getAttribute('data-id');
@@ -198,12 +187,11 @@
             const deleteForm = document.getElementById('delete-form-' + commentId);
             if (deleteForm) deleteForm.style.display = 'none';
             
-            // 폼을 flex로 보여줘서 버튼들이 한 줄에 예쁘게 나오게 함
             document.getElementById('edit-form-' + commentId).style.display = 'flex';
         });
     });
 
-    // 🚀 4. [배지 ✕] 클릭 시 (답글 해제)
+    // 4. [배지 ✕] 클릭 시 (답글 해제)
     document.querySelectorAll('[id^="reply-badge-"]').forEach(badge => {
         badge.addEventListener('click', function() {
             this.style.display = 'none'; // 배지 숨기기
@@ -212,14 +200,13 @@
         });
     });
 
-    // 🚀 5. [저장] 버튼 누를 때 (태그와 내용 다시 합치기)
+    // 5. [저장] 버튼 누를 때 (태그와 내용 다시 합치기)
     document.querySelectorAll('.edit-form').forEach(form => {
         form.addEventListener('submit', function(e) {
             const commentId = this.id.replace('edit-form-', '');
             const target = document.getElementById('reply-target-' + commentId).value;
             const input = document.getElementById('edit-input-' + commentId);
             
-            // 배지가 살아있다면(태그가 있다면) 내용 앞에 다시 붙여서 서버로 전송!
             if (target) {
                 input.value = target + ' ' + input.value;
             }
