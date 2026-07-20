@@ -8,7 +8,7 @@
 #
 # 여기서는 "파일로 직접 저장되는 로그"만 다룹니다.
 # gunicorn/systemd 로그는 파일이 아니라 journald(저널)에 쌓이므로
-# logrotate가 아니라 journald 자체 설정으로 관리합니다. (아래 참고 참고)
+# logrotate가 아니라 journald 자체 설정으로 관리합니다. (아래 참고 2에 서술)
 
 # Django 애플리케이션 로그 (settings.py에서 LOGGING을 설정한 경우에만 존재)
 # WatchedFileHandler를 쓰기 때문에 logrotate가 파일 이름을 바꾸면(rename)
