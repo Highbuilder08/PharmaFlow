@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 프로젝트 전체 URL을 각 Django 앱에 연결하는 최상위 URL 설정 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin

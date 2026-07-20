@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: Django 관리자 페이지에서 계정 관련 모델을 관리하기 위한 설정 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
@@ -6,6 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 
 
+# PharmacyAdmin 클래스의 데이터 구조와 동작을 정의한다.
 @admin.register(Pharmacy)
 class PharmacyAdmin(admin.ModelAdmin):
     list_display = (
@@ -35,6 +41,7 @@ class PharmacyAdmin(admin.ModelAdmin):
     list_per_page = 20
 
 
+# CustomUserAdmin 클래스의 데이터 구조와 동작을 정의한다.
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = (
@@ -152,6 +159,7 @@ class CustomUserAdmin(UserAdmin):
     "cancel_approval",
     )
     
+    # approve_users 기능을 처리한다.
     @admin.action(description="선택한 사용자를 승인")
     def approve_users(self, request, queryset):
         updated = queryset.update(is_approved=True)
@@ -161,6 +169,7 @@ class CustomUserAdmin(UserAdmin):
             f"{updated}명의 사용자를 승인했습니다.",
             )
     
+    # cancel_approval 기능을 처리한다.
     @admin.action(description="선택한 사용자의 승인을 취소")
     def cancel_approval(self, request, queryset):
         updated = queryset.update(is_approved=False)
@@ -171,6 +180,7 @@ class CustomUserAdmin(UserAdmin):
             )
 
 
+# PharmacyOwnershipRequestAdmin 클래스의 데이터 구조와 동작을 정의한다.
 @admin.register(PharmacyOwnershipRequest)
 class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
     list_display = (
@@ -199,6 +209,7 @@ class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
         "reject_requests",
     )
 
+    # approve_requests 기능을 처리한다.
     @admin.action(description="선택한 점주 신청 승인")
     def approve_requests(self, request, queryset):
         approved_count = 0
@@ -241,6 +252,7 @@ class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
             f"{approved_count}건 승인, {skipped_count}건 중복으로 건너뛰었습니다.",
         )
 
+    # reject_requests 기능을 처리한다.
     @admin.action(description="선택한 점주 신청 거절")
     def reject_requests(self, request, queryset):
         updated = queryset.filter(

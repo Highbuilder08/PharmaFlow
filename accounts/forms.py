@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 회원가입과 사용자·약국 정보 입력값을 검증하는 폼 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 from django import forms
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import (
@@ -9,6 +14,7 @@ from django.core.exceptions import ValidationError
 from .models import Pharmacy, User
 
 
+# 회원가입 입력값과 HIRA에서 선택한 약국 정보를 검증한다.
 class SignUpForm(UserCreationForm):
 
     email = forms.EmailField(
@@ -77,6 +83,7 @@ class SignUpForm(UserCreationForm):
         widget=forms.HiddenInput(),
     )
 
+    # Meta 클래스의 데이터 구조와 동작을 정의한다.
     class Meta:
         model = User
 
@@ -103,6 +110,7 @@ class SignUpForm(UserCreationForm):
             "email": "이메일",
         }
 
+    # __init__ 기능을 처리한다.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -145,6 +153,7 @@ class SignUpForm(UserCreationForm):
             ]
         )
 
+    # business_number 필드의 입력값을 추가로 검증한다.
     def clean_business_number(self):
         business_number = self.cleaned_data.get(
             "business_number",
@@ -153,6 +162,7 @@ class SignUpForm(UserCreationForm):
 
         return business_number.strip()
 
+    # 여러 필드 사이의 관계를 종합적으로 검증한다.
     def clean(self):
         cleaned_data = super().clean()
 
@@ -178,8 +188,10 @@ class SignUpForm(UserCreationForm):
         return cleaned_data
 
 
+# 약국의 사업자 및 연락처 정보를 등록하거나 수정한다.
 class PharmacyUpdateForm(forms.ModelForm):
 
+    # Meta 클래스의 데이터 구조와 동작을 정의한다.
     class Meta:
         model = Pharmacy
 
@@ -230,6 +242,7 @@ class PharmacyUpdateForm(forms.ModelForm):
             ),
         }
 
+    # __init__ 기능을 처리한다.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -255,6 +268,7 @@ class PharmacyUpdateForm(forms.ModelForm):
         self.fields["phone"].widget.attrs["placeholder"] = "대표 연락처"
         self.fields["email"].widget.attrs["placeholder"] = "이메일"
 
+    # business_number 필드의 입력값을 추가로 검증한다.
     def clean_business_number(self):
         business_number = self.cleaned_data.get(
             "business_number",
@@ -265,6 +279,7 @@ class PharmacyUpdateForm(forms.ModelForm):
 
         return business_number.strip()
 
+    # pharmacy_name 필드의 입력값을 추가로 검증한다.
     def clean_pharmacy_name(self):
         pharmacy_name = self.cleaned_data.get(
             "pharmacy_name",
@@ -278,6 +293,7 @@ class PharmacyUpdateForm(forms.ModelForm):
 
         return pharmacy_name
 
+    # 여러 필드 사이의 관계를 종합적으로 검증한다.
     def clean(self):
         cleaned_data = super().clean()
 
@@ -292,8 +308,10 @@ class PharmacyUpdateForm(forms.ModelForm):
         return cleaned_data
 
 
+# ApprovedAuthenticationForm 클래스의 데이터 구조와 동작을 정의한다.
 class ApprovedAuthenticationForm(AuthenticationForm):
 
+    # __init__ 기능을 처리한다.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -303,6 +321,7 @@ class ApprovedAuthenticationForm(AuthenticationForm):
         self.fields["username"].widget.attrs["placeholder"] = "아이디"
         self.fields["password"].widget.attrs["placeholder"] = "비밀번호"
 
+    # confirm_login_allowed 기능을 처리한다.
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
 
@@ -328,8 +347,10 @@ class ApprovedAuthenticationForm(AuthenticationForm):
             )
 
 
+# 점주 또는 관리자가 직원을 직접 추가할 때 사용하는 폼이다.
 class StaffCreateForm(UserCreationForm):
 
+    # Meta 클래스의 데이터 구조와 동작을 정의한다.
     class Meta:
         model = User
 
@@ -360,6 +381,7 @@ class StaffCreateForm(UserCreationForm):
             ),
         }
 
+    # __init__ 기능을 처리한다.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -379,8 +401,10 @@ class StaffCreateForm(UserCreationForm):
         )
 
 
+# 소속 직원의 계정 정보를 수정할 때 사용하는 폼이다.
 class StaffUpdateForm(forms.ModelForm):
 
+    # Meta 클래스의 데이터 구조와 동작을 정의한다.
     class Meta:
         model = User
 
@@ -430,6 +454,7 @@ class StaffUpdateForm(forms.ModelForm):
         }
 
 
+# 마이페이지의 민감한 기능에 앞서 현재 비밀번호를 확인한다.
 class PasswordConfirmForm(forms.Form):
 
     password = forms.CharField(
@@ -444,10 +469,12 @@ class PasswordConfirmForm(forms.Form):
         ),
     )
 
+    # __init__ 기능을 처리한다.
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
 
+    # password 필드의 입력값을 추가로 검증한다.
     def clean_password(self):
         password = self.cleaned_data["password"]
 
@@ -459,6 +486,7 @@ class PasswordConfirmForm(forms.Form):
         return password
 
 
+# 사용자가 본인의 연락처, 프로필 이미지와 비밀번호를 수정한다.
 class MyPageUpdateForm(forms.ModelForm):
 
     new_password1 = forms.CharField(
@@ -488,6 +516,7 @@ class MyPageUpdateForm(forms.ModelForm):
         ),
     )
 
+    # Meta 클래스의 데이터 구조와 동작을 정의한다.
     class Meta:
         model = User
 
@@ -529,6 +558,7 @@ class MyPageUpdateForm(forms.ModelForm):
             ),
         }
 
+    # 여러 필드 사이의 관계를 종합적으로 검증한다.
     def clean(self):
         cleaned_data = super().clean()
 
@@ -568,6 +598,7 @@ class MyPageUpdateForm(forms.ModelForm):
 
         return cleaned_data
 
+    # 검증된 입력값을 모델 객체에 반영하여 저장한다.
     def save(self, commit=True):
         user = super().save(commit=False)
         new_password = self.cleaned_data.get("new_password1")

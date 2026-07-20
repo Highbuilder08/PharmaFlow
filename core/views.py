@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 메인 화면과 달력 메모 조회·저장 기능을 처리하는 뷰 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 import json
 
 from datetime import datetime
@@ -18,6 +23,7 @@ from consultations.models import Consultation
 from .models import CalendarMemo
 
 
+# -------------------- 메인 화면: 메인 화면에 공지, 최근 게시글과 관리자용 요약 정보를 전달한다. --------------------
 def index(request):
     notices = (
         Consultation.objects.filter(tag="NOTICE")
@@ -72,6 +78,7 @@ def index(request):
     )
 
 
+# -------------------- 달력 메모 API: 선택한 날짜의 사용자 메모를 조회해 JSON으로 반환한다. --------------------
 @login_required
 @require_GET
 def calendar_memo_detail(request):
@@ -107,6 +114,7 @@ def calendar_memo_detail(request):
     )
 
 
+# -------------------- 달력 메모 API: 달력 메모를 새로 저장하거나 수정하며 빈 내용이면 기존 메모를 삭제한다. --------------------
 @login_required
 @require_POST
 def calendar_memo_save(request):
@@ -181,6 +189,7 @@ def calendar_memo_save(request):
     )
 
 
+# -------------------- 달력 메모 API: 특정 연·월에 메모가 등록된 날짜 목록을 JSON으로 반환한다. --------------------
 @login_required
 @require_GET
 def calendar_memo_dates(request):

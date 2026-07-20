@@ -1,9 +1,16 @@
+{# ================================================== #}
+{# 파일 역할: list 화면 템플릿 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
 {# base.html의 틀(공통 헤더/메뉴 등)을 그대로 가져와서 사용 #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends 'base.html' %}
 {# content 블록 안에 이 페이지만의 내용을 채워 넣음 #}
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <!-- 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
+{# 조건에 따라 필요한 화면 요소만 표시한다. #}
 <!-- {% if user.is_authenticated %} : 로그인한 사람에게만 '내가 쓴 글' 버튼을 보여줌 -->
 <div class="d-flex align-items-center mb-4 gap-3">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
@@ -48,6 +55,7 @@
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
+            {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light text-center">
                     <tr>
@@ -61,6 +69,7 @@
                 <tbody class="text-center">
 
                     <!-- 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+                    {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     <!-- {% for %}는 views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 <tr> 한 줄씩 반복해서 그려줌 -->
                     {% for post in notices %}
                     <tr class="table-warning fw-bold">
@@ -170,6 +179,7 @@
 {% endif %}
 
 <div class="d-flex justify-content-center mt-4 mb-5">
+    {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
     <form method="GET" action="{% url 'consultations:list' %}" class="d-flex gap-2" style="max-width: 600px; width: 100%;">
         
         {% if selected_tag %}
@@ -210,6 +220,7 @@
 
 {% endblock %}
 
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
     // 이 화면에는 검색창(드롭다운 + 입력칸)이 위/아래 두 군데 있을 수 있어서,
     // 한쪽에서 검색 조건을 바꾸면 다른 쪽도 자동으로 똑같이 맞춰주는 스크립트

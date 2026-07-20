@@ -1,4 +1,10 @@
+{# ================================================== #}
+{# 파일 역할: mypost 화면 템플릿 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends 'base.html' %}
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <div class="d-flex align-items-center mb-4 gap-3">
@@ -10,6 +16,7 @@
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
+            {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light text-center">
                     <tr>
@@ -21,10 +28,12 @@
                 </thead>
                 <tbody class="text-center">
                     <!-- views.py의 my_post_list 함수가 넘겨준, 로그인한 사용자가 쓴 글만 하나씩 꺼내서 보여줌 -->
+                    {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>
                         <td class="text-start px-4">
+                            {# 조건에 따라 필요한 화면 요소만 표시한다. #}
                             <span class="badge {% if post.tag == 'NOTICE' %}bg-danger{% elif post.tag == 'QUESTION' %}bg-warning text-dark{% elif post.tag == 'COUNSEL' %}bg-success{% elif post.tag == 'INFO' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-1">
                                 {{ post.get_tag_display }}
                             </span>
@@ -38,6 +47,7 @@
                         <td class="text-muted">{{ post.smart_date }}</td>
                         <td class="text-muted">{{ post.views }}</td>
                     </tr>
+                    {# 반복할 데이터가 없을 때 안내 문구를 표시한다. #}
                     {% empty %}
                     <tr>
                         <td colspan="4" class="text-center text-muted py-5">작성한 게시글이 없습니다.</td>

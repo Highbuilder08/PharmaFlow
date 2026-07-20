@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 회원가입, HIRA 약국 검색, 사용자·약국·마이페이지 기능을 처리하는 뷰 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 import xml.etree.ElementTree as ET
 
 import requests
@@ -37,6 +42,7 @@ from .models import (
 )
 
 
+# -------------------- 회원가입: 회원가입 요청을 처리하고 선택한 약국 및 점주 권한 신청 정보를 저장한다. --------------------
 def signup(request):
     if request.user.is_authenticated:
         return redirect("core:index")
@@ -136,6 +142,7 @@ def signup(request):
     )
 
 
+# HIRA XML 항목에서 후보 태그 중 실제 값이 있는 텍스트를 찾아 반환한다.
 def get_xml_text(item, *names):
     for name in names:
         value = item.findtext(name)
@@ -146,6 +153,7 @@ def get_xml_text(item, *names):
     return ""
 
 
+# -------------------- HIRA 약국 검색: 검색어를 HIRA 약국정보서비스에 전달하고 화면에서 사용할 JSON 결과로 변환한다. --------------------
 @require_GET
 def pharmacy_search(request):
     query = request.GET.get("q", "").strip()
@@ -313,6 +321,7 @@ def pharmacy_search(request):
     )
 
 
+# 사용자에게 소속 약국이 있으면 해당 약국 객체를 반환한다.
 def _get_user_pharmacy(user):
     if not user.pharmacy_id:
         return None
@@ -320,6 +329,7 @@ def _get_user_pharmacy(user):
     return user.pharmacy
 
 
+# 현재 사용자가 지정한 약국 정보를 수정할 권한이 있는지 확인한다.
 def _can_edit_pharmacy(user, pharmacy):
     if user.is_superuser:
         return True
@@ -332,6 +342,7 @@ def _can_edit_pharmacy(user, pharmacy):
     )
 
 
+# -------------------- 약국 관리: 현재 사용자의 소속 약국 상세 정보를 보여준다. --------------------
 @login_required
 def pharmacy_detail(request):
     pharmacy = _get_user_pharmacy(request.user)
@@ -359,6 +370,7 @@ def pharmacy_detail(request):
     )
 
 
+# -------------------- 약국 관리: 승인된 점주 또는 관리자가 소속 약국 정보를 수정한다. --------------------
 @login_required
 def pharmacy_update(request):
     pharmacy = _get_user_pharmacy(request.user)
@@ -416,6 +428,7 @@ def pharmacy_update(request):
     )
 
 
+# -------------------- 약국 관리: 관리자에게 전체 약국 목록을 페이지 단위로 보여준다. --------------------
 @login_required
 @superuser_required
 def pharmacy_list(request):
@@ -476,6 +489,7 @@ def pharmacy_list(request):
     )
 
 
+# -------------------- 약국 관리: 관리자가 약국 정보를 직접 등록한다. --------------------
 @login_required
 @superuser_required
 def pharmacy_create(request):
@@ -507,6 +521,7 @@ def pharmacy_create(request):
     )
 
 
+# -------------------- 약국 관리: 관리자가 선택한 약국 정보를 수정한다. --------------------
 @login_required
 @superuser_required
 def pharmacy_admin_update(request, pk):
@@ -557,6 +572,7 @@ def pharmacy_admin_update(request, pk):
     )
 
 
+# -------------------- 약국 관리: 관리자가 선택한 약국을 삭제하되 소속 사용자가 있으면 삭제를 막는다. --------------------
 @login_required
 @superuser_required
 def pharmacy_delete(request, pk):
@@ -603,6 +619,7 @@ def pharmacy_delete(request, pk):
     )
 
 
+# -------------------- 소속 사용자 관리: 소속 약국의 약사와 직원 계정을 페이지 단위로 보여준다. --------------------
 @login_required
 @staff_manager_required
 def user_list(request):
@@ -679,6 +696,7 @@ def user_list(request):
     )
 
 
+# -------------------- 소속 사용자 관리: 관리 권한자가 소속 약국의 직원 계정을 직접 생성한다. --------------------
 @login_required
 @staff_manager_required
 def user_create(request):
@@ -718,6 +736,7 @@ def user_create(request):
     )
 
 
+# -------------------- 소속 사용자 관리: 관리 권한자가 소속 사용자 정보를 수정한다. --------------------
 @login_required
 @staff_manager_required
 def user_update(request, pk):
@@ -766,6 +785,7 @@ def user_update(request, pk):
     )
 
 
+# -------------------- 소속 사용자 관리: 사용자 기록을 보존하기 위해 계정을 삭제하지 않고 비활성화한다. --------------------
 @login_required
 @staff_manager_required
 @require_POST
@@ -802,6 +822,7 @@ def user_delete(request, pk):
     return redirect("accounts:user_list")
 
 
+# -------------------- 소속 사용자 관리: 점주가 가입 대기 중인 소속 사용자를 승인한다. --------------------
 @login_required
 @owner_required
 @require_POST
@@ -836,6 +857,7 @@ def user_approve(request, pk):
     return redirect("accounts:user_list")
 
 
+# -------------------- 소속 사용자 관리: 점주가 소속 사용자의 승인 상태를 취소한다. --------------------
 @login_required
 @owner_required
 @require_POST
@@ -870,6 +892,7 @@ def user_revoke(request, pk):
     return redirect("accounts:user_list")
 
 
+# -------------------- 점주 권한 신청 관리: 관리자에게 처리 대기 중인 점주 권한 신청 목록을 보여준다. --------------------
 @login_required
 @superuser_required
 def ownership_request_list(request):
@@ -941,6 +964,7 @@ def ownership_request_list(request):
     )
 
 
+# -------------------- 점주 권한 신청 관리: 점주 권한 신청을 승인하고 사용자와 약국 정보를 함께 갱신한다. --------------------
 @login_required
 @superuser_required
 @require_POST
@@ -1000,6 +1024,7 @@ def ownership_request_approve(request, pk):
     return redirect("accounts:ownership_request_list")
 
 
+# -------------------- 점주 권한 신청 관리: 점주 권한 신청을 거절하고 처리 시각을 기록한다. --------------------
 @login_required
 @superuser_required
 @require_POST
@@ -1032,6 +1057,7 @@ def ownership_request_reject(request, pk):
     return redirect("accounts:ownership_request_list")
 
 
+# -------------------- 마이페이지: 현재 비밀번호를 확인한 뒤 사용자 계정을 비활성화하고 로그아웃한다. --------------------
 @login_required
 @require_POST
 def my_page_deactivate(request):
@@ -1099,6 +1125,7 @@ def my_page_deactivate(request):
     return redirect("login")
 
 
+# -------------------- 마이페이지: 현재 사용자의 프로필과 승인 상태를 보여준다. --------------------
 @login_required
 def my_page(request):
     password_form = PasswordConfirmForm(
@@ -1115,6 +1142,7 @@ def my_page(request):
     )
 
 
+# -------------------- 마이페이지: 내 정보 수정 전 현재 비밀번호를 확인하고 세션에 인증 시각을 저장한다. --------------------
 @login_required
 @require_POST
 def my_page_verify_password(request):
@@ -1140,6 +1168,7 @@ def my_page_verify_password(request):
     )
 
 
+# -------------------- 마이페이지: 최근 비밀번호 확인을 통과한 사용자의 개인 정보를 수정한다. --------------------
 @login_required
 def my_page_update(request):
     verified = request.session.get(

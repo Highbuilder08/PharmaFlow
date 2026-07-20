@@ -1,9 +1,16 @@
+{# ================================================== #}
+{# 파일 역할: 사용자 아이디와 비밀번호를 입력받는 로그인 화면 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 
+{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 로그인 | PharmaFlow
 {% endblock %}
 
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <div class="row justify-content-center">
@@ -15,15 +22,20 @@
                     로그인
                 </h2>
 
+                {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
                 <form method="post">
+                    {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
                     {% csrf_token %}
 
+                    {# 특정 필드 하나에 속하지 않는 폼 전체 오류를 표시한다. #}
+                    {# 조건에 따라 필요한 화면 요소만 표시한다. #}
                     {% if form.non_field_errors %}
                         <div class="alert alert-warning">
                             {{ form.non_field_errors|linebreaksbr }}
                         </div>
                     {% endif %}
 
+                    {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     {% for field in form %}
                         <div class="mb-3">
 

@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 사용자 역할과 승인 상태에 따라 접근 권한을 검사하는 데코레이터 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 from functools import wraps
 
 from django.contrib import messages
@@ -6,7 +11,9 @@ from django.shortcuts import redirect
 from .models import User
 
 
+# 시스템 관리자만 해당 뷰를 실행할 수 있도록 검사한다.
 def superuser_required(view_func):
+    # wrapper 기능을 처리한다.
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_superuser:
@@ -22,7 +29,9 @@ def superuser_required(view_func):
     return wrapper
 
 
+# 승인된 점주만 해당 뷰를 실행할 수 있도록 검사한다.
 def owner_required(view_func):
+    # wrapper 기능을 처리한다.
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if (
@@ -42,7 +51,9 @@ def owner_required(view_func):
     return wrapper
 
 
+# 직원 관리 권한이 있는 사용자만 해당 뷰를 실행할 수 있도록 검사한다.
 def staff_manager_required(view_func):
+    # wrapper 기능을 처리한다.
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         user = request.user
