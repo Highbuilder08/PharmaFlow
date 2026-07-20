@@ -11,3 +11,4 @@ staticfiles/
 .coverage
 CLAUDE.md
 .claude/
+logs/
