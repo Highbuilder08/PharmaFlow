@@ -7,14 +7,18 @@
                 <h3 class="fw-bold" style="color: #2c3e50;">✏️ 게시글 쓰기</h3>
             </div>
             <div class="card-body p-4">
+                <!-- enctype="multipart/form-data" : 파일(첨부파일)도 함께 전송하려면 반드시 필요한 설정 -->
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
+                    {# form.as_p : forms.py에서 만든 ConsultationForm의 입력창들(태그, 제목, 내용)을 자동으로 그려줌 #}
                     {{ form.as_p }}
-                    
+
                     <div class="mt-4 mb-4 p-3 bg-light rounded border">
                         <label class="fw-bold mb-2">📎 첨부파일</label>
+                        <!-- multiple : 파일을 여러 개 한 번에 선택할 수 있게 함 -->
                         <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
-                        
+
+                        <!-- 선택한 파일 이름들이 아래 자바스크립트에 의해 이 자리에 나열됨 -->
                         <div id="file-list" class="mt-3 d-flex flex-column gap-2"></div>
                     </div>
                     
@@ -29,16 +33,18 @@
 </div>
 
 <script>
+    // 이 스크립트는 "파일 선택" 창을 여러 번 열어도 이전에 골랐던 파일이 사라지지 않고
+    // 계속 쌓이도록(누적), 그리고 하나씩 ✕ 눌러서 뺄 수 있도록 도와주는 코드
     const fileInput = document.getElementById('file-input');
     const fileListContainer = document.getElementById('file-list');
     let selectedFiles = []; // 선택된 파일들을 담아둘 배열
 
     // 1. 파일이 선택될 때마다 실행
     fileInput.addEventListener('change', function(e) {
-        // 새로 선택한 파일들을 기존 배열에 누적해서 합칩니다
+        // 새로 선택한 파일들을 기존 배열에 누적해서 합침
         const newFiles = Array.from(e.target.files);
         selectedFiles = selectedFiles.concat(newFiles);
-        
+
         updateFileInput(); // 실제 input 태그에 반영
         renderFileList();  // 화면에 예쁘게 그리기
     });
@@ -60,12 +66,15 @@
         });
     }
 
+    // ✕ 버튼을 누르면 목록에서 해당 파일만 제거
     window.removeFile = function(index) {
         selectedFiles.splice(index, 1); // 배열에서 빼기
         updateFileInput(); // 실제 input 태그에 반영
         renderFileList();  // 화면 다시 그리기
     };
 
+    // selectedFiles 배열 내용을 실제 <input type="file"> 태그가 인식하는 형태로 다시 채워 넣음
+    // (브라우저 보안상 files 목록에 직접 대입할 수 없어서 DataTransfer를 이용해 변환)
     function updateFileInput() {
         const dataTransfer = new DataTransfer();
         selectedFiles.forEach(file => {

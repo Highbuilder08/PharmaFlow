@@ -1,7 +1,10 @@
+{# base.html의 틀(공통 헤더/메뉴 등)을 그대로 가져와서 사용 #}
 {% extends 'base.html' %}
+{# content 블록 안에 이 페이지만의 내용을 채워 넣음 #}
 {% block content %}
 
-<!-- 1. [수정] 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
+<!-- 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
+<!-- {% if user.is_authenticated %} : 로그인한 사람에게만 '내가 쓴 글' 버튼을 보여줌 -->
 <div class="d-flex align-items-center mb-4 gap-3">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
     {% if user.is_authenticated %}
@@ -9,17 +12,18 @@
     {% endif %}
 </div>
 
-<!-- 2. 태그 버튼(좌)과 글쓰기 버튼(우) -->
+<!-- 태그 버튼(좌)과 글쓰기 버튼(우) -->
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
     
     <!-- 왼쪽: 태그 필터 영역 -->
     <div class="d-flex align-items-center flex-wrap gap-2">
-        <!-- 모바일용 토글 버튼 -->
+        <!-- 모바일용 토글 버튼: 화면이 좁을 때(d-md-none)만 보이고, 누르면 아래 태그 버튼들이 접혔다 펼쳐짐 -->
         <button class="btn btn-sm btn-outline-secondary d-md-none fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#tagCollapse" aria-expanded="false" aria-controls="tagCollapse">
             <span class="tag-toggle-icon">▶</span> 태그 선택
         </button>
 
-        <!-- 태그 버튼들 -->
+        <!-- 태그 버튼들: 주소 뒤에 ?tag=값 을 붙여서 그 태그의 글만 보이게 필터링함 -->
+        <!-- 현재 선택된 태그(selected_tag)와 같으면 버튼 색을 진하게(선택됨 표시) -->
         <div class="collapse d-md-block" id="tagCollapse">
             <div class="d-flex gap-2 flex-wrap">
                 <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
@@ -55,8 +59,9 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    
-                    <!-- 1. 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+
+                    <!-- 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+                    <!-- {% for %}는 views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 <tr> 한 줄씩 반복해서 그려줌 -->
                     {% for post in notices %}
                     <tr class="table-warning fw-bold">
                         <td class="text-muted">📢</td>
@@ -75,7 +80,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 2. 일반 게시글 목록 루프 -->
+                    <!-- 일반 게시글 목록 루프 (페이지에 나눠진 글 목록) -->
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>
@@ -96,7 +101,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 3. 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
+                    <!-- 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
                     {% if not notices and not consultations %}
                     <tr>
                         <td colspan="5" class="text-center text-muted py-5">등록된 게시글이 없습니다.</td>
@@ -114,25 +119,26 @@
 </div>
 
 <!-- 5개 단위 블록 페이징 네비게이션 바 -->
+<!-- views.py에서 계산해서 넘겨준 custom_page_range, has_prev_block 등의 값을 이용해 페이지 번호 버튼을 그림 -->
 {% if consultations.has_other_pages %}
 <nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
     <ul class="pagination shadow-sm">
         
-        <!-- 1. 맨 처음 페이지 (<<) -->
+        <!-- 맨 처음 페이지 (<<) -->
         <li class="page-item {% if consultations.number == 1 %}disabled{% endif %}">
             <a class="page-link text-success" href="?page=1{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="First">
                 <span aria-hidden="true">&laquo;</span> <!-- 겹화살표 -->
             </a>
         </li>
 
-        <!-- 2. 이전 5개 블록 (<) -->
+        <!-- 이전 5개 블록 (<) -->
         <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
             <a class="page-link text-success" href="{% if has_prev_block %}?page={{ prev_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Previous Block">
                 <span aria-hidden="true">&lsaquo;</span> <!-- 홑화살표 -->
             </a>
         </li>
 
-        <!-- 3. 페이지 번호 (5개 단위로 출력) -->
+        <!-- 페이지 번호 (5개 단위로 출력) -->
         {% for num in custom_page_range %}
             {% if consultations.number == num %}
                 <li class="page-item active" aria-current="page">
@@ -145,14 +151,14 @@
             {% endif %}
         {% endfor %}
 
-        <!-- 4. 다음 5개 블록 (>) -->
+        <!-- 다음 5개 블록 (>) -->
         <li class="page-item {% if not has_next_block %}disabled{% endif %}">
             <a class="page-link text-success" href="{% if has_next_block %}?page={{ next_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Next Block">
                 <span aria-hidden="true">&rsaquo;</span> <!-- 홑화살표 -->
             </a>
         </li>
 
-        <!-- 5. 맨 마지막 페이지 (>>) -->
+        <!-- 맨 마지막 페이지 (>>) -->
         <li class="page-item {% if consultations.number == last_page %}disabled{% endif %}">
             <a class="page-link text-success" href="?page={{ last_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Last">
                 <span aria-hidden="true">&raquo;</span> <!-- 겹화살표 -->
@@ -186,14 +192,17 @@
 </div>
 
 <style>
+    /* 게시글 제목 글자에 마우스를 올리면 색이 부드럽게 파란색으로 바뀌게 함 */
     .custom-link { transition: color 0.2s ease-in-out; }
     .custom-link:hover { color: #0d6efd !important; }
 
+    /* 모바일 태그 토글 버튼의 화살표(▶) 아이콘 */
     .tag-toggle-icon {
         display: inline-block;
         transition: transform 0.3s ease;
     }
 
+    /* 태그 목록이 펼쳐졌을 때(aria-expanded="true") 화살표를 90도 돌려서 ▼처럼 보이게 함 */
     button[aria-expanded="true"] .tag-toggle-icon {
         transform: rotate(90deg);
     }
@@ -202,18 +211,20 @@
 {% endblock %}
 
 <script>
+    // 이 화면에는 검색창(드롭다운 + 입력칸)이 위/아래 두 군데 있을 수 있어서,
+    // 한쪽에서 검색 조건을 바꾸면 다른 쪽도 자동으로 똑같이 맞춰주는 스크립트
     document.addEventListener('DOMContentLoaded', function() {
         const searchTypes = document.querySelectorAll('select[name="search_type"]');
         const searchInputs = document.querySelectorAll('input[name="q"]');
 
-        // 1. 검색 기준(드롭다운)을 바꿀 때 위아래 똑같이 맞추기
+        // 검색 기준(드롭다운)을 바꿀 때 위아래 똑같이 맞추기
         searchTypes.forEach(select => {
             select.addEventListener('change', function() {
                 searchTypes.forEach(s => s.value = this.value);
             });
         });
 
-        // 2. 검색어(텍스트)를 입력할 때 위아래 똑같이 맞추기
+        // 검색어(텍스트)를 입력할 때 위아래 똑같이 맞추기
         searchInputs.forEach(input => {
             input.addEventListener('input', function() {
                 searchInputs.forEach(i => i.value = this.value);

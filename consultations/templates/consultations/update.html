@@ -12,7 +12,8 @@
                     {% csrf_token %}
                     {{ form.as_p }}
 
-                    <!-- 1. 기존 첨부파일 목록 (삭제 가능) -->
+                    <!-- 기존 첨부파일 목록 (삭제 가능) -->
+                    <!-- 첨부파일이 하나라도 있을 때만 이 영역을 보여줌 -->
                     {% if consultation.attachments.all %}
                     <div class="mt-4 mb-3 p-3 bg-white rounded border border-warning border-opacity-50">
                         <label class="fw-bold mb-2 text-warning-emphasis">💾 기존 첨부파일</label>
@@ -23,6 +24,7 @@
                                         📄 {{ attachment.filename }}
                                     </span>
                                     <!-- 바깥에 있는 삭제 폼과 연결 -->
+                                    <!-- form="delete-attachment-{{ attachment.id }}" : 이 버튼은 아래쪽에 따로 있는 숨겨진 폼을 제출시킴 (수정 폼 안에 폼을 또 넣을 수 없어서 이렇게 분리함) -->
                                     <button type="submit" form="delete-attachment-{{ attachment.id }}" onclick="return confirm('이 파일을 삭제하시겠습니까?');" class="btn btn-danger btn-sm py-0 px-2">삭제</button>
                                 </li>
                             {% endfor %}
@@ -30,7 +32,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- 2. 새 첨부파일 추가 영역 -->
+                    <!-- 새 첨부파일 추가 영역 -->
                     <div class="mb-4 p-3 bg-light rounded border">
                         <label class="fw-bold mb-2">📎 새 첨부파일 추가</label>
                         <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
@@ -48,6 +50,7 @@
 </div>
 
 <!-- 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
+<!-- 화면에는 안 보이지만(display:none), 위쪽 "삭제" 버튼이 이 폼을 대신 제출시켜서 첨부파일 하나만 삭제함 -->
 {% for attachment in consultation.attachments.all %}
     <form id="delete-attachment-{{ attachment.id }}" action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:none;">
         {% csrf_token %}
@@ -55,6 +58,7 @@
 {% endfor %}
 
 <!-- 새 파일 추가용 자바스크립트 -->
+<!-- create.html과 같은 방식: 여러 번 골라도 파일이 누적되고, ✕로 하나씩 뺄 수 있게 함 -->
 <script>
     const fileInput = document.getElementById('file-input');
     const fileListContainer = document.getElementById('file-list');
