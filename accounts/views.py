@@ -14,6 +14,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
+# AuditLog: "누가 언제 무엇을 했는지" 기록을 남기는 표 (consultations 앱에 정의됨)
+from consultations.models import AuditLog
+
 from .decorators import (
     owner_required,
     staff_manager_required,
@@ -516,6 +519,14 @@ def pharmacy_admin_update(request, pk):
         if form.is_valid():
             form.save()
 
+            # 누가 어떤 약국 정보를 수정했는지 기록
+            AuditLog.objects.create(
+                user=request.user,
+                action="약국 정보 수정",
+                target=f"Pharmacy #{pharmacy.pk}",
+                detail=pharmacy.pharmacy_name,
+            )
+
             messages.success(
                 request,
                 f"{pharmacy.pharmacy_name} 정보를 수정했습니다.",
@@ -550,8 +561,20 @@ def pharmacy_delete(request, pk):
     )
 
     if request.method == "POST":
+        # 삭제 후에는 pharmacy 객체를 못 쓰므로 기록에 쓸 이름/번호를 미리 저장해둠
+        pharmacy_pk = pharmacy.pk
+        pharmacy_name = pharmacy.pharmacy_name
+
         try:
             pharmacy.delete()
+
+            # 누가 어떤 약국을 삭제했는지 기록
+            AuditLog.objects.create(
+                user=request.user,
+                action="약국 삭제",
+                target=f"Pharmacy #{pharmacy_pk}",
+                detail=pharmacy_name,
+            )
 
             messages.success(
                 request,
@@ -758,6 +781,14 @@ def user_delete(request, pk):
     staff.is_approved = False
     staff.save(update_fields=["is_active", "is_approved"])
 
+    # 누가 어떤 사용자 계정을 비활성화했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 계정 비활성화",
+        target=f"User #{staff.pk}",
+        detail=staff_name,
+    )
+
     messages.success(
         request,
         f"{staff_name} 사용자 계정을 비활성화했습니다.",
@@ -784,6 +815,14 @@ def user_approve(request, pk):
     target_user.is_approved = True
     target_user.save(update_fields=["is_approved"])
 
+    # 누가 어떤 사용자를 승인했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 승인",
+        target=f"User #{target_user.pk}",
+        detail=target_user.name,
+    )
+
     messages.success(
         request,
         f"{target_user.name} 사용자를 승인했습니다.",
@@ -809,6 +848,14 @@ def user_revoke(request, pk):
 
     target_user.is_approved = False
     target_user.save(update_fields=["is_approved"])
+
+    # 누가 어떤 사용자의 승인을 취소했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 승인 취소",
+        target=f"User #{target_user.pk}",
+        detail=target_user.name,
+    )
 
     messages.success(
         request,
@@ -936,6 +983,14 @@ def ownership_request_approve(request, pk):
         messages.error(request, "중복된 사업자등록번호로 승인할 수 없습니다.")
         return redirect("accounts:ownership_request_list")
 
+    # 누가 어떤 사용자의 점주 권한 요청을 승인했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="점주 권한 승인",
+        target=f"User #{user.pk}",
+        detail=f"{user.name} → {pharmacy.pharmacy_name}",
+    )
+
     messages.success(request, f"{user.name} 사용자의 점주 권한을 승인했습니다.")
     return redirect("accounts:ownership_request_list")
 
@@ -959,6 +1014,14 @@ def ownership_request_reject(request, pk):
         user = ownership_request.user
         user.is_approved = False
         user.save(update_fields=["is_approved"])
+
+    # 누가 어떤 사용자의 점주 권한 요청을 거절했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="점주 권한 거절",
+        target=f"User #{user.pk}",
+        detail=user.name,
+    )
 
     messages.success(request, f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.")
     return redirect("accounts:ownership_request_list")
