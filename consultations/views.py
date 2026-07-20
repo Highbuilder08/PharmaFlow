@@ -387,5 +387,32 @@ def audit_log_list(request):
         messages.warning(request, "관리자만 접근 가능한 페이지입니다.")
         return redirect('core:index') # 메인 화면으로 튕겨냄
 
-    logs = AuditLog.objects.all()
-    return render(request, 'consultations/audit_logs.html', {'logs': logs})
+    logs = AuditLog.objects.select_related('user').all()
+
+    # 주소 뒤에 붙는 ?action=...&user=... 값을 꺼내서 필터링에 사용
+    selected_action = request.GET.get('action', '')
+    username_query = request.GET.get('user', '').strip()
+
+    if selected_action:
+        logs = logs.filter(action=selected_action)
+    if username_query:
+        logs = logs.filter(user__username__icontains=username_query)
+
+    # 지금까지 실제로 기록된 작업 종류들을 뽑아서 필터 드롭다운 선택지로 사용
+    action_choices = (
+        AuditLog.objects.order_by('action')
+        .values_list('action', flat=True)
+        .distinct()
+    )
+
+    # 페이지당 20건씩만 보여줌
+    paginator = Paginator(logs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'consultations/audit_logs.html', {
+        'logs': page_obj,
+        'action_choices': action_choices,
+        'selected_action': selected_action,
+        'username_query': username_query,
+    })
