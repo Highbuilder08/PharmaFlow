@@ -1,9 +1,11 @@
+{# 발주 내역과 처리 상태를 조회하고 입고·취소 등의 작업을 수행하는 화면입니다. #}
 {% extends "inventory/base.html" %}
 
 {% block title %}
 발주 관리 | PharmaFlow
 {% endblock %}
 
+{# 발주 목록과 상태별 처리 버튼을 공통 레이아웃의 content 영역에 출력합니다. #}
 {% block content %}
 
 {# 상단 제목 및 버튼 영역 #}
@@ -52,6 +54,7 @@
 
                 <tbody>
 
+                    {# 현재 페이지에 포함된 발주 내역을 한 행씩 출력합니다. #}
                     {% for purchase_order in purchase_orders %}
 
                         <tr>
@@ -73,6 +76,7 @@
 
                             {# 발주 상태 #}
                             <td>
+                                {# 발주 상태 값에 따라 대기·완료·취소 배지를 구분합니다. #}
                                 {% if purchase_order.status == "WAIT" %}
                                     <span class="badge bg-warning text-dark">
                                         {{ purchase_order.get_status_display }}
@@ -127,6 +131,7 @@
                                     {% if purchase_order.status == "WAIT" %}
 
                                         {# 발주 완료 처리 버튼 #}
+                                        {# 상태 변경 버튼은 데이터 변경 작업이므로 각각 POST 폼으로 전송합니다. #}
                                         <form
                                             method="post"
                                             action="{% url 'inventory:purchase_order_mark_ordered' purchase_order.pk %}"
@@ -214,6 +219,7 @@
 
                         </tr>
 
+                    {# 등록된 발주 내역이 없을 때 안내 행을 표시합니다. #}
                     {% empty %}
 
                         <tr>
@@ -236,6 +242,7 @@
     </div>
 </div>
 
+{# 전체 페이지가 2개 이상일 때만 페이지네이션을 표시합니다. #}
 {% if page_obj.paginator.num_pages > 1 %}
     <nav
         class="mt-4"
@@ -266,6 +273,7 @@
             </li>
 
             {# 페이지 번호 #}
+            {# 전체 페이지 번호를 반복하며 현재 페이지를 활성 상태로 표시합니다. #}
             {% for page_number in page_obj.paginator.page_range %}
                 <li
                     class="page-item
