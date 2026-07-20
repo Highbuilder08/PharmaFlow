@@ -63,9 +63,11 @@
                         {# 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) #}
                         <td>
                             {# 조건에 따라 필요한 화면 요소만 표시한다. #}
-                            {% if log.action == '삭제' %}
+                            {# action 값이 "게시글 삭제"처럼 항상 앞에 수식어가 붙어있어서 #}
+                            {# 정확히 같은지(==)가 아니라 "삭제"라는 글자가 포함되어 있는지(in)로 확인한다. #}
+                            {% if '삭제' in log.action %}
                                 <span class="badge bg-danger shadow-sm px-2 py-1">{{ log.action }}</span>
-                            {% elif log.action == '수정' %}
+                            {% elif '수정' in log.action %}
                                 <span class="badge bg-warning text-dark shadow-sm px-2 py-1">{{ log.action }}</span>
                             {% else %}
                                 <span class="badge bg-primary shadow-sm px-2 py-1">{{ log.action }}</span>
