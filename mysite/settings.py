@@ -131,37 +131,54 @@ WSGI_APPLICATION = "mysite.wsgi.application"
 # 운영 서버:
 # EnvironmentFile에 설정된 DB_* 값을 사용
 #
-# 개발 환경:
-# 환경변수 적용중
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get(
-            "DB_NAME",
-            "pharmaflow",
-        ),
-        "USER": os.environ.get(
-            "DB_USER",
-            "pharmaflow",
-        ),
-        "PASSWORD": os.environ.get(
-            "DB_PASSWORD",
-            "",
-        ),
-        "HOST": os.environ.get(
-            "DB_HOST",
-            "192.168.32.77",
-        ),
-        "PORT": os.environ.get(
-            "DB_PORT",
-            "3306",
-        ),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+# GitHub Actions:
+# DB_ENGINE=django.db.backends.sqlite3 환경변수를 설정하여
+# 외부 MariaDB 서버 없이 임시 SQLite 데이터베이스로 검사합니다.
+DB_ENGINE = os.environ.get(
+    "DB_ENGINE",
+    "django.db.backends.mysql",
+)
+
+if DB_ENGINE == "django.db.backends.sqlite3":
+    # CI 환경에서 사용하는 임시 SQLite 데이터베이스
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "ci.sqlite3",
+        }
     }
-}
+else:
+    # 실제 운영 서버에서 사용하는 MariaDB 데이터베이스
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ.get(
+                "DB_NAME",
+                "pharmaflow",
+            ),
+            "USER": os.environ.get(
+                "DB_USER",
+                "pharmaflow",
+            ),
+            "PASSWORD": os.environ.get(
+                "DB_PASSWORD",
+                "",
+            ),
+            "HOST": os.environ.get(
+                "DB_HOST",
+                "192.168.32.77",
+            ),
+            "PORT": os.environ.get(
+                "DB_PORT",
+                "3306",
+            ),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
+
 
 
 # ==================================================
