@@ -62,7 +62,10 @@ def signup(request):
                 "pharmacy_address": selected.get("address", ""),
                 "pharmacy_phone": selected.get("phone", ""),
             }
-            if any(data.get(key, "").strip() != value.strip() for key, value in expected_values.items()):
+            if any(
+                data.get(key, "").strip() != value.strip()
+                for key, value in expected_values.items()
+            ):
                 form.add_error(
                     None,
                     "선택한 약국 정보가 변경되었습니다. 다시 검색해 선택해 주세요.",
@@ -148,7 +151,10 @@ def pharmacy_search(request):
     last_search = request.session.get("pharmacy_search_last_at", 0)
     if now_timestamp - last_search < 1.0:
         return JsonResponse(
-            {"results": [], "error": "검색 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요."},
+            {
+                "results": [],
+                "error": "검색 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.",
+            },
             status=429,
         )
     request.session["pharmacy_search_last_at"] = now_timestamp
@@ -174,7 +180,7 @@ def pharmacy_search(request):
     try:
         response = requests.get(
             (
-                "http://apis.data.go.kr/"
+                "https://apis.data.go.kr/"
                 "B551182/pharmacyInfoService/"
                 "getParmacyBasisList"
             ),
@@ -198,11 +204,10 @@ def pharmacy_search(request):
             status=504,
         )
 
-    except requests.RequestException:
         return JsonResponse(
             {
                 "results": [],
-                "error": "HIRA 약국 검색 서비스에 연결할 수 없습니다.",
+                "error": str(e),
             },
             status=502,
         )
@@ -896,9 +901,9 @@ def ownership_request_approve(request, pk):
     try:
         with transaction.atomic():
             ownership_request = get_object_or_404(
-                PharmacyOwnershipRequest.objects
-                .select_for_update()
-                .select_related("user", "pharmacy"),
+                PharmacyOwnershipRequest.objects.select_for_update().select_related(
+                    "user", "pharmacy"
+                ),
                 pk=pk,
                 status=PharmacyOwnershipRequest.Status.PENDING,
             )
@@ -946,9 +951,9 @@ def ownership_request_approve(request, pk):
 def ownership_request_reject(request, pk):
     with transaction.atomic():
         ownership_request = get_object_or_404(
-            PharmacyOwnershipRequest.objects
-            .select_for_update()
-            .select_related("user", "pharmacy"),
+            PharmacyOwnershipRequest.objects.select_for_update().select_related(
+                "user", "pharmacy"
+            ),
             pk=pk,
             status=PharmacyOwnershipRequest.Status.PENDING,
         )
