@@ -1,9 +1,12 @@
+{# 의약품 삭제 전 대상 정보를 보여 주고 최종 확인을 받는 화면입니다. #}
 {% extends "inventory/base.html" %}
 
+{# 브라우저 탭에 표시할 페이지 제목입니다. #}
 {% block title %}
 의약품 삭제 | PharmaFlow
 {% endblock %}
 
+{# 공통 레이아웃의 content 영역에 삭제 확인 화면을 출력합니다. #}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -28,6 +31,7 @@
                     <dd class="col-sm-8">{{ medicine.stock }}개</dd>
                 </dl>
 
+                {# 삭제 요청은 데이터 변경 작업이므로 POST 방식과 CSRF 토큰을 사용합니다. #}
                 <form method="post">
                     {% csrf_token %}
 

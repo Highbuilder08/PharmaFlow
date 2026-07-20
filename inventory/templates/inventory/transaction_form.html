@@ -1,9 +1,11 @@
+{# 의약품 입고 또는 출고 내역을 등록하는 화면입니다. #}
 {% extends "inventory/base.html" %}
 
 {% block title %}
 {{ page_title }} | PharmaFlow
 {% endblock %}
 
+{# 입출고 등록 폼을 공통 레이아웃의 content 영역에 출력합니다. #}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -13,9 +15,11 @@
                     {{ page_title }}
                 </h1>
 
+                {# 입출고 등록은 재고를 변경하므로 POST 방식과 CSRF 토큰을 사용합니다. #}
                 <form method="post">
                     {% csrf_token %}
 
+                    {# 출고 수량 초과 등 폼 전체 검증 오류를 표시합니다. #}
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
                             {{ form.non_field_errors }}
@@ -119,9 +123,11 @@
     </div>
 </div>
 
+{# 의약품별 현재 재고를 JavaScript에서 사용할 수 있도록 안전하게 전달합니다. #}
 {{ medicine_stocks|json_script:"medicine-stock-data" }}
 
 <script>
+    // 의약품 선택값이 바뀔 때 해당 의약품의 현재 재고를 화면에 표시합니다.
     const medicineSelect = document.getElementById(
         "{{ form.medicine.id_for_label }}"
     );
