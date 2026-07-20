@@ -5,7 +5,7 @@
 
 import json
 
-from datetime import datetime
+from datetime import datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -45,6 +45,15 @@ def index(request):
     # 관리자 전용 대시보드 정보
     if request.user.is_authenticated and request.user.is_superuser:
         today = timezone.localdate()
+        current_timezone = timezone.get_current_timezone()
+        today_start = timezone.make_aware(
+            datetime.combine(today, time.min),
+            current_timezone,
+        )
+        tomorrow_start = timezone.make_aware(
+            datetime.combine(today + timedelta(days=1), time.min),
+            current_timezone,
+        )
 
         context.update(
             {
@@ -55,8 +64,13 @@ def index(request):
                     ).count()
                 ),
                 "user_total": User.objects.count(),
+                # 현재 Django 시간대를 기준으로 오늘 00:00 이상,
+                # 내일 00:00 미만에 가입한 회원을 집계한다.
+                # 날짜 변환을 DB에 맡기는 date_joined__date 방식보다
+                # DB 시간대 설정 차이의 영향을 덜 받는다.
                 "today_joined_count": User.objects.filter(
-                    date_joined__date=today,
+                    date_joined__gte=today_start,
+                    date_joined__lt=tomorrow_start,
                 ).count(),
                 "recent_ownership_requests": (
                     PharmacyOwnershipRequest.objects.filter(
