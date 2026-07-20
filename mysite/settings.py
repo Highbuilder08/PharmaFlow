@@ -416,3 +416,65 @@ if not DEBUG:
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ==================================================
+# 로그
+# ==================================================
+
+# 운영 서버:
+# EnvironmentFile에 LOG_DIR 설정 (예: /var/log/pharmaflow)
+#
+# 개발 환경:
+# 환경변수가 없으면 프로젝트 폴더 안의 logs/ 사용
+LOG_DIR = Path(os.environ.get("LOG_DIR", BASE_DIR / "logs"))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# 실제로 로그 파일을 잘라내고(rotate) 압축·삭제하는 작업은
+# 이 settings.py가 아니라 서버의 logrotate가 담당합니다.
+# (gunicorn은 여러 워커 프로세스가 동시에 같은 로그 파일에 쓰기 때문에,
+#  각 프로세스가 각자 파일 크기를 보고 회전을 시도하면 로그가 깨질 수 있습니다.
+#  그래서 Django 쪽은 파일에 쓰기만 하고, WatchedFileHandler로
+#  logrotate가 파일 이름을 바꿔치기했을 때 자동으로 새 파일을 다시 여는 역할만 합니다.)
+LOGGING = {
+    "version": 1,  # 이 로깅 설정 형식의 버전 번호 (Django에서 항상 1로 고정)
+    "disable_existing_loggers": False,  # Django가 원래 갖고 있던 다른 로그 설정을 끄지 않고 그대로 둠
+
+    # formatters: 로그 한 줄을 어떤 모양으로 찍을지 정하는 곳
+    "formatters": {
+        "verbose": {
+            # 예: [2026-07-20 12:00:00] INFO django.request: 에러 내용
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+
+    # handlers: 로그를 "어디에" 남길지 정하는 곳 (화면 / 파일 등)
+    "handlers": {
+        "console": {  # 터미널 화면에 바로 출력
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {  # logs/django.log 파일에 기록
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": LOG_DIR / "django.log",
+            "formatter": "verbose",
+        },
+    },
+
+    # root: 별도로 지정하지 않은 나머지 모든 로그가 기본으로 사용하는 설정
+    "root": {
+        "handlers": ["console", "file"],  # 화면과 파일에 동시에 기록
+        "level": os.environ.get("LOG_LEVEL", "INFO"),  # 이 등급 이상만 기록 (기본: INFO)
+    },
+
+    # loggers: 특정 이름의 로그만 따로 다르게 다루고 싶을 때 사용
+    "loggers": {
+        # 페이지 처리 중 발생한 500 에러 등을 별도로 크게 남김
+        "django.request": {
+            "handlers": ["console", "file"],
+            "level": "ERROR",  # ERROR 이상(진짜 문제인 것)만 기록
+            "propagate": False,  # root로 또 전달해서 중복 기록되지 않게 함
+        },
+    },
+}

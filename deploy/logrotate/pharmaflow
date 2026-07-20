@@ -1,0 +1,60 @@
+# 이 파일은 실행되는 코드가 아니라, 운영 서버(Server1)의
+# /etc/logrotate.d/pharmaflow 위치에 그대로 복사해서 쓰는 설정 파일입니다.
+#
+# 설치:
+#   sudo cp deploy/logrotate/pharmaflow /etc/logrotate.d/pharmaflow
+#   sudo logrotate -d /etc/logrotate.d/pharmaflow   # 실제 실행 없이 시뮬레이션(테스트)
+#   sudo logrotate -f /etc/logrotate.d/pharmaflow   # 강제로 한 번 회전시켜서 확인
+#
+# 여기서는 "파일로 직접 저장되는 로그"만 다룹니다.
+# gunicorn/systemd 로그는 파일이 아니라 journald(저널)에 쌓이므로
+# logrotate가 아니라 journald 자체 설정으로 관리합니다. (아래 참고 참고)
+
+# Django 애플리케이션 로그 (settings.py에서 LOGGING을 설정한 경우에만 존재)
+# WatchedFileHandler를 쓰기 때문에 logrotate가 파일 이름을 바꾸면(rename)
+# Django가 알아서 새 파일을 다시 여는 방식이라, 별도의 postrotate 명령이 필요 없습니다.
+/home/tester/djangowork/PharmaFlow/logs/django.log {
+    daily              # 매일 한 번씩 회전(rotate)함
+    rotate 14          # 지난 로그를 14개(14일치)까지만 보관하고, 그보다 오래된 건 삭제
+    compress           # 회전된 옛날 로그는 압축(.gz)해서 용량을 아낌
+    delaycompress      # 압축은 한 번 회전 미뤘다가 함 (바로 전 로그는 압축 안 하고 그대로 둠)
+    missingok          # 로그 파일이 없어도 에러 내지 않고 그냥 넘어감
+    notifempty         # 로그 파일이 비어있으면 회전하지 않음 (빈 파일 낭비 방지)
+    create 0640 tester tester  # 회전 후 새 로그 파일을 이 권한/소유자로 새로 만듦
+}
+
+# 참고 1: nginx 로그(/var/log/nginx/*.log)는 nginx 패키지를 설치할 때
+# /etc/logrotate.d/nginx 가 기본으로 같이 설치되어 이미 회전이 적용되고 있습니다.
+# 별도 경로에 로그를 저장하도록 nginx 설정을 바꾼 경우에만 아래처럼 추가하면 됩니다.
+#
+# /var/log/nginx/pharmaflow.access.log
+# /var/log/nginx/pharmaflow.error.log {
+#     daily
+#     rotate 14
+#     compress
+#     delaycompress
+#     missingok
+#     notifempty
+#     create 0640 www-data adm
+#     sharedscripts
+#     postrotate
+#         systemctl reload nginx
+#     endscript
+# }
+
+# 참고 2: gunicorn 로그는 이제 파일이 아니라 systemd 서비스(pharmaflow)의
+# 표준출력/표준에러로 나가고, journald가 자동으로 모아줍니다.
+#   확인:  journalctl -u pharmaflow
+# journald는 로그가 무한정 쌓이지 않도록 자체적으로 오래된 것을 지워주는데
+# (vacuuming), 보관 용량/기간을 직접 정하고 싶으면 아래처럼 설정합니다.
+#
+#   sudo nano /etc/systemd/journald.conf
+#   [Journal]
+#   SystemMaxUse=500M
+#   MaxRetentionSec=14day
+#
+#   sudo systemctl restart systemd-journald
+#
+# 지금 당장 오래된 로그를 정리하고 싶다면:
+#   sudo journalctl --vacuum-size=500M
+#   sudo journalctl --vacuum-time=14d
