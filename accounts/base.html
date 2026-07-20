@@ -1,0 +1,263 @@
+{# ================================================== #}
+{# 파일 역할: 모든 페이지가 공통으로 사용하는 HTML 기본 구조, 내비게이션, 메시지와 푸터 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="referrer"
+        content="strict-origin-when-cross-origin"
+    >
+
+    <title>
+        {# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
+        {% block title %}PharmaFlow{% endblock %}
+    </title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="{% static 'images/favicon.png' %}"
+    >
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
+</head>
+
+<body>
+
+{# 사이트 로고와 로그인 상태별 메뉴를 제공하는 공통 내비게이션이다. #}
+<nav class="navbar navbar-expand-xl navbar-dark bg-success">
+    <div class="container navbar-shell">
+
+        <a class="navbar-brand" href="{% url 'core:index' %}">
+            <img src="{% static 'images/logo.png' %}" alt="PharmaFlow" class="navbar-logo">
+        </a>
+
+        {# 조건에 따라 필요한 화면 요소만 표시한다. #}
+        {% if user.is_authenticated %}
+
+            <div class="collapse navbar-collapse navbar-menu-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'consultations:list' %}">자유 게시판</a>
+                    </li>
+
+                    {% if user.is_superuser %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:pharmacy_list' %}">전체 약국 관리</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:ownership_request_list' %}">점주 승인</a>
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link text-warning fw-bold"
+                                href="{% url 'consultations:audit_logs' %}"
+                            >
+                                시스템 로그
+                            </a>
+                        </li>
+                    {% else %}
+                        {% if user.pharmacy_id %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:pharmacy_detail' %}">약국 정보</a>
+                            </li>
+                        {% endif %}
+                        {% if user.is_approved %}
+                            {% if user.role == "OWNER" or user.role == "PHARMACIST" %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'accounts:user_list' %}">직원 관리</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                        {% if user.pharmacy_id %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'inventory:medicine_list' %}">재고 관리</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+
+                </ul>
+            </div>
+
+            <div class="dropdown navbar-account-dropdown">
+                <button class="navbar-account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="{{ user.name|default:user.username }} 프로필 사진" class="navbar-profile-image rounded-circle border border-light">
+                    {% else %}
+                        <span class="navbar-profile-placeholder rounded-circle bg-light text-success d-inline-flex align-items-center justify-content-center fw-bold">👤</span>
+                    {% endif %}
+                    <span class="navbar-user-name">{{ user.name|default:user.username }}님</span>
+                    <span class="navbar-account-caret" aria-hidden="true">▾</span>
+                </button>
+
+                <div class="dropdown-menu dropdown-menu-end navbar-account-menu">
+                    <div class="navbar-account-summary">
+                        {% if user.profile_image %}
+                            <img src="{{ user.profile_image.url }}" alt="{{ user.name|default:user.username }} 프로필 사진" class="navbar-account-menu-image rounded-circle border">
+                        {% else %}
+                            <span class="navbar-account-menu-placeholder rounded-circle bg-light text-success d-inline-flex align-items-center justify-content-center fw-bold border">👤</span>
+                        {% endif %}
+                        <div class="min-width-0">
+                            <div class="fw-bold text-truncate">{{ user.name|default:user.username }}님</div>
+                            <div class="small text-muted">
+                                {% if user.is_superuser %}시스템 관리자{% else %}{{ user.get_role_display }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <a class="dropdown-item navbar-account-menu-item" href="{% url 'accounts:my_page' %}">
+                        <span class="navbar-account-menu-icon" aria-hidden="true">👤</span>
+                        <span>마이페이지</span>
+                        <span class="navbar-account-menu-arrow" aria-hidden="true">›</span>
+                    </a>
+
+                    <div class="dropdown-divider"></div>
+
+                    {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
+                    <form method="post" action="{% url 'logout' %}" class="m-0">
+                        {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item navbar-account-menu-item navbar-account-logout">
+                            <span class="navbar-account-menu-icon" aria-hidden="true">↪</span>
+                            <span>로그아웃</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="메뉴 열기">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+        {% else %}
+            <div class="ms-auto">
+                <a href="{% url 'login' %}" class="btn btn-light btn-sm me-2">로그인</a>
+                <a href="{% url 'accounts:signup' %}" class="btn btn-outline-light btn-sm">회원가입</a>
+            </div>
+        {% endif %}
+
+    </div>
+</nav>
+
+{# 각 페이지의 content 블록이 삽입되는 공통 본문 컨테이너다. #}
+<main class="container mt-4">
+
+    {# views.py에서 등록한 성공·경고·오류 메시지를 사용자에게 표시한다. #}
+    {% if messages %}
+        {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
+        {% for message in messages %}
+
+            <div
+                class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
+                role="alert"
+            >
+                {{ message }}
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="알림 닫기"
+                ></button>
+            </div>
+
+        {% endfor %}
+    {% endif %}
+
+    {# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
+    {% block content %}
+    {% endblock %}
+
+</main>
+
+{# 모든 페이지 하단에 표시되는 공통 푸터다. #}
+<footer class="bg-light mt-5 py-3 border-top">
+    <div class="container text-center">
+
+        <div>
+            PharmaFlow © 2026
+        </div>
+
+        <div class="small text-muted mt-1">
+            약국 통합 관리 시스템
+        </div>
+
+    </div>
+</footer>
+
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+></script>
+
+{# 사업자등록번호 입력란에 숫자만 허용하고 하이픈을 자동으로 삽입한다. #}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const businessNumberInputs = document.querySelectorAll(
+        ".business-number-input"
+    );
+
+    function formatBusinessNumber(value) {
+        const digits = value.replace(/\D/g, "").slice(0, 10);
+
+        if (digits.length > 5) {
+            return (
+                digits.slice(0, 3) +
+                "-" +
+                digits.slice(3, 5) +
+                "-" +
+                digits.slice(5)
+            );
+        }
+
+        if (digits.length > 3) {
+            return digits.slice(0, 3) + "-" + digits.slice(3);
+        }
+
+        return digits;
+    }
+
+    businessNumberInputs.forEach(function (input) {
+        input.classList.add("business-number-input");
+        input.setAttribute("placeholder", "000-00-00000");
+        input.setAttribute("inputmode", "numeric");
+        input.setAttribute("maxlength", "12");
+        input.setAttribute("autocomplete", "off");
+
+        if (input.value) {
+            input.value = formatBusinessNumber(input.value);
+        }
+
+        input.addEventListener("input", function () {
+            this.value = formatBusinessNumber(this.value);
+        });
+    });
+});
+</script>
+
+
+
+</body>
+</html>

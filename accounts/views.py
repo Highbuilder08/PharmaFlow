@@ -107,6 +107,7 @@ def signup(request):
                         pharmacy=pharmacy,
                         defaults={
                             "business_number": data["business_number"],
+                            "business_name": data["business_name"],
                             "status": (PharmacyOwnershipRequest.Status.PENDING),
                         },
                     )
@@ -981,6 +982,7 @@ def ownership_request_approve(request, pk):
             user = ownership_request.user
             pharmacy = ownership_request.pharmacy
             business_number = ownership_request.business_number.strip()
+            business_name = ownership_request.business_name.strip()
 
             duplicate_pharmacy = (
                 Pharmacy.objects.select_for_update()
@@ -1005,9 +1007,19 @@ def ownership_request_approve(request, pk):
             user.save(update_fields=["pharmacy", "role", "is_approved"])
 
             pharmacy.business_number = business_number
+            pharmacy.business_name = business_name
+
             if not pharmacy.owner_name:
                 pharmacy.owner_name = user.name
-            pharmacy.save(update_fields=["business_number", "owner_name", "updated_at"])
+
+            pharmacy.save(
+                update_fields=[
+                    "business_number",
+                    "business_name",
+                    "owner_name",
+                    "updated_at",
+                ]
+            )
     except IntegrityError:
         messages.error(request, "중복된 사업자등록번호로 승인할 수 없습니다.")
         return redirect("accounts:ownership_request_list")
