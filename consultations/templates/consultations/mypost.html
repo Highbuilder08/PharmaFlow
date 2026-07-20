@@ -12,7 +12,7 @@
     <a href="{% url 'consultations:list' %}" class="btn btn-sm btn-secondary shadow-sm fw-bold">게시판 목록으로</a>
 </div>
 
-<!-- 표 카드 시작 -->
+{# 표 카드 시작 #}
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -27,7 +27,7 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    <!-- views.py의 my_post_list 함수가 넘겨준, 로그인한 사용자가 쓴 글만 하나씩 꺼내서 보여줌 -->
+                    {# views.py의 my_post_list 함수가 넘겨준, 로그인한 사용자가 쓴 글만 하나씩 꺼내서 보여줌 #}
                     {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     {% for post in consultations %}
                     <tr>
@@ -59,7 +59,7 @@
     </div>
 </div>
 
-<!-- 페이징 처리 -->
+{# 페이징 처리 #}
 {% if consultations.has_other_pages %}
 <nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
     <ul class="pagination shadow-sm">

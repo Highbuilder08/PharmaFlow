@@ -141,14 +141,14 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        {% if form.instance.pk %} <!-- 수정할때 -->
+                        {% if form.instance.pk %} {# 수정할때 #}
                             <a
                                 href="{% url 'inventory:medicine_detail' form.instance.pk %}"
                                 class="btn btn-outline-secondary"
                             >
                                 취소
                             </a>
-                        {% else %} <!-- 등록할때 -->
+                        {% else %} {# 등록할때 #}
                             <a
                                 href="{% url 'inventory:medicine_list' %}"
                                 class="btn btn-outline-secondary"

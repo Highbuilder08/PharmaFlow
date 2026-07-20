@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<!-- 상단 제목 및 버튼 영역 -->
+{# 상단 제목 및 버튼 영역 #}
 <div class="d-flex justify-content-between align-items-center mb-4 page-header-responsive">
     <div>
         <h1 class="h3 mb-1">
@@ -25,7 +25,7 @@
     </div>
 </div>
 
-<!-- 발주 목록 카드 -->
+{# 발주 목록 카드 #}
 <div class="card shadow-sm">
     <div class="card-body">
 
@@ -43,7 +43,7 @@
                         <th>발주일</th>
                         <th>입고 완료일</th>
 
-                        <!-- 상태 변경 버튼을 표시할 관리 열 -->
+                        {# 상태 변경 버튼을 표시할 관리 열 #}
                         <th class="text-center">
                             관리
                         </th>
@@ -56,22 +56,22 @@
 
                         <tr>
 
-                            <!-- 의약품명 -->
+                            {# 의약품명 #}
                             <td>
                                 {{ purchase_order.medicine.name }}
                             </td>
 
-                            <!-- 현재 재고 -->
+                            {# 현재 재고 #}
                             <td>
                                 {{ purchase_order.medicine.stock }}개
                             </td>
 
-                            <!-- 발주 수량 -->
+                            {# 발주 수량 #}
                             <td>
                                 {{ purchase_order.quantity }}개
                             </td>
 
-                            <!-- 발주 상태 -->
+                            {# 발주 상태 #}
                             <td>
                                 {% if purchase_order.status == "WAIT" %}
                                     <span class="badge bg-warning text-dark">
@@ -95,7 +95,7 @@
                                 {% endif %}
                             </td>
 
-                            <!-- 발주자 -->
+                            {# 발주자 #}
                             <td>
                                 {% if purchase_order.ordered_by %}
                                     {{ purchase_order.ordered_by.name|default:purchase_order.ordered_by.username }}
@@ -104,12 +104,12 @@
                                 {% endif %}
                             </td>
 
-                            <!-- 발주일 -->
+                            {# 발주일 #}
                             <td>
                                 {{ purchase_order.created_at|date:"Y-m-d H:i" }}
                             </td>
 
-                            <!-- 입고 완료일 -->
+                            {# 입고 완료일 #}
                             <td>
                                 {% if purchase_order.received_at %}
                                     {{ purchase_order.received_at|date:"Y-m-d H:i" }}
@@ -118,15 +118,15 @@
                                 {% endif %}
                             </td>
 
-                            <!-- 발주 상태별 관리 버튼 영역 -->
+                            {# 발주 상태별 관리 버튼 영역 #}
                             <td class="text-center">
 
                                 <div class="d-flex justify-content-center gap-2">
 
-                                    <!-- 발주 대기 상태 -->
+                                    {# 발주 대기 상태 #}
                                     {% if purchase_order.status == "WAIT" %}
 
-                                        <!-- 발주 완료 처리 버튼 -->
+                                        {# 발주 완료 처리 버튼 #}
                                         <form
                                             method="post"
                                             action="{% url 'inventory:purchase_order_mark_ordered' purchase_order.pk %}"
@@ -141,7 +141,7 @@
                                             </button>
                                         </form>
 
-                                        <!-- 발주 취소 버튼 -->
+                                        {# 발주 취소 버튼 #}
                                         <form
                                             method="post"
                                             action="{% url 'inventory:purchase_order_cancel' purchase_order.pk %}"
@@ -157,10 +157,10 @@
                                             </button>
                                         </form>
 
-                                    <!-- 발주 완료 상태 -->
+                                    {# 발주 완료 상태 #}
                                     {% elif purchase_order.status == "ORDERED" %}
 
-                                        <!-- 입고 완료 처리 버튼 -->
+                                        {# 입고 완료 처리 버튼 #}
                                         <form
                                             method="post"
                                             action="{% url 'inventory:purchase_order_receive' purchase_order.pk %}"
@@ -176,7 +176,7 @@
                                             </button>
                                         </form>
 
-                                        <!-- 발주 취소 버튼 -->
+                                        {# 발주 취소 버튼 #}
                                         <form
                                             method="post"
                                             action="{% url 'inventory:purchase_order_cancel' purchase_order.pk %}"
@@ -192,14 +192,14 @@
                                             </button>
                                         </form>
 
-                                    <!-- 입고 완료 상태 -->
+                                    {# 입고 완료 상태 #}
                                     {% elif purchase_order.status == "RECEIVED" %}
 
                                         <span class="text-muted small">
                                             처리 완료
                                         </span>
 
-                                    <!-- 취소 상태 -->
+                                    {# 취소 상태 #}
                                     {% elif purchase_order.status == "CANCELLED" %}
 
                                         <span class="text-muted small">
@@ -243,7 +243,7 @@
     >
         <ul class="pagination justify-content-center mb-0">
 
-            <!-- 이전 페이지 -->
+            {# 이전 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_previous %}
@@ -265,7 +265,7 @@
                 {% endif %}
             </li>
 
-            <!-- 페이지 번호 -->
+            {# 페이지 번호 #}
             {% for page_number in page_obj.paginator.page_range %}
                 <li
                     class="page-item
@@ -283,7 +283,7 @@
                 </li>
             {% endfor %}
 
-            <!-- 다음 페이지 -->
+            {# 다음 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_next %}

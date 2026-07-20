@@ -9,9 +9,9 @@
 {# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
-<!-- 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) -->
+{# 제목과 '내가 쓴 글' 버튼을 왼쪽에 나란히 밀착 (mypost.html과 완벽히 동일한 구조) #}
 {# 조건에 따라 필요한 화면 요소만 표시한다. #}
-<!-- {% if user.is_authenticated %} : 로그인한 사람에게만 '내가 쓴 글' 버튼을 보여줌 -->
+{# {% if user.is_authenticated %} : 로그인한 사람에게만 '내가 쓴 글' 버튼을 보여줌 #}
 <div class="d-flex align-items-center mb-4 gap-3">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">💬 자유 게시판</h2>
     {% if user.is_authenticated %}
@@ -19,18 +19,18 @@
     {% endif %}
 </div>
 
-<!-- 태그 버튼(좌)과 글쓰기 버튼(우) -->
+{# 태그 버튼(좌)과 글쓰기 버튼(우) #}
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
     
-    <!-- 왼쪽: 태그 필터 영역 -->
+    {# 왼쪽: 태그 필터 영역 #}
     <div class="d-flex align-items-center flex-wrap gap-2">
-        <!-- 모바일용 토글 버튼: 화면이 좁을 때(d-md-none)만 보이고, 누르면 아래 태그 버튼들이 접혔다 펼쳐짐 -->
+        {# 모바일용 토글 버튼: 화면이 좁을 때(d-md-none)만 보이고, 누르면 아래 태그 버튼들이 접혔다 펼쳐짐 #}
         <button class="btn btn-sm btn-outline-secondary d-md-none fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#tagCollapse" aria-expanded="false" aria-controls="tagCollapse">
             <span class="tag-toggle-icon">▶</span> 태그 선택
         </button>
 
-        <!-- 태그 버튼들: 주소 뒤에 ?tag=값 을 붙여서 그 태그의 글만 보이게 필터링함 -->
-        <!-- 현재 선택된 태그(selected_tag)와 같으면 버튼 색을 진하게(선택됨 표시) -->
+        {# 태그 버튼들: 주소 뒤에 ?tag=값 을 붙여서 그 태그의 글만 보이게 필터링함 #}
+        {# 현재 선택된 태그(selected_tag)와 같으면 버튼 색을 진하게(선택됨 표시) #}
         <div class="collapse d-md-block" id="tagCollapse">
             <div class="d-flex gap-2 flex-wrap">
                 <a href="?tag=all{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" class="btn btn-sm shadow-sm {% if selected_tag == 'all' or not selected_tag %}btn-success{% else %}btn-outline-success{% endif %}">전체</a>
@@ -43,15 +43,15 @@
         </div>
     </div>
 
-    <!-- 오른쪽: 글쓰기 버튼 -->
+    {# 오른쪽: 글쓰기 버튼 #}
     <div class="ms-auto">
-        <!-- text-nowrap을 추가해서 모바일에서도 글씨가 꺾이지 않게 보호합니다 -->
+        {# text-nowrap을 추가해서 모바일에서도 글씨가 꺾이지 않게 보호합니다 #}
         <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold text-nowrap">✏️ 글쓰기</a>
     </div>
     
 </div>
 
-<!-- 표 카드 시작 -->
+{# 표 카드 시작 #}
 <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -68,9 +68,9 @@
                 </thead>
                 <tbody class="text-center">
 
-                    <!-- 공지사항 목록 루프 (매 페이지 최상단 고정 노출) -->
+                    {# 공지사항 목록 루프 (매 페이지 최상단 고정 노출) #}
                     {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
-                    <!-- {% for %}는 views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 <tr> 한 줄씩 반복해서 그려줌 -->
+                    {# views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 표의 한 줄씩 반복해서 출력한다. #}
                     {% for post in notices %}
                     <tr class="table-warning fw-bold">
                         <td class="text-muted">📢</td>
@@ -89,7 +89,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 일반 게시글 목록 루프 (페이지에 나눠진 글 목록) -->
+                    {# 일반 게시글 목록 루프 (페이지에 나눠진 글 목록) #}
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>
@@ -110,7 +110,7 @@
                     </tr>
                     {% endfor %}
 
-                    <!-- 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) -->
+                    {# 아무런 글도 없을 때 처리 (공지도 없고 일반글도 없을 때만 표시) #}
                     {% if not notices and not consultations %}
                     <tr>
                         <td colspan="5" class="text-center text-muted py-5">등록된 게시글이 없습니다.</td>
@@ -127,27 +127,27 @@
     <a href="{% url 'consultations:create' %}" class="btn btn-primary shadow-sm fw-bold">✏️ 글쓰기</a>
 </div>
 
-<!-- 5개 단위 블록 페이징 네비게이션 바 -->
-<!-- views.py에서 계산해서 넘겨준 custom_page_range, has_prev_block 등의 값을 이용해 페이지 번호 버튼을 그림 -->
+{# 5개 단위 블록 페이징 네비게이션 바 #}
+{# views.py에서 계산해서 넘겨준 custom_page_range, has_prev_block 등의 값을 이용해 페이지 번호 버튼을 그림 #}
 {% if consultations.has_other_pages %}
 <nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
     <ul class="pagination shadow-sm">
         
-        <!-- 맨 처음 페이지 (<<) -->
+        {# 맨 처음 페이지 (<<) #}
         <li class="page-item {% if consultations.number == 1 %}disabled{% endif %}">
             <a class="page-link text-success" href="?page=1{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="First">
-                <span aria-hidden="true">&laquo;</span> <!-- 겹화살표 -->
+                <span aria-hidden="true">&laquo;</span> {# 겹화살표 #}
             </a>
         </li>
 
-        <!-- 이전 5개 블록 (<) -->
+        {# 이전 5개 블록 (<) #}
         <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
             <a class="page-link text-success" href="{% if has_prev_block %}?page={{ prev_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Previous Block">
-                <span aria-hidden="true">&lsaquo;</span> <!-- 홑화살표 -->
+                <span aria-hidden="true">&lsaquo;</span> {# 홑화살표 #}
             </a>
         </li>
 
-        <!-- 페이지 번호 (5개 단위로 출력) -->
+        {# 페이지 번호 (5개 단위로 출력) #}
         {% for num in custom_page_range %}
             {% if consultations.number == num %}
                 <li class="page-item active" aria-current="page">
@@ -160,17 +160,17 @@
             {% endif %}
         {% endfor %}
 
-        <!-- 다음 5개 블록 (>) -->
+        {# 다음 5개 블록 (>) #}
         <li class="page-item {% if not has_next_block %}disabled{% endif %}">
             <a class="page-link text-success" href="{% if has_next_block %}?page={{ next_block_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}{% else %}#{% endif %}" aria-label="Next Block">
-                <span aria-hidden="true">&rsaquo;</span> <!-- 홑화살표 -->
+                <span aria-hidden="true">&rsaquo;</span> {# 홑화살표 #}
             </a>
         </li>
 
-        <!-- 맨 마지막 페이지 (>>) -->
+        {# 맨 마지막 페이지 (>>) #}
         <li class="page-item {% if consultations.number == last_page %}disabled{% endif %}">
             <a class="page-link text-success" href="?page={{ last_page }}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if q %}&search_type={{ search_type }}&q={{ q }}{% endif %}" aria-label="Last">
-                <span aria-hidden="true">&raquo;</span> <!-- 겹화살표 -->
+                <span aria-hidden="true">&raquo;</span> {# 겹화살표 #}
             </a>
         </li>
         
@@ -186,17 +186,17 @@
             <input type="hidden" name="tag" value="{{ selected_tag }}">
         {% endif %}
         
-        <!-- 검색 조건 선택 드롭다운 (flex-shrink-0으로 찌그러짐 방지) -->
+        {# 검색 조건 선택 드롭다운 (flex-shrink-0으로 찌그러짐 방지) #}
         <select name="search_type" class="form-select shadow-sm" style="width: 130px; flex-shrink: 0;">
             <option value="all" {% if search_type == 'all' or not search_type %}selected{% endif %}>전체</option>
             <option value="title" {% if search_type == 'title' %}selected{% endif %}>제목</option>
             <option value="writer" {% if search_type == 'writer' %}selected{% endif %}>작성자</option>
         </select>
         
-        <!-- 검색어 입력칸 -->
+        {# 검색어 입력칸 #}
         <input type="text" name="q" class="form-control shadow-sm" placeholder="검색어를 입력하세요" value="{{ q }}">
         
-        <!-- 검색 버튼 (text-nowrap과 flex-shrink-0으로 세로 꺾임 방지) -->
+        {# 검색 버튼 (text-nowrap과 flex-shrink-0으로 세로 꺾임 방지) #}
         <button type="submit" class="btn btn-secondary shadow-sm px-4 text-nowrap" style="flex-shrink: 0;">검색</button>
     </form>
 </div>
@@ -218,7 +218,6 @@
     }
 </style>
 
-{% endblock %}
 
 {# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
@@ -243,3 +242,5 @@
         });
     });
 </script>
+
+{% endblock %}

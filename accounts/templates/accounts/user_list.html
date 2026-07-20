@@ -18,7 +18,7 @@
     >
         <ul class="pagination shadow-sm mb-0">
 
-            <!-- 첫 페이지 -->
+            {# 첫 페이지 #}
             <li class="page-item {% if users.number == 1 %}disabled{% endif %}">
                 <a
                     class="page-link text-success"
@@ -29,7 +29,7 @@
                 </a>
             </li>
 
-            <!-- 이전 5개 페이지 -->
+            {# 이전 5개 페이지 #}
             <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
                 <a
                     class="page-link text-success"
@@ -40,7 +40,7 @@
                 </a>
             </li>
 
-            <!-- 페이지 번호 -->
+            {# 페이지 번호 #}
             {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
             {% for page_number in custom_page_range %}
 
@@ -70,7 +70,7 @@
 
             {% endfor %}
 
-            <!-- 다음 5개 페이지 -->
+            {# 다음 5개 페이지 #}
             <li class="page-item {% if not has_next_block %}disabled{% endif %}">
                 <a
                     class="page-link text-success"
@@ -81,7 +81,7 @@
                 </a>
             </li>
 
-            <!-- 마지막 페이지 -->
+            {# 마지막 페이지 #}
             <li class="page-item {% if users.number == last_page %}disabled{% endif %}">
                 <a
                     class="page-link text-success"
