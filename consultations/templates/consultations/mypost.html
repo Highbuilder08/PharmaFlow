@@ -20,6 +20,7 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
+                    <!-- views.py의 my_post_list 함수가 넘겨준, 로그인한 사용자가 쓴 글만 하나씩 꺼내서 보여줌 -->
                     {% for post in consultations %}
                     <tr>
                         <td class="text-muted">{{ post.id }}</td>

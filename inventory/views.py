@@ -6,6 +6,9 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+# AuditLog: "누가 언제 무엇을 했는지" 기록을 남기는 표 (consultations 앱에 정의됨)
+from consultations.models import AuditLog
+
 from .decorators import approved_pharmacy_required
 from .forms import InventoryTransactionForm, MedicineForm, PurchaseOrderForm
 from .models import InventoryTransaction, Medicine, PurchaseOrder
@@ -92,6 +95,13 @@ def medicine_update(request, pk):
 
         if form.is_valid():
             form.save()
+            # 누가 어떤 의약품 정보를 수정했는지 기록
+            AuditLog.objects.create(
+                user=request.user,
+                action="의약품 정보 수정",
+                target=f"Medicine #{medicine.pk}",
+                detail=medicine.name,
+            )
             messages.success(request, "의약품 정보가 수정되었습니다.")
             return redirect("inventory:medicine_detail", pk=medicine.pk)
     else:
@@ -139,7 +149,9 @@ def medicine_delete(request, pk):
     )
 
     if request.method == "POST":
+        # 삭제 후에는 medicine 객체를 못 쓰므로 기록에 쓸 이름/번호를 미리 저장해둠
         medicine_name = medicine.name
+        medicine_pk = medicine.pk
 
         try:
             medicine.delete()
@@ -149,6 +161,14 @@ def medicine_delete(request, pk):
                 "입출고 또는 발주 기록이 있는 의약품은 삭제할 수 없습니다.",
             )
             return redirect("inventory:medicine_detail", pk=medicine.pk)
+
+        # 누가 어떤 의약품을 삭제했는지 기록
+        AuditLog.objects.create(
+            user=request.user,
+            action="의약품 삭제",
+            target=f"Medicine #{medicine_pk}",
+            detail=medicine_name,
+        )
 
         messages.success(
             request,

@@ -9,3 +9,5 @@ staticfiles/
 *.sqlite3
 .pytest_cache/
 .coverage
+CLAUDE.md
+.claude/

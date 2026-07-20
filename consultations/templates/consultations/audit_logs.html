@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- 1. 상단 제목 영역 -->
+<!-- 상단 제목 영역 -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">🛡️ 시스템 작업 로그</h2>
     <span class="badge bg-warning text-dark fs-6 shadow-sm px-3 py-2">관리자 전용</span>
 </div>
 
-<!-- 2. 로그 목록 카드 영역 -->
+<!-- 로그 목록 카드 영역 -->
 <div class="card shadow-sm border-0 rounded-3 mb-5">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -22,6 +22,7 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
+                    <!-- views.py의 audit_log_list 함수가 넘겨준 AuditLog(작업 기록)를 하나씩 꺼내서 보여줌 -->
                     {% for log in logs %}
                     <tr>
                         <!-- 작업시간 -->
