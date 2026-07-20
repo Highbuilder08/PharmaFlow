@@ -7,13 +7,13 @@
 {# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
-<!-- 상단 제목 영역 -->
+{# 상단 제목 영역 #}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0" style="color: #2c3e50;">🛡️ 시스템 작업 로그</h2>
     <span class="badge bg-warning text-dark fs-6 shadow-sm px-3 py-2">관리자 전용</span>
 </div>
 
-<!-- 로그 목록 카드 영역 -->
+{# 로그 목록 카드 영역 #}
 <div class="card shadow-sm border-0 rounded-3 mb-5">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -29,21 +29,21 @@
                     </tr>
                 </thead>
                 <tbody class="text-center">
-                    <!-- views.py의 audit_log_list 함수가 넘겨준 AuditLog(작업 기록)를 하나씩 꺼내서 보여줌 -->
+                    {# views.py의 audit_log_list 함수가 넘겨준 AuditLog(작업 기록)를 하나씩 꺼내서 보여줌 #}
                     {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     {% for log in logs %}
                     <tr>
-                        <!-- 작업시간 -->
+                        {# 작업시간 #}
                         <td class="text-muted" style="font-size: 14px;">
                             {{ log.created_at|date:"Y-m-d H:i:s" }}
                         </td>
                         
-                        <!-- 작업자 -->
+                        {# 작업자 #}
                         <td class="fw-bold text-dark">
                             {{ log.user.username|default:"알수없음" }}
                         </td>
                         
-                        <!-- 🚀 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) -->
+                        {# 🚀 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) #}
                         <td>
                             {# 조건에 따라 필요한 화면 요소만 표시한다. #}
                             {% if log.action == '삭제' %}
@@ -55,12 +55,12 @@
                             {% endif %}
                         </td>
                         
-                        <!-- 작업 대상 (회색 배지) -->
+                        {# 작업 대상 (회색 배지) #}
                         <td>
                             <span class="badge bg-secondary bg-opacity-75 px-2 py-1">{{ log.target }}</span>
                         </td>
                         
-                        <!-- 상세내용 및 사유 (읽기 편하게 왼쪽 정렬) -->
+                        {# 상세내용 및 사유 (읽기 편하게 왼쪽 정렬) #}
                         <td class="text-start px-4 text-muted" style="font-size: 14px;">
                             {{ log.detail }}
                         </td>

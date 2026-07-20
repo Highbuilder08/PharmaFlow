@@ -507,10 +507,10 @@
     {# 조건에 따라 필요한 화면 요소만 표시한다. #}
     {% if user.is_authenticated %}
 
-        <!-- 상단 3열 대시보드 -->
+        {# 상단 3열 대시보드 #}
         <div class="row g-3 align-items-stretch dashboard-top-row">
 
-            <!-- 왼쪽: 로고 + 재고 현황 -->
+            {# 왼쪽: 로고 + 재고 현황 #}
             <div class="col-xl-4 col-lg-5">
 
                 <section class="dashboard-panel dashboard-top-panel dashboard-side-panel h-100 p-3 p-md-4">
@@ -879,12 +879,12 @@
 
             </div>
 
-            <!-- 가운데: 달력 -->
+            {# 가운데: 달력 #}
             <div class="col-xl-4 col-lg-7">
 
                 <section class="dashboard-panel dashboard-top-panel calendar-panel h-100 p-3">
 
-                    <!-- 달력 상단 -->
+                    {# 달력 상단 #}
                     <div class="calendar-header">
 
                         <div class="btn-group" role="group">
@@ -925,7 +925,7 @@
 
                     </div>
 
-                    <!-- 요일 -->
+                    {# 요일 #}
                     <div class="calendar-weekdays">
 
                         <div class="calendar-weekday sunday">
@@ -958,13 +958,13 @@
 
                     </div>
 
-                    <!-- 날짜 -->
+                    {# 날짜 #}
                     <div
                         id="calendar-grid"
                         class="calendar-grid"
                     ></div>
 
-                    <!-- 달력 하단 -->
+                    {# 달력 하단 #}
                     <div class="calendar-footer">
 
                         <div class="d-flex gap-4 small text-muted mb-3">
@@ -993,7 +993,7 @@
 
                     </div>
 
-                    <!-- 선택한 날짜 메모 -->
+                    {# 선택한 날짜 메모 #}
                     <div class="calendar-memo-panel mt-3">
 
                         <div class="mb-3">
@@ -1065,7 +1065,7 @@
 
             </div>
 
-            <!-- 오른쪽: 공지사항 + 최근 게시글 -->
+            {# 오른쪽: 공지사항 + 최근 게시글 #}
             <div class="col-xl-4 col-lg-12 d-flex align-items-stretch">
 
                 <div class="dashboard-board-stack dashboard-top-panel">
@@ -1203,7 +1203,7 @@
 
         </div>
 
-        <!-- 하단 업무 메뉴 -->
+        {# 하단 업무 메뉴 #}
         <section class="dashboard-panel dashboard-menu-section mt-4 p-3 p-md-4">
 
             {% if user.is_superuser %}
@@ -1524,7 +1524,7 @@
 
     {% else %}
 
-        <!-- 비로그인 화면 -->
+        {# 비로그인 화면 #}
         <div class="row justify-content-center py-5">
 
             <div class="col-md-8 col-lg-6 text-center">

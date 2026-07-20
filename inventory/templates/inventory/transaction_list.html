@@ -47,7 +47,7 @@
 >
     <div class="card-body">
 
-        <!-- 첫 번째 줄: 검색 -->
+        {# 첫 번째 줄: 검색 #}
         <div class="d-flex align-items-center gap-2 mb-3 filter-row-responsive">
             
             <div class="transaction-search-box">
@@ -75,7 +75,7 @@
             </a>
         </div>
 
-        <!-- 두 번째 줄: 입출고 필터 -->
+        {# 두 번째 줄: 입출고 필터 #}
         <div class="d-flex align-items-center gap-2 flex-wrap">
 
             <button
@@ -230,7 +230,7 @@
     >
         <ul class="pagination justify-content-center mb-0">
 
-            <!-- 이전 페이지 -->
+            {# 이전 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_previous %}
@@ -252,7 +252,7 @@
                 {% endif %}
             </li>
 
-            <!-- 페이지 번호 -->
+            {# 페이지 번호 #}
             {% for page_number in page_obj.paginator.page_range %}
                 <li
                     class="page-item
@@ -270,7 +270,7 @@
                 </li>
             {% endfor %}
 
-            <!-- 다음 페이지 -->
+            {# 다음 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_next %}

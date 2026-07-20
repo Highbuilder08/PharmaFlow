@@ -25,7 +25,7 @@
 >
     <div class="card-body">
 
-        <!-- 첫 번째 줄: 검색 -->
+        {# 첫 번째 줄: 검색 #}
         <div class="d-flex align-items-center gap-2 mb-3 filter-row-responsive">
 
             <div
@@ -61,10 +61,10 @@
 
         </div>
 
-        <!-- 두 번째 줄: 재고 필터 + 발주 관리 -->
+        {# 두 번째 줄: 재고 필터 + 발주 관리 #}
         <div class="d-flex justify-content-between align-items-center gap-3 stock-filter-row">
 
-            <!-- 왼쪽: 필터 버튼 -->
+            {# 왼쪽: 필터 버튼 #}
             <div class="d-flex align-items-center gap-2">
 
                 <button
@@ -114,7 +114,7 @@
 
             </div>
 
-            <!-- 오른쪽: 발주 관리 -->
+            {# 오른쪽: 발주 관리 #}
             <a
                 href="{% url 'inventory:purchase_order_list' %}"
                 class="btn btn-outline-primary text-nowrap"
@@ -178,7 +178,7 @@
                                 {{ medicine.updated_at|date:"Y-m-d H:i" }}
                             </td>
                             
-                            <!-- ========== 관리 ============ -->
+                            {# ========== 관리 ============ #}
                             <td>
                                 <div class="d-flex gap-2 page-actions-responsive">
                                     <a
@@ -187,14 +187,16 @@
                                     >
                                         상세
                                     </a>
-                                    <!--    list에서는 일단 제거해봄
+                                    {% comment %}
+    list에서는 일단 제거해봄
                                     <a
                                         href="{% url 'inventory:medicine_delete' medicine.pk %}"
                                         class="btn btn-sm btn-outline-danger"
                                     >
                                         삭제
                                     </a>
-                                    -->
+                                    
+{% endcomment %}
                                 </div>
                             </td>
                         </tr>
@@ -221,7 +223,7 @@
     >
         <ul class="pagination justify-content-center mb-0">
 
-            <!-- 이전 페이지 -->
+            {# 이전 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_previous %}
@@ -243,7 +245,7 @@
                 {% endif %}
             </li>
 
-            <!-- 페이지 번호 -->
+            {# 페이지 번호 #}
             {% for page_number in page_obj.paginator.page_range %}
                 <li
                     class="page-item
@@ -261,7 +263,7 @@
                 </li>
             {% endfor %}
 
-            <!-- 다음 페이지 -->
+            {# 다음 페이지 #}
             <li
                 class="page-item
                 {% if not page_obj.has_next %}

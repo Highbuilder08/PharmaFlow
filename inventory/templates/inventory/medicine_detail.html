@@ -7,7 +7,7 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <!-- 약 이름과 재고 상태-->
+        {# 약 이름과 재고 상태#}
         <div class="border-bottom pb-4 mb-4">
             <div class="row align-items-center g-3">
                 <div class="col-md-8">
@@ -70,7 +70,7 @@
             </div>
         </div>
 
-        <!-- 이미지 -->
+        {# 이미지 #}
         <div class="row g-4 mb-4">
             <div class="col-md-6">
                 <div class="border rounded p-3 text-center h-100">
@@ -78,7 +78,7 @@
                         약 상자 이미지
                     </h2>
 
-                    {% if medicine.box_image %} <!-- 이미지 있을때만 .url을 쓸수 있게 함 -->
+                    {% if medicine.box_image %} {# 이미지 있을때만 .url을 쓸수 있게 함 #}
                         <img
                             src="{{ medicine.box_image.url }}"
                             alt="{{ medicine.name }} 상자 이미지"
@@ -129,7 +129,7 @@
             </div>
         </div>
 
-        <!-- 기본 정보 -->
+        {# 기본 정보 #}
         <div class="border rounded">
             <div class="p-3 border-bottom bg-light">
                 <h2 class="h5 mb-0">
@@ -182,7 +182,7 @@
             </div>
         </div>
 
-        <!-- 최근 입출고 -->
+        {# 최근 입출고 #}
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="h5 mb-0">
@@ -260,7 +260,7 @@
             </div>
         </div>
 
-        <!-- 수정/삭제/목록 버튼 -->
+        {# 수정/삭제/목록 버튼 #}
         <div class="d-flex justify-content-between align-items-center mt-4">
             <a
                 href="{% url 'inventory:medicine_list' %}"

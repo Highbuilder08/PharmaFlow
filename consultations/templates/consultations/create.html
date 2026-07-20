@@ -13,7 +13,7 @@
                 <h3 class="fw-bold" style="color: #2c3e50;">✏️ 게시글 쓰기</h3>
             </div>
             <div class="card-body p-4">
-                <!-- enctype="multipart/form-data" : 파일(첨부파일)도 함께 전송하려면 반드시 필요한 설정 -->
+                {# enctype="multipart/form-data" : 파일(첨부파일)도 함께 전송하려면 반드시 필요한 설정 #}
                 {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
                 <form method="POST" enctype="multipart/form-data">
                     {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
@@ -23,10 +23,10 @@
 
                     <div class="mt-4 mb-4 p-3 bg-light rounded border">
                         <label class="fw-bold mb-2">📎 첨부파일</label>
-                        <!-- multiple : 파일을 여러 개 한 번에 선택할 수 있게 함 -->
+                        {# multiple : 파일을 여러 개 한 번에 선택할 수 있게 함 #}
                         <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
 
-                        <!-- 선택한 파일 이름들이 아래 자바스크립트에 의해 이 자리에 나열됨 -->
+                        {# 선택한 파일 이름들이 아래 자바스크립트에 의해 이 자리에 나열됨 #}
                         <div id="file-list" class="mt-3 d-flex flex-column gap-2"></div>
                     </div>
                     
