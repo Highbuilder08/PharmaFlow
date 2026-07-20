@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: 회원가입, HIRA 약국 검색, 사용자·약국·마이페이지 기능을 처리하는 뷰 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 import xml.etree.ElementTree as ET
 
 import requests
@@ -13,6 +18,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+
+# AuditLog: "누가 언제 무엇을 했는지" 기록을 남기는 표 (consultations 앱에 정의됨)
+from consultations.models import AuditLog
 
 from .decorators import (
     owner_required,
@@ -34,6 +42,7 @@ from .models import (
 )
 
 
+# -------------------- 회원가입: 회원가입 요청을 처리하고 선택한 약국 및 점주 권한 신청 정보를 저장한다. --------------------
 def signup(request):
     if request.user.is_authenticated:
         return redirect("core:index")
@@ -47,8 +56,33 @@ def signup(request):
         if form.is_valid():
             data = form.cleaned_data
 
+            selected_pharmacies = request.session.get("pharmacy_search_results", {})
+            selected = selected_pharmacies.get(data["pharmacy_external_id"])
+
+            if not selected:
+                form.add_error(
+                    None,
+                    "약국 검색 결과를 다시 선택해 주세요.",
+                )
+                return render(request, "accounts/signup.html", {"form": form})
+
+            expected_values = {
+                "pharmacy_name": selected.get("name", ""),
+                "pharmacy_address": selected.get("address", ""),
+                "pharmacy_phone": selected.get("phone", ""),
+            }
+            if any(
+                data.get(key, "").strip() != value.strip()
+                for key, value in expected_values.items()
+            ):
+                form.add_error(
+                    None,
+                    "선택한 약국 정보가 변경되었습니다. 다시 검색해 선택해 주세요.",
+                )
+                return render(request, "accounts/signup.html", {"form": form})
+
             with transaction.atomic():
-                pharmacy, created = Pharmacy.objects.update_or_create(
+                pharmacy, created = Pharmacy.objects.get_or_create(
                     external_place_id=data["pharmacy_external_id"],
                     defaults={
                         "pharmacy_name": data["pharmacy_name"],
@@ -108,6 +142,7 @@ def signup(request):
     )
 
 
+# HIRA XML 항목에서 후보 태그 중 실제 값이 있는 텍스트를 찾아 반환한다.
 def get_xml_text(item, *names):
     for name in names:
         value = item.findtext(name)
@@ -118,9 +153,22 @@ def get_xml_text(item, *names):
     return ""
 
 
+# -------------------- HIRA 약국 검색: 검색어를 HIRA 약국정보서비스에 전달하고 화면에서 사용할 JSON 결과로 변환한다. --------------------
 @require_GET
 def pharmacy_search(request):
     query = request.GET.get("q", "").strip()
+
+    now_timestamp = timezone.now().timestamp()
+    last_search = request.session.get("pharmacy_search_last_at", 0)
+    if now_timestamp - last_search < 1.0:
+        return JsonResponse(
+            {
+                "results": [],
+                "error": "검색 요청이 너무 빠릅니다. 잠시 후 다시 시도하세요.",
+            },
+            status=429,
+        )
+    request.session["pharmacy_search_last_at"] = now_timestamp
 
     if len(query) < 2:
         return JsonResponse(
@@ -143,7 +191,7 @@ def pharmacy_search(request):
     try:
         response = requests.get(
             (
-                "http://apis.data.go.kr/"
+                "https://apis.data.go.kr/"
                 "B551182/pharmacyInfoService/"
                 "getParmacyBasisList"
             ),
@@ -167,11 +215,10 @@ def pharmacy_search(request):
             status=504,
         )
 
-    except requests.RequestException:
         return JsonResponse(
             {
                 "results": [],
-                "error": "HIRA 약국 검색 서비스에 연결할 수 없습니다.",
+                "error": str(e),
             },
             status=502,
         )
@@ -262,6 +309,11 @@ def pharmacy_search(request):
             }
         )
 
+    request.session["pharmacy_search_results"] = {
+        item["external_id"]: item for item in results
+    }
+    request.session.modified = True
+
     return JsonResponse(
         {
             "results": results,
@@ -269,6 +321,7 @@ def pharmacy_search(request):
     )
 
 
+# 사용자에게 소속 약국이 있으면 해당 약국 객체를 반환한다.
 def _get_user_pharmacy(user):
     if not user.pharmacy_id:
         return None
@@ -276,8 +329,9 @@ def _get_user_pharmacy(user):
     return user.pharmacy
 
 
+# 현재 사용자가 지정한 약국 정보를 수정할 권한이 있는지 확인한다.
 def _can_edit_pharmacy(user, pharmacy):
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
 
     return (
@@ -288,6 +342,7 @@ def _can_edit_pharmacy(user, pharmacy):
     )
 
 
+# -------------------- 약국 관리: 현재 사용자의 소속 약국 상세 정보를 보여준다. --------------------
 @login_required
 def pharmacy_detail(request):
     pharmacy = _get_user_pharmacy(request.user)
@@ -315,6 +370,7 @@ def pharmacy_detail(request):
     )
 
 
+# -------------------- 약국 관리: 승인된 점주 또는 관리자가 소속 약국 정보를 수정한다. --------------------
 @login_required
 def pharmacy_update(request):
     pharmacy = _get_user_pharmacy(request.user)
@@ -372,6 +428,7 @@ def pharmacy_update(request):
     )
 
 
+# -------------------- 약국 관리: 관리자에게 전체 약국 목록을 페이지 단위로 보여준다. --------------------
 @login_required
 @superuser_required
 def pharmacy_list(request):
@@ -432,6 +489,7 @@ def pharmacy_list(request):
     )
 
 
+# -------------------- 약국 관리: 관리자가 약국 정보를 직접 등록한다. --------------------
 @login_required
 @superuser_required
 def pharmacy_create(request):
@@ -463,6 +521,7 @@ def pharmacy_create(request):
     )
 
 
+# -------------------- 약국 관리: 관리자가 선택한 약국 정보를 수정한다. --------------------
 @login_required
 @superuser_required
 def pharmacy_admin_update(request, pk):
@@ -479,6 +538,14 @@ def pharmacy_admin_update(request, pk):
 
         if form.is_valid():
             form.save()
+
+            # 누가 어떤 약국 정보를 수정했는지 기록
+            AuditLog.objects.create(
+                user=request.user,
+                action="약국 정보 수정",
+                target=f"Pharmacy #{pharmacy.pk}",
+                detail=pharmacy.pharmacy_name,
+            )
 
             messages.success(
                 request,
@@ -505,6 +572,7 @@ def pharmacy_admin_update(request, pk):
     )
 
 
+# -------------------- 약국 관리: 관리자가 선택한 약국을 삭제하되 소속 사용자가 있으면 삭제를 막는다. --------------------
 @login_required
 @superuser_required
 def pharmacy_delete(request, pk):
@@ -514,8 +582,20 @@ def pharmacy_delete(request, pk):
     )
 
     if request.method == "POST":
+        # 삭제 후에는 pharmacy 객체를 못 쓰므로 기록에 쓸 이름/번호를 미리 저장해둠
+        pharmacy_pk = pharmacy.pk
+        pharmacy_name = pharmacy.pharmacy_name
+
         try:
             pharmacy.delete()
+
+            # 누가 어떤 약국을 삭제했는지 기록
+            AuditLog.objects.create(
+                user=request.user,
+                action="약국 삭제",
+                target=f"Pharmacy #{pharmacy_pk}",
+                detail=pharmacy_name,
+            )
 
             messages.success(
                 request,
@@ -539,6 +619,7 @@ def pharmacy_delete(request, pk):
     )
 
 
+# -------------------- 소속 사용자 관리: 소속 약국의 약사와 직원 계정을 페이지 단위로 보여준다. --------------------
 @login_required
 @staff_manager_required
 def user_list(request):
@@ -615,6 +696,7 @@ def user_list(request):
     )
 
 
+# -------------------- 소속 사용자 관리: 관리 권한자가 소속 약국의 직원 계정을 직접 생성한다. --------------------
 @login_required
 @staff_manager_required
 def user_create(request):
@@ -654,6 +736,7 @@ def user_create(request):
     )
 
 
+# -------------------- 소속 사용자 관리: 관리 권한자가 소속 사용자 정보를 수정한다. --------------------
 @login_required
 @staff_manager_required
 def user_update(request, pk):
@@ -702,6 +785,7 @@ def user_update(request, pk):
     )
 
 
+# -------------------- 소속 사용자 관리: 사용자 기록을 보존하기 위해 계정을 삭제하지 않고 비활성화한다. --------------------
 @login_required
 @staff_manager_required
 @require_POST
@@ -718,16 +802,27 @@ def user_delete(request, pk):
     )
 
     staff_name = staff.name
-    staff.delete()
+    staff.is_active = False
+    staff.is_approved = False
+    staff.save(update_fields=["is_active", "is_approved"])
+
+    # 누가 어떤 사용자 계정을 비활성화했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 계정 비활성화",
+        target=f"User #{staff.pk}",
+        detail=staff_name,
+    )
 
     messages.success(
         request,
-        f"{staff_name} 사용자를 삭제했습니다.",
+        f"{staff_name} 사용자 계정을 비활성화했습니다.",
     )
 
     return redirect("accounts:user_list")
 
 
+# -------------------- 소속 사용자 관리: 점주가 가입 대기 중인 소속 사용자를 승인한다. --------------------
 @login_required
 @owner_required
 @require_POST
@@ -746,6 +841,14 @@ def user_approve(request, pk):
     target_user.is_approved = True
     target_user.save(update_fields=["is_approved"])
 
+    # 누가 어떤 사용자를 승인했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 승인",
+        target=f"User #{target_user.pk}",
+        detail=target_user.name,
+    )
+
     messages.success(
         request,
         f"{target_user.name} 사용자를 승인했습니다.",
@@ -754,6 +857,7 @@ def user_approve(request, pk):
     return redirect("accounts:user_list")
 
 
+# -------------------- 소속 사용자 관리: 점주가 소속 사용자의 승인 상태를 취소한다. --------------------
 @login_required
 @owner_required
 @require_POST
@@ -772,6 +876,14 @@ def user_revoke(request, pk):
     target_user.is_approved = False
     target_user.save(update_fields=["is_approved"])
 
+    # 누가 어떤 사용자의 승인을 취소했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="사용자 승인 취소",
+        target=f"User #{target_user.pk}",
+        detail=target_user.name,
+    )
+
     messages.success(
         request,
         f"{target_user.name} 사용자의 승인을 취소했습니다.",
@@ -780,6 +892,7 @@ def user_revoke(request, pk):
     return redirect("accounts:user_list")
 
 
+# -------------------- 점주 권한 신청 관리: 관리자에게 처리 대기 중인 점주 권한 신청 목록을 보여준다. --------------------
 @login_required
 @superuser_required
 def ownership_request_list(request):
@@ -851,141 +964,100 @@ def ownership_request_list(request):
     )
 
 
+# -------------------- 점주 권한 신청 관리: 점주 권한 신청을 승인하고 사용자와 약국 정보를 함께 갱신한다. --------------------
 @login_required
 @superuser_required
 @require_POST
 def ownership_request_approve(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest.objects.select_related(
-            "user",
-            "pharmacy",
-        ),
-        pk=pk,
-        status=PharmacyOwnershipRequest.Status.PENDING,
-    )
-
-    user = ownership_request.user
-    pharmacy = ownership_request.pharmacy
-    business_number = ownership_request.business_number.strip()
-
-    duplicate_pharmacy = (
-        Pharmacy.objects.filter(business_number=business_number)
-        .exclude(pk=pharmacy.pk)
-        .first()
-    )
-
-    if duplicate_pharmacy:
-        messages.error(
-            request,
-            (
-                f"사업자등록번호 {business_number}는 이미 "
-                f"{duplicate_pharmacy.pharmacy_name}에 등록되어 있습니다. "
-                "신청 정보를 확인해 주세요."
-            ),
-        )
-
-        return redirect("accounts:ownership_request_list")
-
     try:
         with transaction.atomic():
+            ownership_request = get_object_or_404(
+                PharmacyOwnershipRequest.objects.select_for_update().select_related(
+                    "user", "pharmacy"
+                ),
+                pk=pk,
+                status=PharmacyOwnershipRequest.Status.PENDING,
+            )
+            user = ownership_request.user
+            pharmacy = ownership_request.pharmacy
+            business_number = ownership_request.business_number.strip()
+
+            duplicate_pharmacy = (
+                Pharmacy.objects.select_for_update()
+                .filter(business_number=business_number)
+                .exclude(pk=pharmacy.pk)
+                .first()
+            )
+            if duplicate_pharmacy:
+                messages.error(
+                    request,
+                    f"사업자등록번호 {business_number}는 이미 {duplicate_pharmacy.pharmacy_name}에 등록되어 있습니다.",
+                )
+                return redirect("accounts:ownership_request_list")
+
             ownership_request.status = PharmacyOwnershipRequest.Status.APPROVED
             ownership_request.processed_at = timezone.now()
-
-            ownership_request.save(
-                update_fields=[
-                    "status",
-                    "processed_at",
-                ]
-            )
+            ownership_request.save(update_fields=["status", "processed_at"])
 
             user.pharmacy = pharmacy
             user.role = User.Role.OWNER
             user.is_approved = True
-
-            user.save(
-                update_fields=[
-                    "pharmacy",
-                    "role",
-                    "is_approved",
-                ]
-            )
+            user.save(update_fields=["pharmacy", "role", "is_approved"])
 
             pharmacy.business_number = business_number
-
             if not pharmacy.owner_name:
                 pharmacy.owner_name = user.name
-
-            pharmacy.save(
-                update_fields=[
-                    "business_number",
-                    "owner_name",
-                    "updated_at",
-                ]
-            )
-
+            pharmacy.save(update_fields=["business_number", "owner_name", "updated_at"])
     except IntegrityError:
-        messages.error(
-            request,
-            (
-                "승인 처리 중 중복된 사업자등록번호가 확인되었습니다. "
-                "신청 정보를 다시 확인해 주세요."
-            ),
-        )
-
+        messages.error(request, "중복된 사업자등록번호로 승인할 수 없습니다.")
         return redirect("accounts:ownership_request_list")
 
-    messages.success(
-        request,
-        (
-            f"{user.name} 사용자의 "
-            f"{pharmacy.pharmacy_name} 점주 권한을 승인했습니다."
-        ),
+    # 누가 어떤 사용자의 점주 권한 요청을 승인했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="점주 권한 승인",
+        target=f"User #{user.pk}",
+        detail=f"{user.name} → {pharmacy.pharmacy_name}",
     )
 
+    messages.success(request, f"{user.name} 사용자의 점주 권한을 승인했습니다.")
     return redirect("accounts:ownership_request_list")
 
 
+# -------------------- 점주 권한 신청 관리: 점주 권한 신청을 거절하고 처리 시각을 기록한다. --------------------
 @login_required
 @superuser_required
 @require_POST
 def ownership_request_reject(request, pk):
-    ownership_request = get_object_or_404(
-        PharmacyOwnershipRequest.objects.select_related(
-            "user",
-            "pharmacy",
-        ),
-        pk=pk,
-        status=PharmacyOwnershipRequest.Status.PENDING,
+    with transaction.atomic():
+        ownership_request = get_object_or_404(
+            PharmacyOwnershipRequest.objects.select_for_update().select_related(
+                "user", "pharmacy"
+            ),
+            pk=pk,
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        )
+        ownership_request.status = PharmacyOwnershipRequest.Status.REJECTED
+        ownership_request.processed_at = timezone.now()
+        ownership_request.save(update_fields=["status", "processed_at"])
+
+        user = ownership_request.user
+        user.is_approved = False
+        user.save(update_fields=["is_approved"])
+
+    # 누가 어떤 사용자의 점주 권한 요청을 거절했는지 기록
+    AuditLog.objects.create(
+        user=request.user,
+        action="점주 권한 거절",
+        target=f"User #{user.pk}",
+        detail=user.name,
     )
 
-    ownership_request.status = PharmacyOwnershipRequest.Status.REJECTED
-
-    ownership_request.processed_at = timezone.now()
-
-    ownership_request.save(
-        update_fields=[
-            "status",
-            "processed_at",
-        ]
-    )
-
-    user = ownership_request.user
-    user.is_approved = False
-
-    user.save(
-        update_fields=[
-            "is_approved",
-        ]
-    )
-
-    messages.success(
-        request,
-        f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.",
-    )
-
+    messages.success(request, f"{user.name} 사용자의 점주 권한 신청을 거절했습니다.")
     return redirect("accounts:ownership_request_list")
 
 
+# -------------------- 마이페이지: 현재 비밀번호를 확인한 뒤 사용자 계정을 비활성화하고 로그아웃한다. --------------------
 @login_required
 @require_POST
 def my_page_deactivate(request):
@@ -1035,6 +1107,13 @@ def my_page_deactivate(request):
                 "is_approved",
             ]
         )
+        PharmacyOwnershipRequest.objects.filter(
+            user=account,
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        ).update(
+            status=PharmacyOwnershipRequest.Status.REJECTED,
+            processed_at=timezone.now(),
+        )
 
     logout(request)
 
@@ -1046,6 +1125,7 @@ def my_page_deactivate(request):
     return redirect("login")
 
 
+# -------------------- 마이페이지: 현재 사용자의 프로필과 승인 상태를 보여준다. --------------------
 @login_required
 def my_page(request):
     password_form = PasswordConfirmForm(
@@ -1062,6 +1142,7 @@ def my_page(request):
     )
 
 
+# -------------------- 마이페이지: 내 정보 수정 전 현재 비밀번호를 확인하고 세션에 인증 시각을 저장한다. --------------------
 @login_required
 @require_POST
 def my_page_verify_password(request):
@@ -1087,6 +1168,7 @@ def my_page_verify_password(request):
     )
 
 
+# -------------------- 마이페이지: 최근 비밀번호 확인을 통과한 사용자의 개인 정보를 수정한다. --------------------
 @login_required
 def my_page_update(request):
     verified = request.session.get(

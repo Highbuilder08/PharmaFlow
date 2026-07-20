@@ -1,4 +1,10 @@
+{# ================================================== #}
+{# 파일 역할: update 화면 템플릿 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends 'base.html' %}
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 <div class="row justify-content-center mt-4">
     <div class="col-lg-8">
@@ -8,21 +14,27 @@
             </div>
             <div class="card-body p-4">
                 <!-- 메인 수정 폼 -->
+                {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
                 <form method="POST" enctype="multipart/form-data" id="main-update-form">
+                    {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
                     {% csrf_token %}
                     {{ form.as_p }}
 
-                    <!-- 🚀 1. 기존 첨부파일 목록 (삭제 가능) -->
+                    <!-- 기존 첨부파일 목록 (삭제 가능) -->
+                    <!-- 첨부파일이 하나라도 있을 때만 이 영역을 보여줌 -->
+                    {# 조건에 따라 필요한 화면 요소만 표시한다. #}
                     {% if consultation.attachments.all %}
                     <div class="mt-4 mb-3 p-3 bg-white rounded border border-warning border-opacity-50">
                         <label class="fw-bold mb-2 text-warning-emphasis">💾 기존 첨부파일</label>
                         <ul class="list-unstyled mb-0">
+                            {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                             {% for attachment in consultation.attachments.all %}
                                 <li class="d-flex align-items-center justify-content-between bg-light border rounded px-3 py-2 mb-2 shadow-sm">
                                     <span class="text-truncate text-secondary fw-bold" style="max-width: 80%; font-size: 14px;">
                                         📄 {{ attachment.filename }}
                                     </span>
                                     <!-- 바깥에 있는 삭제 폼과 연결 -->
+                                    <!-- form="delete-attachment-{{ attachment.id }}" : 이 버튼은 아래쪽에 따로 있는 숨겨진 폼을 제출시킴 (수정 폼 안에 폼을 또 넣을 수 없어서 이렇게 분리함) -->
                                     <button type="submit" form="delete-attachment-{{ attachment.id }}" onclick="return confirm('이 파일을 삭제하시겠습니까?');" class="btn btn-danger btn-sm py-0 px-2">삭제</button>
                                 </li>
                             {% endfor %}
@@ -30,7 +42,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- 🚀 2. 새 첨부파일 추가 영역 -->
+                    <!-- 새 첨부파일 추가 영역 -->
                     <div class="mb-4 p-3 bg-light rounded border">
                         <label class="fw-bold mb-2">📎 새 첨부파일 추가</label>
                         <input type="file" name="attachments" multiple class="form-control bg-white" id="file-input">
@@ -47,14 +59,17 @@
     </div>
 </div>
 
-<!-- 🚀 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
+<!-- 기존 첨부파일 개별 삭제용 숨겨진 폼들 -->
+<!-- 화면에는 안 보이지만(display:none), 위쪽 "삭제" 버튼이 이 폼을 대신 제출시켜서 첨부파일 하나만 삭제함 -->
 {% for attachment in consultation.attachments.all %}
     <form id="delete-attachment-{{ attachment.id }}" action="{% url 'consultations:attachment_delete' attachment.id %}" method="POST" style="display:none;">
         {% csrf_token %}
     </form>
 {% endfor %}
 
-<!-- 🚀 새 파일 추가용 자바스크립트 -->
+<!-- 새 파일 추가용 자바스크립트 -->
+<!-- create.html과 같은 방식: 여러 번 골라도 파일이 누적되고, ✕로 하나씩 뺄 수 있게 함 -->
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
     const fileInput = document.getElementById('file-input');
     const fileListContainer = document.getElementById('file-list');

@@ -408,3 +408,132 @@ footer {
         padding: 0.28rem 0.4rem;
     }
 }
+
+/* 입출고 검색 행 */
+.filter-row-responsive {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* 입출고 검색창 */
+.filter-row-responsive .transaction-search-box {
+    flex: 0 0 400px;
+    width: 400px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.filter-row-responsive .transaction-search-box .form-control {
+    width: 100%;
+}
+
+/* 좁은 화면 */
+@media (max-width: 768px) {
+    .filter-row-responsive .transaction-search-box {
+        width: 100% !important;
+        max-width: 100%;
+        flex: 0 0 100% !important;
+    }
+}
+
+/* ==========================================
+   Inventory 공통 레이아웃 및 반응형 처리
+========================================== */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.table-scroll,
+.app-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll .table,
+.app-table-scroll .table {
+    width: 100%;
+    min-width: 900px;
+    margin-bottom: 0;
+}
+
+.app-table-scroll .table th,
+.app-table-scroll .table td {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .page-actions-responsive .btn {
+        white-space: nowrap;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-header-responsive {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 16px;
+    }
+
+    .page-actions-responsive {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .page-actions-responsive .btn {
+        width: 100%;
+        font-size: 1rem;
+    }
+
+    .stock-filter-row {
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .stock-filter-row > div {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .stock-filter-row .btn {
+        white-space: nowrap;
+    }
+
+    .filter-row-responsive {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .filter-row-responsive > * {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .filter-row-responsive .btn {
+        width: 100%;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        word-break: keep-all;
+    }
+}

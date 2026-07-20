@@ -31,9 +31,9 @@ class MedicineForm(forms.ModelForm):
             "manufacturer",
             "box_image",
             "medicine_image",
-            "stock",
             "minimum_stock",
         )
+
 
         # 각 필드가 화면에 표시될 때 사용할 한글 이름을 지정한다.
         labels = {
@@ -41,7 +41,6 @@ class MedicineForm(forms.ModelForm):
             "manufacturer": "제조사",
             "box_image": "약 상자 이미지",
             "medicine_image": "약 이미지",
-            "stock": "현재 재고",
             "minimum_stock": "최소 재고",
         }
 
@@ -96,15 +95,28 @@ class InventoryTransactionForm(forms.ModelForm):
 
     # 폼이 생성될 때 의약품 목록의 정렬 방식과
     # Bootstrap 스타일을 추가하기 위해 초기화 메서드를 재정의한다.
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
 
         # ModelForm의 기본 초기화 과정을 먼저 실행한다.
         super().__init__(*args, **kwargs)
 
-        # medicine 필드는 ForeignKey를 기반으로 생성된 선택 필드이다.
-        # 선택 목록에 표시할 Medicine 객체들을 이름순으로 정렬한다.
-        self.fields["medicine"].queryset = (
-            Medicine.objects.order_by("name")
+        # pharmacy 인자가 전달되지 않으면 의약품 선택 목록을 비운다.
+        # 이렇게 하면 다른 약국의 의약품이 실수로 노출되는 것을 막을 수 있다.
+        if pharmacy is None:
+            self.fields["medicine"].queryset = Medicine.objects.none()
+
+        # 현재 로그인한 사용자의 약국 정보가 전달된 경우에는
+        # 해당 약국에 소속된 의약품만 이름과 제조사 순으로 조회한다.
+        else:
+            self.fields["medicine"].queryset = (
+                Medicine.objects
+                .filter(pharmacy=pharmacy)
+                .order_by("name", "manufacturer")
+            )
+
+        # 선택 목록에는 의약품명과 제조사를 함께 표시한다.
+        self.fields["medicine"].label_from_instance = (
+            lambda medicine: f"{medicine.name} ({medicine.manufacturer})"
         )
 
         # 폼에 포함된 모든 필드를 순회한다.
@@ -146,22 +158,28 @@ class PurchaseOrderForm(forms.ModelForm):
         }
 
     # 폼이 생성될 때 의약품 선택 목록과 위젯 스타일을 설정한다.
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
 
         # 부모 클래스인 ModelForm의 초기화 메서드를 먼저 실행한다.
         super().__init__(*args, **kwargs)
 
-        # medicine 선택 필드에 표시할 의약품 목록을
-        # 의약품 이름 기준 오름차순으로 정렬한다.
-        self.fields["medicine"].queryset = (
-            Medicine.objects.order_by("name")
-        )
+        # pharmacy 인자가 없으면 의약품 선택 목록을 비운다.
+        if pharmacy is None:
+            self.fields["medicine"].queryset = Medicine.objects.none()
+
+        # 현재 약국에 속한 의약품만 선택할 수 있도록 제한한다.
+        else:
+            self.fields["medicine"].queryset = (
+                Medicine.objects
+                .filter(pharmacy=pharmacy)
+                .order_by("name", "manufacturer")
+            )
 
         # ForeignKey 선택 항목의 화면 표시 방식을 직접 지정한다.
         # 기본적으로는 Medicine 모델의 __str__() 결과가 표시되지만,
         # 여기서는 각 항목에 의약품 이름만 표시하도록 명확하게 설정한다.
         self.fields["medicine"].label_from_instance = (
-            lambda medicine: medicine.name
+            lambda medicine: f"{medicine.name} ({medicine.manufacturer})"
         )
 
         # 폼에 포함된 모든 필드를 순회한다.

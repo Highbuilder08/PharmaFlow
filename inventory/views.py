@@ -24,6 +24,17 @@ from django.db.models import F, Q
 
 # 조회 결과를 여러 페이지로 나누기 위한 페이지네이션 기능이다.
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import F, Q
+from django.db.models.deletion import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
+# 승인된 약국 사용자만 inventory 기능에 접근할 수 있도록 검사하는 데코레이터이다.
+from .decorators import approved_pharmacy_required
+
+# 누가 어떤 작업을 수행했는지 기록하기 위한 감사 로그 모델이다.
+from consultations.models import AuditLog
 
 
 # Django가 기본으로 생성하는 안내 주석이다.
@@ -48,6 +59,7 @@ from .models import Medicine, InventoryTransaction, PurchaseOrder
 
 # 의약품 목록을 조회하고 검색, 재고 상태 필터,
 # 페이지네이션을 적용하여 화면에 표시하는 뷰이다.
+@approved_pharmacy_required
 def medicine_list(request):
 
     # 현재 로그인한 사용자가 소속된 약국의 의약품만 조회한다.
@@ -135,7 +147,12 @@ def medicine_list(request):
     return render(
         request,
         "inventory/medicine_list.html",
-        context,
+        {
+            "medicines": page_obj,
+            "page_obj": page_obj,
+            "query": query,
+            "stock_filter": stock_filter,
+        },
     )
 
 
@@ -146,6 +163,7 @@ def medicine_list(request):
 # 새로운 의약품을 등록하는 뷰이다.
 # GET 요청에서는 빈 폼을 보여주고,
 # POST 요청에서는 사용자가 입력한 내용을 검증하고 저장한다.
+@approved_pharmacy_required
 def medicine_create(request):
 
     # 폼 제출 요청인지 확인한다.
@@ -208,7 +226,11 @@ def medicine_create(request):
     return render(
         request,
         "inventory/medicine_form.html",
-        context,
+        {
+            "form": form,
+            "page_title": "의약품 등록",
+            "submit_text": "등록",
+        },
     )
 
 
@@ -218,6 +240,7 @@ def medicine_create(request):
 
 # 기존에 등록된 의약품 정보를 수정하는 뷰이다.
 # URL에서 전달받은 pk 값으로 수정 대상 의약품을 찾는다.
+@approved_pharmacy_required
 def medicine_update(request, pk):
 
     # 기본키가 pk와 일치하면서,
@@ -247,6 +270,14 @@ def medicine_update(request, pk):
 
             # 검증된 값으로 기존 Medicine 객체를 수정하여 저장한다.
             form.save()
+
+            # 누가 어떤 의약품 정보를 수정했는지 감사 로그에 기록한다.
+            AuditLog.objects.create(
+                user=request.user,
+                action="의약품 정보 수정",
+                target=f"Medicine #{medicine.pk}",
+                detail=medicine.name,
+            )
 
             # 수정 완료 메시지를 저장한다.
             messages.success(
@@ -278,7 +309,11 @@ def medicine_update(request, pk):
     return render(
         request,
         "inventory/medicine_form.html",
-        context,
+        {
+            "form": form,
+            "page_title": "의약품 수정",
+            "submit_text": "수정",
+        },
     )
 
 
@@ -287,6 +322,7 @@ def medicine_update(request, pk):
 # =========================================================
 
 # 특정 의약품의 상세 정보와 최근 입출고 내역을 보여주는 뷰이다.
+@approved_pharmacy_required
 def medicine_detail(request, pk):
 
     # 기본키와 현재 사용자의 약국 조건에 맞는 의약품을 조회한다.
@@ -311,7 +347,7 @@ def medicine_detail(request, pk):
         # 각 입출고 기록과 연결된 의약품을 함께 조회한다.
         # 현재는 이미 특정 medicine에서 역참조하고 있어
         # 필수적이지는 않지만, 템플릿 접근 시 추가 조회를 줄일 수 있다.
-        .select_related("medicine")
+        .select_related("created_by")
 
         # 연결된 모든 입출고 기록을 조회 대상으로 만든다.
         # InventoryTransaction의 Meta.ordering이 적용되어
@@ -333,7 +369,10 @@ def medicine_detail(request, pk):
     return render(
         request,
         "inventory/medicine_detail.html",
-        context,
+        {
+            "medicine": medicine,
+            "recent_transactions": recent_transactions,
+        },
     )
 
 
@@ -343,6 +382,7 @@ def medicine_detail(request, pk):
 
 # 특정 의약품의 삭제 확인 화면을 보여주고,
 # 사용자가 확인하면 실제 삭제를 수행하는 뷰이다.
+@approved_pharmacy_required
 def medicine_delete(request, pk):
 
     # 삭제 대상 의약품을 기본키와 현재 약국 조건으로 조회한다.
@@ -360,11 +400,30 @@ def medicine_delete(request, pk):
         # 객체를 삭제하기 전에 의약품명을 별도 변수에 저장한다.
         # delete() 실행 후에도 성공 메시지에서 이름을 사용하기 위함이다.
         medicine_name = medicine.name
+        medicine_pk = medicine.pk
 
         # 해당 의약품 객체를 데이터베이스에서 삭제한다.
         # 입출고 또는 발주 기록이 연결되어 있고
         # 외래키가 PROTECT로 설정되어 있다면 삭제가 제한될 수 있다.
-        medicine.delete()
+        try:
+            medicine.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                "입출고 또는 발주 기록이 있는 의약품은 삭제할 수 없습니다.",
+            )
+            return redirect(
+                "inventory:medicine_detail",
+                pk=medicine.pk,
+            )
+
+        # 누가 어떤 의약품을 삭제했는지 감사 로그에 기록한다.
+        AuditLog.objects.create(
+            user=request.user,
+            action="의약품 삭제",
+            target=f"Medicine #{medicine_pk}",
+            detail=medicine_name,
+        )
 
         # 삭제 완료 메시지를 저장한다.
         messages.success(
@@ -380,9 +439,7 @@ def medicine_delete(request, pk):
     return render(
         request,
         "inventory/medicine_confirm_delete.html",
-        {
-            "medicine": medicine,
-        },
+        {"medicine": medicine},
     )
 
 
@@ -404,6 +461,7 @@ def medicine_delete(request, pk):
 
 # 현재 로그인한 사용자의 약국에서 발생한 입출고 내역을 조회하고,
 # 검색, 입고·출고 필터, 페이지네이션을 적용하여 화면에 표시하는 뷰이다.
+@approved_pharmacy_required
 def transaction_list(request):
 
     # 현재 로그인한 사용자가 소속된 약국의 입출고 내역만 조회한다.
@@ -475,9 +533,7 @@ def transaction_list(request):
         # 문자열 "IN"을 직접 작성하는 대신
         # 모델에 정의된 TextChoices 값을 사용한다.
         transactions = transactions.filter(
-            transaction_type=(
-                InventoryTransaction.TransactionType.IN
-            )
+            transaction_type=InventoryTransaction.TransactionType.IN,
         )
 
     # 사용자가 출고 내역 필터를 선택한 경우 실행한다.
@@ -485,9 +541,7 @@ def transaction_list(request):
 
         # transaction_type 값이 OUT인 입출고 내역만 조회한다.
         transactions = transactions.filter(
-            transaction_type=(
-                InventoryTransaction.TransactionType.OUT
-            )
+            transaction_type=InventoryTransaction.TransactionType.OUT,
         )
 
     # 검색 및 필터가 적용된 입출고 내역을
@@ -526,7 +580,12 @@ def transaction_list(request):
     return render(
         request,
         "inventory/transaction_list.html",
-        context,
+        {
+            "transactions": page_obj,
+            "page_obj": page_obj,
+            "query": query,
+            "transaction_filter": transaction_filter,
+        },
     )
 
 
@@ -539,6 +598,7 @@ def transaction_list(request):
 #
 # GET 요청에서는 빈 입력 폼을 보여주고,
 # POST 요청에서는 입력값 검증, 재고 변경, 입출고 기록 생성을 처리한다.
+@approved_pharmacy_required
 def transaction_create(request):
 
     # 사용자가 입출고 등록 폼을 제출한 경우 실행한다.
@@ -546,7 +606,10 @@ def transaction_create(request):
 
         # POST 요청으로 전달된 입력값을 사용해
         # 입출고 등록 폼 객체를 생성한다.
-        form = InventoryTransactionForm(request.POST)
+        form = InventoryTransactionForm(
+            request.POST,
+            pharmacy=request.user.pharmacy,
+        )
 
         # 모델 필드 형식, 필수값, 최소 수량 등의
         # 유효성 검사를 통과했는지 확인한다.
@@ -592,7 +655,10 @@ def transaction_create(request):
                     .select_for_update()
 
                     # 사용자가 선택한 의약품의 기본키로 객체를 가져온다.
-                    .get(pk=medicine_id)
+                    .get(
+                        pk=medicine_id,
+                        pharmacy=request.user.pharmacy,
+                    )
                 )
 
                 # 출고 요청인 동시에 현재 재고보다 출고 수량이 큰지 검사한다.
@@ -698,7 +764,9 @@ def transaction_create(request):
     else:
 
         # 아무 입력값도 없는 빈 입출고 등록 폼을 생성한다.
-        form = InventoryTransactionForm()
+        form = InventoryTransactionForm(
+            pharmacy=request.user.pharmacy,
+        )
 
     # 의약품 기본키와 현재 재고를 키-값 형태로 구성한다.
     #
@@ -718,7 +786,9 @@ def transaction_create(request):
 
         # 등록된 모든 의약품을 순회하면서
         # 각 의약품의 기본키와 현재 재고를 딕셔너리에 저장한다.
-        for medicine in Medicine.objects.all()
+        for medicine in Medicine.objects.filter(
+            pharmacy=request.user.pharmacy,
+        )
     }
 
     # 입출고 등록 템플릿으로 전달할 데이터를 구성한다.
@@ -741,7 +811,12 @@ def transaction_create(request):
     return render(
         request,
         "inventory/transaction_form.html",
-        context,
+        {
+            "form": form,
+            "page_title": "입출고 등록",
+            "submit_text": "등록",
+            "medicine_stocks": medicine_stocks,
+        },
     )
 
 
@@ -764,6 +839,7 @@ def transaction_create(request):
 
 # 현재 로그인한 사용자의 약국에 등록된 발주 내역을 조회하고,
 # 페이지네이션을 적용하여 목록 화면에 표시하는 뷰이다.
+@approved_pharmacy_required
 def purchase_order_list(request):
 
     # 현재 사용자의 약국과 연결된 의약품에 대한 발주 내역만 조회한다.
@@ -789,6 +865,8 @@ def purchase_order_list(request):
             "medicine",
             "ordered_by",
         )
+        .select_related("medicine", "ordered_by")
+        .order_by("-created_at")
     )
 
     # 조회된 발주 목록을 한 페이지당 10개씩 나눈다.
@@ -822,7 +900,7 @@ def purchase_order_list(request):
             # 현재 페이지 번호, 전체 페이지 수,
             # 이전·다음 페이지 여부 등을 사용하기 위해 전달한다.
             "page_obj": page_obj,
-        }
+        },
     )
 
 
@@ -834,6 +912,7 @@ def purchase_order_list(request):
 #
 # GET 요청에서는 빈 발주 폼을 보여주고,
 # POST 요청에서는 사용자가 입력한 값을 검증한 뒤 발주 내역을 저장한다.
+@approved_pharmacy_required
 def purchase_order_create(request):
 
     # 사용자가 발주 등록 폼을 제출한 경우 실행한다.
@@ -841,13 +920,18 @@ def purchase_order_create(request):
 
         # POST 요청으로 전달된 입력값을 사용해
         # PurchaseOrderForm 객체를 생성한다.
-        form = PurchaseOrderForm(request.POST)
+        form = PurchaseOrderForm(
+            request.POST,
+            pharmacy=request.user.pharmacy,
+        )
 
     # 처음 발주 등록 페이지에 접근한 GET 요청인 경우 실행한다.
     else:
 
         # 아무 데이터도 입력되지 않은 빈 발주 폼을 생성한다.
-        form = PurchaseOrderForm()
+        form = PurchaseOrderForm(
+            pharmacy=request.user.pharmacy,
+        )
 
     # 현재 로그인한 사용자가 소속된 약국의 의약품만 조회한다.
     medicines = (
@@ -946,7 +1030,10 @@ def purchase_order_create(request):
     return render(
         request,
         "inventory/purchase_order_form.html",
-        context,
+        {
+            "form": form,
+            "medicine_data": medicine_data,
+        },
     )
 
 
@@ -958,6 +1045,7 @@ def purchase_order_create(request):
 #
 # 이 단계는 시스템에 등록된 발주 요청을
 # 실제 공급업체에 주문한 상태로 변경하는 역할을 한다.
+@approved_pharmacy_required
 def purchase_order_mark_ordered(request, pk):
 
     # URL로 전달받은 기본키와 현재 사용자의 약국 조건에 맞는
@@ -1033,6 +1121,7 @@ def purchase_order_mark_ordered(request, pk):
 # 1. 입고 내역 생성
 # 2. 의약품 현재 재고 증가
 # 3. 발주 상태와 입고 완료 시각 변경
+@approved_pharmacy_required
 def purchase_order_receive(request, pk):
 
     # 기본키와 현재 사용자의 약국 조건에 맞는 발주 내역을 조회한다.
@@ -1175,6 +1264,7 @@ def purchase_order_receive(request, pk):
 #
 # 이미 입고가 완료된 발주는 재고까지 반영되었으므로 취소할 수 없고,
 # 이미 취소된 발주 역시 중복 취소할 수 없다.
+@approved_pharmacy_required
 def purchase_order_cancel(request, pk):
 
     # 기본키와 현재 사용자의 약국 조건에 맞는 발주를 조회한다.

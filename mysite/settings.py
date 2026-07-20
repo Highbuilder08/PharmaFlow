@@ -1,3 +1,8 @@
+# ==================================================
+# 파일 역할: PharmaFlow 프로젝트의 앱, 데이터베이스, 보안, 정적·미디어 파일 설정 모듈
+# 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
+# ==================================================
+
 import os
 from pathlib import Path
 
@@ -10,13 +15,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 운영 서버:
 # /etc/pharmaflow/pharmaflow.env의 DJANGO_SECRET_KEY 사용
-#
+
+# 건강보험심사평가워(API 인증 기관)
+# https://www.data.go.kr/iim/api/selectApiKeyList.do
+
+# SECRET_KEY 발급 명령어
+# python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+# 환경변수 + DB 계정 연동 설정값
+# sudo vim /etc/pharmaflow/pharmaflow.env
+
+# 시스템 리로드
+# sudo systemctl daemon-reload
+# sudo systemctl restart pharmaflow
+
 # 개발 환경:
 # 환경변수가 없으면 아래 개발용 키 사용
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    ("django-insecure-" "pharmaflow-development-secret-key-only"),
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+
+# 개발 환경에서는 임시 키를 허용하지만 운영 환경에서는 필수입니다.
+if not SECRET_KEY:
+    if os.environ.get("DJANGO_DEBUG", "False").lower() == "true":
+        SECRET_KEY = "django-insecure-development-only-change-me"
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY 환경변수가 필요합니다.")
 
 # 운영 서버의 EnvironmentFile:
 # DJANGO_DEBUG=False
@@ -26,7 +48,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = (
     os.environ.get(
         "DJANGO_DEBUG",
-        "True",
+        "False",
     ).lower()
     == "true"
 )
@@ -55,7 +77,6 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
     "core.apps.CoreConfig",
     "inventory.apps.InventoryConfig",
-    "prescriptions.apps.PrescriptionsConfig",
     "consultations.apps.ConsultationsConfig",
 ]
 
@@ -117,19 +138,19 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.environ.get(
             "DB_NAME",
-            "pharmaflow", # DB 이름
+            "pharmaflow",
         ),
         "USER": os.environ.get(
             "DB_USER",
-            "pharmaflow", # DB '사용자' 이름
+            "pharmaflow",
         ),
         "PASSWORD": os.environ.get(
             "DB_PASSWORD",
-            "", # 환경변수에서만 읽음
+            "",
         ),
         "HOST": os.environ.get(
             "DB_HOST",
-            "192.168.32.77", # DB 서버 주소
+            "192.168.32.77",
         ),
         "PORT": os.environ.get(
             "DB_PORT",
@@ -205,10 +226,16 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 
+# 여기서 MEDIA_ROOT는 "사용자가 올린 파일(사진, 첨부파일 등)을 실제로 저장하는 폴더"를 의미합니다.
+#
 # 현재 개발 환경에서는 프로젝트 내부의 media 폴더를 사용합니다.
 #
 # 프로젝트 경로
 # /home/tester/djangowork/PharmaFlow
+#
+# NFS(Network File System)란: 여러 서버가 인터넷(사내망)으로 하나의 폴더를 공유해서 쓰는 방식입니다.
+# 웹 서버(Server1)가 이 media 폴더 자리에 NFS 서버의 공유 폴더를 "마운트(연결)"하면,
+# 실제 파일은 NFS 서버에 저장되지만 Server1 입장에서는 그냥 로컬 폴더처럼 보이게 됩니다.
 #
 # NFS 서버 연동이 완료되면 Server1에서 아래 경로에
 # NFS 공유 폴더를 마운트할 예정입니다.
@@ -228,12 +255,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 # NFS 연동 예정 (참고용 메모)
 # ==================================================
 
-# ※ 아래 내용은 settings.py에서 실행되는 코드가 아닙니다.
+# ※ 아래 내용은 settings.py에서 실행되는 코드가 아닙니다. (파이썬 코드 X, 그냥 메모입니다)
+# ※ 서버 컴퓨터의 터미널(명령 프롬프트)에 직접 입력하는 명령어들을 적어놓은 것입니다.
 # ※ 팀원의 NFS 서버 구축이 완료된 후 Server1에서 실행합니다.
 
 # --------------------------------------------------
 # 1. NFS 클라이언트 설치
 # --------------------------------------------------
+# Server1이 NFS 서버에 접속할 수 있도록 필요한 프로그램을 설치하는 단계
 #
 # sudo apt update
 # sudo apt install nfs-common -y
@@ -242,6 +271,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 2. media 폴더 생성
 # --------------------------------------------------
+# NFS 공유 폴더를 연결(마운트)할 빈 폴더를 미리 만들어두는 단계
 #
 # mkdir -p /home/tester/djangowork/PharmaFlow/media
 
@@ -249,6 +279,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 3. NFS 서버 공유 확인
 # --------------------------------------------------
+# NFS 서버가 어떤 폴더를 공유하고 있는지 확인해보는 단계
 #
 # showmount -e 192.168.32.23
 #
@@ -262,6 +293,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 4. NFS 수동 마운트
 # --------------------------------------------------
+# NFS 서버의 공유 폴더를 Server1의 media 폴더 자리에 실제로 연결하는 단계
 #
 # sudo mount -t nfs \
 # 192.168.32.23:/srv/nfs/pharmaflow_media \
@@ -271,6 +303,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 5. 마운트 확인
 # --------------------------------------------------
+# 방금 연결(마운트)이 잘 되었는지 확인하는 단계
 #
 # mount | grep pharmaflow_media
 #
@@ -282,6 +315,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 6. 테스트 파일 생성
 # --------------------------------------------------
+# 테스트 파일을 하나 만들어서, 정말 NFS 서버 쪽에 저장되는지 확인해보는 단계
 #
 # touch /home/tester/djangowork/PharmaFlow/media/nfs_test.txt
 #
@@ -291,6 +325,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 7. 테스트 파일 삭제
 # --------------------------------------------------
+# 확인용으로 만들었던 테스트 파일을 지우는 단계 (실제 서비스에는 필요 없는 파일이므로)
 #
 # rm /home/tester/djangowork/PharmaFlow/media/nfs_test.txt
 
@@ -298,6 +333,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 # --------------------------------------------------
 # 8. 재부팅 후 자동 마운트
 # --------------------------------------------------
+# 서버를 껐다 켜도 매번 4번 명령어를 다시 입력하지 않도록,
+# "컴퓨터가 켜질 때 자동으로 마운트해라"라고 설정 파일에 등록하는 단계
 #
 # sudo nano /etc/fstab
 #
@@ -313,6 +350,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ==================================================
 # Nginx 설정 예정
 # ==================================================
+# Nginx(웹 서버)가 사용자 브라우저의 /media/ 요청을 받으면,
+# 실제로는 이 media 폴더(=NFS 공유 폴더)에서 파일을 찾아 보내주도록 알려주는 설정입니다.
 #
 # server 블록 안에 추가
 #
@@ -373,4 +412,74 @@ HIRA_SERVICE_KEY = os.environ.get(
 # SECURE_HSTS_PRELOAD = False
 
 
+# 운영 환경 보안 기본값
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ==================================================
+# 로그
+# ==================================================
+
+# 운영 서버:
+# EnvironmentFile에 LOG_DIR 설정 (예: /var/log/pharmaflow)
+#
+# 개발 환경:
+# 환경변수가 없으면 프로젝트 폴더 안의 logs/ 사용
+LOG_DIR = Path(os.environ.get("LOG_DIR", BASE_DIR / "logs"))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# 실제로 로그 파일을 잘라내고(rotate) 압축·삭제하는 작업은
+# 이 settings.py가 아니라 서버의 logrotate가 담당합니다.
+# (gunicorn은 여러 워커 프로세스가 동시에 같은 로그 파일에 쓰기 때문에,
+#  각 프로세스가 각자 파일 크기를 보고 회전을 시도하면 로그가 깨질 수 있습니다.
+#  그래서 Django 쪽은 파일에 쓰기만 하고, WatchedFileHandler로
+#  logrotate가 파일 이름을 바꿔치기했을 때 자동으로 새 파일을 다시 여는 역할만 합니다.)
+LOGGING = {
+    "version": 1,  # 이 로깅 설정 형식의 버전 번호 (Django에서 항상 1로 고정)
+    "disable_existing_loggers": False,  # Django가 원래 갖고 있던 다른 로그 설정을 끄지 않고 그대로 둠
+
+    # formatters: 로그 한 줄을 어떤 모양으로 찍을지 정하는 곳
+    "formatters": {
+        "verbose": {
+            # 예: [2026-07-20 12:00:00] INFO django.request: 에러 내용
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+
+    # handlers: 로그를 "어디에" 남길지 정하는 곳 (화면 / 파일 등)
+    "handlers": {
+        "console": {  # 터미널 화면에 바로 출력
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {  # logs/django.log 파일에 기록
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": LOG_DIR / "django.log",
+            "formatter": "verbose",
+        },
+    },
+
+    # root: 별도로 지정하지 않은 나머지 모든 로그가 기본으로 사용하는 설정
+    "root": {
+        "handlers": ["console", "file"],  # 화면과 파일에 동시에 기록
+        "level": os.environ.get("LOG_LEVEL", "INFO"),  # 이 등급 이상만 기록 (기본: INFO)
+    },
+
+    # loggers: 특정 이름의 로그만 따로 다르게 다루고 싶을 때 사용
+    "loggers": {
+        # 페이지 처리 중 발생한 500 에러 등을 별도로 크게 남김
+        "django.request": {
+            "handlers": ["console", "file"],
+            "level": "ERROR",  # ERROR 이상(진짜 문제인 것)만 기록
+            "propagate": False,  # root로 또 전달해서 중복 기록되지 않게 함
+        },
+    },
+}
