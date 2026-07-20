@@ -30,7 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # sudo systemctl restart pharmaflow
 
 # 개발 환경:
-# 환경변수가 없으면 아래 개발용 키 사용
+# 환경변수 적용중
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 
 # 개발 환경에서는 임시 키를 허용하지만 운영 환경에서는 필수입니다.
@@ -132,7 +132,7 @@ WSGI_APPLICATION = "mysite.wsgi.application"
 # EnvironmentFile에 설정된 DB_* 값을 사용
 #
 # 개발 환경:
-# 환경변수가 없으면 아래 기본값 사용
+# 환경변수 적용중
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -387,7 +387,7 @@ LOGOUT_REDIRECT_URL = "/"
 # EnvironmentFile에 HIRA_SERVICE_KEY 설정
 #
 # 개발 환경:
-# 필요한 팀원은 직접 환경변수 설정
+# 필요한 팀원은 직접 환경변수 적용중
 HIRA_SERVICE_KEY = os.environ.get(
     "HIRA_SERVICE_KEY",
     "",
@@ -444,7 +444,6 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOGGING = {
     "version": 1,  # 이 로깅 설정 형식의 버전 번호 (Django에서 항상 1로 고정)
     "disable_existing_loggers": False,  # Django가 원래 갖고 있던 다른 로그 설정을 끄지 않고 그대로 둠
-
     # formatters: 로그 한 줄을 어떤 모양으로 찍을지 정하는 곳
     "formatters": {
         "verbose": {
@@ -453,7 +452,6 @@ LOGGING = {
             "style": "{",
         },
     },
-
     # handlers: 로그를 "어디에" 남길지 정하는 곳 (화면 / 파일 등)
     "handlers": {
         "console": {  # 터미널 화면에 바로 출력
@@ -466,13 +464,13 @@ LOGGING = {
             "formatter": "verbose",
         },
     },
-
     # root: 별도로 지정하지 않은 나머지 모든 로그가 기본으로 사용하는 설정
     "root": {
         "handlers": ["console", "file"],  # 화면과 파일에 동시에 기록
-        "level": os.environ.get("LOG_LEVEL", "INFO"),  # 이 등급 이상만 기록 (기본: INFO)
+        "level": os.environ.get(
+            "LOG_LEVEL", "INFO"
+        ),  # 이 등급 이상만 기록 (기본: INFO)
     },
-
     # loggers: 특정 이름의 로그만 따로 다르게 다루고 싶을 때 사용
     "loggers": {
         # 페이지 처리 중 발생한 500 에러 등을 별도로 크게 남김
