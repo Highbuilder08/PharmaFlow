@@ -48,7 +48,7 @@
 # journald는 로그가 무한정 쌓이지 않도록 자체적으로 오래된 것을 지워주는데
 # (vacuuming), 보관 용량/기간을 직접 정하고 싶으면 아래처럼 설정합니다.
 #
-#   sudo nano /etc/systemd/journald.conf
+#   sudo vim /etc/systemd/journald.conf
 #   [Journal]
 #   SystemMaxUse=500M
 #   MaxRetentionSec=14day
