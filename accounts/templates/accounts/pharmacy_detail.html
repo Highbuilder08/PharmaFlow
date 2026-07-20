@@ -1,9 +1,16 @@
+{# ================================================== #}
+{# 파일 역할: 사용자의 소속 약국 정보와 지도 위치를 보여주는 상세 화면 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 
+{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 약국 정보 | PharmaFlow
 {% endblock %}
 
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <link
@@ -19,6 +26,7 @@
                 약국 정보
             </h2>
 
+            {# 조건에 따라 필요한 화면 요소만 표시한다. #}
             {% if can_edit %}
                 <a
                     href="{% url 'accounts:pharmacy_update' %}"
@@ -130,6 +138,7 @@
 
                     {% if pharmacy and pharmacy.latitude and pharmacy.longitude %}
                         <div
+                            {# 약국 위치 정보가 있을 때 지도를 표시할 영역이다. #}
                             id="pharmacy-map"
                             class="mt-4"
                             style="height: 320px;"
@@ -151,11 +160,13 @@
 </div>
 
 {% if pharmacy and pharmacy.latitude and pharmacy.longitude %}
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 ></script>
 
 <script>
+    {# 서버에서 전달한 위도와 경도로 Leaflet 지도와 마커를 생성한다. #}
     const latitude = Number(
         "{{ pharmacy.latitude|escapejs }}"
     );

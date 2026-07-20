@@ -1,10 +1,17 @@
+{# ================================================== #}
+{# 파일 역할: 공지, 최근 게시글, 달력 메모와 관리자 요약 정보를 보여주는 메인 화면 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 {% load static %}
 
+{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 메인 | PharmaFlow
 {% endblock %}
 
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <style>
@@ -497,6 +504,7 @@
 
 <div class="py-4">
 
+    {# 조건에 따라 필요한 화면 요소만 표시한다. #}
     {% if user.is_authenticated %}
 
         <!-- 상단 3열 대시보드 -->
@@ -527,6 +535,7 @@
 
                     <div class="pt-4">
 
+                        {# 시스템 관리자에게만 운영 현황 요약 카드를 표시한다. #}
                         {% if user.is_superuser %}
 
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -642,6 +651,7 @@
 
                                 <div class="table-responsive dashboard-table-scroll has-items">
 
+                                    {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
                                     <table class="table table-sm align-middle inventory-table mb-0">
 
                                         <thead class="table-light">
@@ -654,6 +664,7 @@
 
                                         <tbody>
 
+                                            {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                                             {% for ownership_request in recent_ownership_requests %}
 
                                                 <tr>
@@ -880,6 +891,7 @@
 
                             <button
                                 type="button"
+                                {# 사용자별 날짜 메모를 조회하고 저장하는 달력 UI 영역이다. #}
                                 id="calendar-prev"
                                 class="btn btn-outline-secondary btn-sm"
                                 aria-label="이전 달"
@@ -1104,6 +1116,7 @@
                                         </div>
                                     </a>
 
+                                {# 반복할 데이터가 없을 때 안내 문구를 표시한다. #}
                                 {% empty %}
 
                                     <div class="list-group-item text-center text-muted py-4">
@@ -1561,6 +1574,7 @@
 
 </div>
 
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const $ = (id) => document.getElementById(id);

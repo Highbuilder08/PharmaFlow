@@ -1,8 +1,15 @@
+{# ================================================== #}
+{# 파일 역할: 점주 또는 관리 권한자가 소속 사용자 승인 상태를 관리하는 화면 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 
+{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 직원 관리 | PharmaFlow
 
+{# 조건에 따라 필요한 화면 요소만 표시한다. #}
 {% if users.has_other_pages %}
 
     <nav
@@ -34,6 +41,7 @@
             </li>
 
             <!-- 페이지 번호 -->
+            {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
             {% for page_number in custom_page_range %}
 
                 {% if users.number == page_number %}
@@ -92,6 +100,7 @@
 
 {% endblock %}
 
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -117,6 +126,7 @@
     <div class="card-body">
         <div class="table-responsive">
 
+            {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-success">
                     <tr>
@@ -160,12 +170,14 @@
                                 {% if request.user.role == "OWNER" %}
 
                                     {% if account.is_approved %}
+                                        {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
                                         <form
                                             method="post"
                                             action="{% url 'accounts:user_revoke' account.pk %}"
                                             class="d-inline"
                                             onsubmit="return confirm('이 사용자의 승인을 취소하시겠습니까?');"
                                         >
+                                            {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
                                             {% csrf_token %}
 
                                             <button
@@ -224,6 +236,7 @@
                             </td>
                         </tr>
 
+                    {# 반복할 데이터가 없을 때 안내 문구를 표시한다. #}
                     {% empty %}
                         <tr>
                             <td

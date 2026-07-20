@@ -1,9 +1,17 @@
+{# ================================================== #}
+{# 파일 역할: 현재 사용자의 프로필, 승인 상태, 정보 수정과 계정 해지 기능을 제공하는 화면 #}
+{# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
+{# ================================================== #}
+{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 
+{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 마이페이지 | PharmaFlow
 
+{# 조건에 따라 필요한 화면 요소만 표시한다. #}
 {% if open_deactivate_modal %}
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
 document.addEventListener(
     "DOMContentLoaded",
@@ -32,6 +40,7 @@ document.addEventListener(
 
 {% endblock %}
 
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
 
 <div class="row justify-content-center">
@@ -191,6 +200,7 @@ document.addEventListener(
 
 <div
     class="modal fade"
+    {# 개인정보 수정 전에 현재 비밀번호를 확인하는 모달이다. #}
     id="passwordConfirmModal"
     tabindex="-1"
     aria-labelledby="passwordConfirmModalLabel"
@@ -199,10 +209,12 @@ document.addEventListener(
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
 
+            {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
             <form
                 method="post"
                 action="{% url 'accounts:my_page_verify_password' %}"
             >
+                {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
                 {% csrf_token %}
 
                 <div class="modal-header">
@@ -238,6 +250,7 @@ document.addEventListener(
 
                     {{ password_form.password }}
 
+                    {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
                     {% for error in password_form.password.errors %}
                         <div class="text-danger small mt-1">
                             {{ error }}
@@ -276,6 +289,7 @@ document.addEventListener(
 
 <div
     class="modal fade"
+    {# 현재 비밀번호와 확인 체크를 받아 계정을 비활성화하는 모달이다. #}
     id="accountDeactivateModal"
     tabindex="-1"
     aria-labelledby="accountDeactivateModalLabel"
