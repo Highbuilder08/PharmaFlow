@@ -834,12 +834,12 @@
                                                     </td>
 
                                                     <td class="text-center">
-                                                        {{ medicine.stock_quantity }}개
+                                                        {{ medicine.stock }}개
                                                     </td>
 
                                                     <td class="text-center">
 
-                                                        {% if medicine.stock_quantity <= medicine.minimum_stock %}
+                                                        {% if medicine.stock <= medicine.minimum_stock %}
                                                             <span class="badge bg-danger">
                                                                 재고 부족
                                                             </span>
@@ -1574,6 +1574,10 @@
 
 </div>
 
+<div id="calendar-csrf-token" class="d-none">
+    {% csrf_token %}
+</div>
+
 {# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -1603,11 +1607,11 @@ document.addEventListener("DOMContentLoaded", function () {
     let selectedExists = false;
 
     function csrfToken() {
-        for (const item of document.cookie.split(";")) {
-            const cookie = item.trim();
-            if (cookie.startsWith("csrftoken=")) return decodeURIComponent(cookie.slice(10));
-        }
-        return "";
+        const tokenInput = document.querySelector(
+            "#calendar-csrf-token input[name='csrfmiddlewaretoken']"
+        );
+
+        return tokenInput ? tokenInput.value : "";
     }
 
     function dateKey(date) {
@@ -1652,10 +1656,26 @@ document.addEventListener("DOMContentLoaded", function () {
         if (button) button.classList.add("selected");
     }
 
+    // API가 HTML 오류 페이지를 반환해도 JSON.parse 오류 문구를 그대로 노출하지 않고
+    // 사용자에게 이해하기 쉬운 메시지를 전달한다.
+    async function readJsonResponse(response) {
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+            throw new Error(
+                response.status === 403
+                    ? "보안 토큰이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요."
+                    : "서버 응답 형식이 올바르지 않습니다. 잠시 후 다시 시도해 주세요."
+            );
+        }
+
+        return response.json();
+    }
+
     async function loadMemoDates() {
         try {
             const response = await fetch(`{% url 'core:calendar_memo_dates' %}?year=${year}&month=${month+1}`, {headers:{"X-Requested-With":"XMLHttpRequest"}});
-            const data = await response.json();
+            const data = await readJsonResponse(response);
             if (!response.ok || !data.success) throw new Error(data.message || "메모 날짜를 불러오지 못했습니다.");
             memoDates = new Set(data.dates);
         } catch (error) {
@@ -1678,7 +1698,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             const response = await fetch(`{% url 'core:calendar_memo_detail' %}?date=${encodeURIComponent(selectedKey)}`, {headers:{"X-Requested-With":"XMLHttpRequest"}});
-            const data = await response.json();
+            const data = await readJsonResponse(response);
             if (!response.ok || !data.success) throw new Error(data.message || "메모를 불러오지 못했습니다.");
             memoContent.value = data.content;
             selectedExists = data.exists;
@@ -1732,10 +1752,11 @@ document.addEventListener("DOMContentLoaded", function () {
     async function saveMemo(content) {
         const response = await fetch("{% url 'core:calendar_memo_save' %}", {
             method:"POST",
+            credentials:"same-origin",
             headers:{"Content-Type":"application/json", "X-CSRFToken":csrfToken(), "X-Requested-With":"XMLHttpRequest"},
             body:JSON.stringify({date:memoDate.value, content})
         });
-        const data = await response.json();
+        const data = await readJsonResponse(response);
         if (!response.ok || !data.success) throw new Error(data.message || "메모 처리에 실패했습니다.");
         return data;
     }

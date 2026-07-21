@@ -8,9 +8,11 @@ import json
 from datetime import datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from accounts.models import (
@@ -19,11 +21,13 @@ from accounts.models import (
     User,
 )
 from consultations.models import Consultation
+from inventory.models import Medicine
 
 from .models import CalendarMemo
 
 
 # -------------------- 메인 화면: 메인 화면에 공지, 최근 게시글과 관리자용 요약 정보를 전달한다. --------------------
+@ensure_csrf_cookie
 def index(request):
     notices = (
         Consultation.objects.filter(tag="NOTICE")
@@ -82,6 +86,27 @@ def index(request):
                     )
                     .order_by("-created_at")[:5]
                 ),
+            },
+        )
+
+    # 일반 사용자는 본인이 소속된 약국의 재고 요약을 확인한다.
+    elif request.user.is_authenticated and request.user.pharmacy_id:
+        medicines = Medicine.objects.filter(pharmacy_id=request.user.pharmacy_id)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+
+        context.update(
+            {
+                "inventory_total": medicines.count(),
+                "low_stock_count": medicines.filter(
+                    stock__lte=F("minimum_stock"),
+                ).count(),
+                "normal_stock_count": medicines.filter(
+                    stock__gt=F("minimum_stock"),
+                ).count(),
+                "recently_updated_count": medicines.filter(
+                    updated_at__gte=seven_days_ago,
+                ).count(),
+                "recent_medicines": medicines.order_by("-updated_at")[:5],
             },
         )
 
