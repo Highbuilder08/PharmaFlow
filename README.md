@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./static/images/logo.png" width="170" alt="PharmaFlow Logo">
+  <img src="./images/logo.png" width="170" alt="PharmaFlow Logo">
 </p>
 
 <h1 align="center">PharmaFlow</h1>
