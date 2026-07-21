@@ -162,12 +162,15 @@ class CustomUserAdmin(UserAdmin):
     # approve_users 기능을 처리한다.
     @admin.action(description="선택한 사용자를 승인")
     def approve_users(self, request, queryset):
-        updated = queryset.update(is_approved=True)
-        
+        # 점주는 사업자 정보 검증이 필요하므로 점주 권한 신청 메뉴에서만 승인한다.
+        target = queryset.exclude(role=User.Role.OWNER)
+        updated = target.update(is_approved=True)
+        skipped = queryset.filter(role=User.Role.OWNER).count()
+
         self.message_user(
             request,
-            f"{updated}명의 사용자를 승인했습니다.",
-            )
+            f"{updated}명의 사용자를 승인했습니다. 점주 {skipped}명은 별도 승인 대상입니다.",
+        )
     
     # cancel_approval 기능을 처리한다.
     @admin.action(description="선택한 사용자의 승인을 취소")
@@ -242,9 +245,17 @@ class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
                 user.save(update_fields=["role", "pharmacy", "is_approved"])
 
                 pharmacy.business_number = business_number
+                pharmacy.business_name = ownership_request.business_name.strip()
                 if not pharmacy.owner_name:
                     pharmacy.owner_name = user.name
-                pharmacy.save(update_fields=["business_number", "owner_name", "updated_at"])
+                pharmacy.save(
+                    update_fields=[
+                        "business_number",
+                        "business_name",
+                        "owner_name",
+                        "updated_at",
+                    ]
+                )
                 approved_count += 1
 
         self.message_user(
@@ -255,12 +266,15 @@ class PharmacyOwnershipRequestAdmin(admin.ModelAdmin):
     # reject_requests 기능을 처리한다.
     @admin.action(description="선택한 점주 신청 거절")
     def reject_requests(self, request, queryset):
-        updated = queryset.filter(
+        pending = queryset.filter(
             status=PharmacyOwnershipRequest.Status.PENDING,
-        ).update(
+        )
+        user_ids = list(pending.values_list("user_id", flat=True))
+        updated = pending.update(
             status=PharmacyOwnershipRequest.Status.REJECTED,
             processed_at=timezone.now(),
         )
+        User.objects.filter(pk__in=user_ids).update(is_approved=False)
 
         self.message_user(
             request,

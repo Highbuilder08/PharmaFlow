@@ -8,96 +8,6 @@
 {# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 직원 관리 | PharmaFlow
-
-{# 조건에 따라 필요한 화면 요소만 표시한다. #}
-{% if users.has_other_pages %}
-
-    <nav
-        class="d-flex justify-content-center mt-4"
-        aria-label="직원 관리 페이지"
-    >
-        <ul class="pagination shadow-sm mb-0">
-
-            {# 첫 페이지 #}
-            <li class="page-item {% if users.number == 1 %}disabled{% endif %}">
-                <a
-                    class="page-link text-success"
-                    href="?page=1"
-                    aria-label="첫 페이지"
-                >
-                    &laquo;
-                </a>
-            </li>
-
-            {# 이전 5개 페이지 #}
-            <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
-                <a
-                    class="page-link text-success"
-                    href="{% if has_prev_block %}?page={{ prev_block_page }}{% else %}#{% endif %}"
-                    aria-label="이전 페이지 묶음"
-                >
-                    &lsaquo;
-                </a>
-            </li>
-
-            {# 페이지 번호 #}
-            {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
-            {% for page_number in custom_page_range %}
-
-                {% if users.number == page_number %}
-
-                    <li
-                        class="page-item active"
-                        aria-current="page"
-                    >
-                        <span class="page-link bg-success border-success text-white">
-                            {{ page_number }}
-                        </span>
-                    </li>
-
-                {% else %}
-
-                    <li class="page-item">
-                        <a
-                            class="page-link text-success"
-                            href="?page={{ page_number }}"
-                        >
-                            {{ page_number }}
-                        </a>
-                    </li>
-
-                {% endif %}
-
-            {% endfor %}
-
-            {# 다음 5개 페이지 #}
-            <li class="page-item {% if not has_next_block %}disabled{% endif %}">
-                <a
-                    class="page-link text-success"
-                    href="{% if has_next_block %}?page={{ next_block_page }}{% else %}#{% endif %}"
-                    aria-label="다음 페이지 묶음"
-                >
-                    &rsaquo;
-                </a>
-            </li>
-
-            {# 마지막 페이지 #}
-            <li class="page-item {% if users.number == last_page %}disabled{% endif %}">
-                <a
-                    class="page-link text-success"
-                    href="?page={{ last_page }}"
-                    aria-label="마지막 페이지"
-                >
-                    &raquo;
-                </a>
-            </li>
-
-        </ul>
-    </nav>
-
-{% endif %}
-
-
 {% endblock %}
 
 {# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
@@ -254,5 +164,95 @@
         </div>
     </div>
 </div>
+
+
+
+{# 조건에 따라 필요한 화면 요소만 표시한다. #}
+{% if users.has_other_pages %}
+
+    <nav
+        class="d-flex justify-content-center mt-4"
+        aria-label="직원 관리 페이지"
+    >
+        <ul class="pagination shadow-sm mb-0">
+
+            {# 첫 페이지 #}
+            <li class="page-item {% if users.number == 1 %}disabled{% endif %}">
+                <a
+                    class="page-link text-success"
+                    href="?page=1"
+                    aria-label="첫 페이지"
+                >
+                    &laquo;
+                </a>
+            </li>
+
+            {# 이전 5개 페이지 #}
+            <li class="page-item {% if not has_prev_block %}disabled{% endif %}">
+                <a
+                    class="page-link text-success"
+                    href="{% if has_prev_block %}?page={{ prev_block_page }}{% else %}#{% endif %}"
+                    aria-label="이전 페이지 묶음"
+                >
+                    &lsaquo;
+                </a>
+            </li>
+
+            {# 페이지 번호 #}
+            {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
+            {% for page_number in custom_page_range %}
+
+                {% if users.number == page_number %}
+
+                    <li
+                        class="page-item active"
+                        aria-current="page"
+                    >
+                        <span class="page-link bg-success border-success text-white">
+                            {{ page_number }}
+                        </span>
+                    </li>
+
+                {% else %}
+
+                    <li class="page-item">
+                        <a
+                            class="page-link text-success"
+                            href="?page={{ page_number }}"
+                        >
+                            {{ page_number }}
+                        </a>
+                    </li>
+
+                {% endif %}
+
+            {% endfor %}
+
+            {# 다음 5개 페이지 #}
+            <li class="page-item {% if not has_next_block %}disabled{% endif %}">
+                <a
+                    class="page-link text-success"
+                    href="{% if has_next_block %}?page={{ next_block_page }}{% else %}#{% endif %}"
+                    aria-label="다음 페이지 묶음"
+                >
+                    &rsaquo;
+                </a>
+            </li>
+
+            {# 마지막 페이지 #}
+            <li class="page-item {% if users.number == last_page %}disabled{% endif %}">
+                <a
+                    class="page-link text-success"
+                    href="?page={{ last_page }}"
+                    aria-label="마지막 페이지"
+                >
+                    &raquo;
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+
+{% endif %}
 
 {% endblock %}

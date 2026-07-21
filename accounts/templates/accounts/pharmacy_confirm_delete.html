@@ -30,8 +30,21 @@
                     약국을 정말 삭제하시겠습니까?
                 </p>
 
+                {% if active_users %}
+                    <div class="alert alert-warning">
+                        <strong>남아 있는 소속 사용자 계정</strong>
+                        <ul class="mb-2 mt-2">
+                            {% for account in active_users %}
+                                <li>{{ account.username }} ({{ account.get_role_display }})</li>
+                            {% endfor %}
+                        </ul>
+                        약국을 삭제하면 위 계정들은 자동으로 비활성화되고
+                        약국 소속이 해제됩니다. 계정과 기존 업무 기록은 보존됩니다.
+                    </div>
+                {% endif %}
+
                 <p class="text-danger">
-                    삭제한 데이터는 복구할 수 없습니다.
+                    약국과 연결된 재고·입출고·발주 데이터가 모두 삭제되며 복구할 수 없습니다.
                 </p>
 
                 {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
@@ -51,7 +64,7 @@
                         type="submit"
                         class="btn btn-danger"
                     >
-                        삭제
+                        약국 삭제
                     </button>
 
                 </form>

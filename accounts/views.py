@@ -3,6 +3,10 @@
 # 주석은 코드의 처리 목적과 흐름을 이해하기 쉽도록 기능 단위로 작성했다.
 # ==================================================
 
+import json
+import logging
+import re
+import secrets
 import xml.etree.ElementTree as ET
 
 import requests
@@ -11,11 +15,17 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import PasswordResetView
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
@@ -28,6 +38,7 @@ from .decorators import (
     superuser_required,
 )
 from .forms import (
+    CustomPasswordResetForm,
     MyPageUpdateForm,
     PasswordConfirmForm,
     PharmacyUpdateForm,
@@ -40,6 +51,182 @@ from .models import (
     PharmacyOwnershipRequest,
     User,
 )
+
+
+logger = logging.getLogger(__name__)
+
+
+# 비밀번호 재설정 요청에서 아이디와 이메일을 함께 확인한다.
+class CustomPasswordResetView(PasswordResetView):
+    template_name = "registration/password_reset_form.html"
+    form_class = CustomPasswordResetForm
+    email_template_name = "registration/password_reset_email.html"
+    subject_template_name = "registration/password_reset_subject.txt"
+    success_url = reverse_lazy("password_reset_done")
+
+
+
+# 회원가입 이메일 인증 세션에서 사용하는 키와 제한값이다.
+EMAIL_VERIFICATION_SESSION_KEY = "signup_email_verification"
+EMAIL_CODE_EXPIRES_SECONDS = 300
+EMAIL_RESEND_SECONDS = 60
+EMAIL_MAX_ATTEMPTS = 5
+EMAIL_VERIFIED_EXPIRES_SECONDS = 1800
+
+
+def _read_json_request(request):
+    """JSON 요청 본문을 사전으로 변환하며 잘못된 요청은 None으로 처리한다."""
+    try:
+        return json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
+@require_POST
+def email_verification_send(request):
+    """회원가입 이메일로 6자리 인증번호를 발송한다."""
+    data = _read_json_request(request)
+    if data is None:
+        return JsonResponse(
+            {"success": False, "message": "요청 형식이 올바르지 않습니다."},
+            status=400,
+        )
+
+    email = str(data.get("email", "")).strip().lower()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse(
+            {"success": False, "message": "올바른 이메일 주소를 입력해 주세요."},
+            status=400,
+        )
+
+    if User.objects.filter(email__iexact=email).exists():
+        return JsonResponse(
+            {"success": False, "message": "이미 가입된 이메일입니다."},
+            status=400,
+        )
+
+    now = int(timezone.now().timestamp())
+    current = request.session.get(EMAIL_VERIFICATION_SESSION_KEY, {})
+    last_sent_at = int(current.get("sent_at", 0) or 0)
+    if current.get("email") == email and now - last_sent_at < EMAIL_RESEND_SECONDS:
+        wait_seconds = EMAIL_RESEND_SECONDS - (now - last_sent_at)
+        return JsonResponse(
+            {
+                "success": False,
+                "message": f"{wait_seconds}초 후에 인증번호를 다시 요청할 수 있습니다.",
+            },
+            status=429,
+        )
+
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    subject = "[PharmaFlow] 회원가입 이메일 인증번호"
+    message = (
+        "PharmaFlow 회원가입 이메일 인증번호입니다.\n\n"
+        f"인증번호: {code}\n\n"
+        "인증번호는 5분 동안 유효합니다. "
+        "본인이 요청하지 않았다면 이 메일을 무시해 주세요."
+    )
+
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("회원가입 인증 메일 발송에 실패했습니다.")
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "인증 메일을 발송하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+            },
+            status=502,
+        )
+
+    request.session[EMAIL_VERIFICATION_SESSION_KEY] = {
+        "email": email,
+        "code_hash": make_password(code),
+        "sent_at": now,
+        "expires_at": now + EMAIL_CODE_EXPIRES_SECONDS,
+        "attempts": 0,
+        "verified": False,
+        "verified_at": 0,
+    }
+    request.session.modified = True
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "인증번호를 이메일로 발송했습니다. 5분 안에 입력해 주세요.",
+            "resend_after": EMAIL_RESEND_SECONDS,
+        }
+    )
+
+
+@require_POST
+def email_verification_check(request):
+    """사용자가 입력한 이메일 인증번호를 확인한다."""
+    data = _read_json_request(request)
+    if data is None:
+        return JsonResponse(
+            {"success": False, "message": "요청 형식이 올바르지 않습니다."},
+            status=400,
+        )
+
+    email = str(data.get("email", "")).strip().lower()
+    code = str(data.get("code", "")).strip()
+    verification = request.session.get(EMAIL_VERIFICATION_SESSION_KEY, {})
+    now = int(timezone.now().timestamp())
+
+    if verification.get("email") != email:
+        return JsonResponse(
+            {"success": False, "message": "인증번호를 발송한 이메일과 일치하지 않습니다."},
+            status=400,
+        )
+
+    if now > int(verification.get("expires_at", 0) or 0):
+        request.session.pop(EMAIL_VERIFICATION_SESSION_KEY, None)
+        return JsonResponse(
+            {"success": False, "message": "인증번호가 만료되었습니다. 다시 발송해 주세요."},
+            status=400,
+        )
+
+    attempts = int(verification.get("attempts", 0) or 0)
+    if attempts >= EMAIL_MAX_ATTEMPTS:
+        request.session.pop(EMAIL_VERIFICATION_SESSION_KEY, None)
+        return JsonResponse(
+            {"success": False, "message": "인증 시도 횟수를 초과했습니다. 다시 발송해 주세요."},
+            status=429,
+        )
+
+    if not re.fullmatch(r"\d{6}", code) or not check_password(
+        code,
+        verification.get("code_hash", ""),
+    ):
+        verification["attempts"] = attempts + 1
+        request.session[EMAIL_VERIFICATION_SESSION_KEY] = verification
+        request.session.modified = True
+        return JsonResponse(
+            {
+                "success": False,
+                "message": f"인증번호가 올바르지 않습니다. 남은 횟수: {EMAIL_MAX_ATTEMPTS - attempts - 1}회",
+            },
+            status=400,
+        )
+
+    verification["verified"] = True
+    verification["verified_at"] = now
+    verification.pop("code_hash", None)
+    request.session[EMAIL_VERIFICATION_SESSION_KEY] = verification
+    request.session.modified = True
+
+    return JsonResponse(
+        {"success": True, "message": "이메일 인증이 완료되었습니다."}
+    )
 
 
 # -------------------- 회원가입: 회원가입 요청을 처리하고 선택한 약국 및 점주 권한 신청 정보를 저장한다. --------------------
@@ -55,6 +242,25 @@ def signup(request):
 
         if form.is_valid():
             data = form.cleaned_data
+
+            verification = request.session.get(
+                EMAIL_VERIFICATION_SESSION_KEY,
+                {},
+            )
+            now = int(timezone.now().timestamp())
+            verified_at = int(verification.get("verified_at", 0) or 0)
+            email_verified = (
+                verification.get("verified") is True
+                and verification.get("email") == data["email"].strip().lower()
+                and now - verified_at <= EMAIL_VERIFIED_EXPIRES_SECONDS
+            )
+
+            if not email_verified:
+                form.add_error(
+                    "email",
+                    "이메일 인증을 완료해 주세요.",
+                )
+                return render(request, "accounts/signup.html", {"form": form})
 
             selected_pharmacies = request.session.get("pharmacy_search_results", {})
             selected = selected_pharmacies.get(data["pharmacy_external_id"])
@@ -112,6 +318,8 @@ def signup(request):
                         },
                     )
 
+            request.session.pop(EMAIL_VERIFICATION_SESSION_KEY, None)
+
             if user.role == User.Role.OWNER:
                 messages.success(
                     request,
@@ -159,6 +367,15 @@ def get_xml_text(item, *names):
 def pharmacy_search(request):
     query = request.GET.get("q", "").strip()
 
+    if len(query) < 2:
+        return JsonResponse(
+            {
+                "results": [],
+                "error": "검색어를 두 글자 이상 입력하세요.",
+            },
+            status=400,
+        )
+
     now_timestamp = timezone.now().timestamp()
     last_search = request.session.get("pharmacy_search_last_at", 0)
     if now_timestamp - last_search < 1.0:
@@ -170,15 +387,6 @@ def pharmacy_search(request):
             status=429,
         )
     request.session["pharmacy_search_last_at"] = now_timestamp
-
-    if len(query) < 2:
-        return JsonResponse(
-            {
-                "results": [],
-                "error": "검색어를 두 글자 이상 입력하세요.",
-            },
-            status=400,
-        )
 
     if not settings.HIRA_SERVICE_KEY:
         return JsonResponse(
@@ -216,10 +424,12 @@ def pharmacy_search(request):
             status=504,
         )
 
+    except requests.RequestException:
+        logger.exception("HIRA 약국 검색 API 요청에 실패했습니다.")
         return JsonResponse(
             {
                 "results": [],
-                "error": str(e),
+                "error": "HIRA 약국 검색 서비스에 연결할 수 없습니다.",
             },
             status=502,
         )
@@ -399,6 +609,7 @@ def pharmacy_update(request):
         form = PharmacyUpdateForm(
             request.POST,
             instance=pharmacy,
+            current_user=request.user,
         )
 
         if form.is_valid():
@@ -414,6 +625,7 @@ def pharmacy_update(request):
     else:
         form = PharmacyUpdateForm(
             instance=pharmacy,
+            current_user=request.user,
         )
 
     return render(
@@ -433,7 +645,9 @@ def pharmacy_update(request):
 @login_required
 @superuser_required
 def pharmacy_list(request):
-    pharmacy_queryset = Pharmacy.objects.all().order_by("pharmacy_name")
+    pharmacy_queryset = (
+        Pharmacy.objects.prefetch_related("users").all().order_by("pharmacy_name")
+    )
 
     paginator = Paginator(
         pharmacy_queryset,
@@ -445,6 +659,17 @@ def pharmacy_list(request):
     pharmacies = paginator.get_page(
         page_number,
     )
+
+    # 템플릿에서 추가 쿼리 없이 점주 계정 상태를 표시하도록 연결한다.
+    for pharmacy in pharmacies.object_list:
+        pharmacy.owner_account = next(
+            (
+                account
+                for account in pharmacy.users.all()
+                if account.role == User.Role.OWNER and not account.is_superuser
+            ),
+            None,
+        )
 
     page_block_size = 5
 
@@ -490,38 +715,6 @@ def pharmacy_list(request):
     )
 
 
-# -------------------- 약국 관리: 관리자가 약국 정보를 직접 등록한다. --------------------
-@login_required
-@superuser_required
-def pharmacy_create(request):
-    if request.method == "POST":
-        form = PharmacyUpdateForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-
-            messages.success(
-                request,
-                "약국이 등록되었습니다.",
-            )
-
-            return redirect("accounts:pharmacy_list")
-
-    else:
-        form = PharmacyUpdateForm()
-
-    return render(
-        request,
-        "accounts/pharmacy_form.html",
-        {
-            "form": form,
-            "title": "약국 등록",
-            "submit_text": "등록",
-            "cancel_url_name": "accounts:pharmacy_list",
-        },
-    )
-
-
 # -------------------- 약국 관리: 관리자가 선택한 약국 정보를 수정한다. --------------------
 @login_required
 @superuser_required
@@ -531,10 +724,37 @@ def pharmacy_admin_update(request, pk):
         pk=pk,
     )
 
+    # 관리자 화면에서는 현재 로그인한 관리자 계정이 아니라
+    # 해당 약국의 점주 계정을 찾아 이메일 초기값과 저장 대상을 연결한다.
+    pharmacy_account_user = (
+        User.objects.filter(
+            pharmacy=pharmacy,
+            role=User.Role.OWNER,
+            is_active=True,
+        )
+        .exclude(email="")
+        .order_by("pk")
+        .first()
+    )
+
+    # 예전 데이터에서 역할이 점주로 저장되지 않았더라도,
+    # 해당 약국에 소속된 이메일 보유 계정을 대체 대상으로 사용한다.
+    if pharmacy_account_user is None:
+        pharmacy_account_user = (
+            User.objects.filter(
+                pharmacy=pharmacy,
+                is_active=True,
+            )
+            .exclude(email="")
+            .order_by("pk")
+            .first()
+        )
+
     if request.method == "POST":
         form = PharmacyUpdateForm(
             request.POST,
             instance=pharmacy,
+            current_user=pharmacy_account_user,
         )
 
         if form.is_valid():
@@ -558,6 +778,7 @@ def pharmacy_admin_update(request, pk):
     else:
         form = PharmacyUpdateForm(
             instance=pharmacy,
+            current_user=pharmacy_account_user,
         )
 
     return render(
@@ -573,40 +794,170 @@ def pharmacy_admin_update(request, pk):
     )
 
 
+# -------------------- 약국 관리: 관리자가 해당 약국의 점주 계정을 비활성화한다. --------------------
+@login_required
+@superuser_required
+@require_POST
+def pharmacy_owner_deactivate(request, pk):
+    pharmacy = get_object_or_404(Pharmacy, pk=pk)
+    owner = (
+        User.objects.filter(
+            pharmacy=pharmacy,
+            role=User.Role.OWNER,
+            is_superuser=False,
+            is_active=True,
+        )
+        .order_by("pk")
+        .first()
+    )
+
+    if owner is None:
+        messages.warning(request, "비활성화할 점주 계정이 없습니다.")
+        return redirect("accounts:pharmacy_list")
+
+    with transaction.atomic():
+        owner.is_active = False
+        owner.is_approved = False
+        owner.save(update_fields=["is_active", "is_approved"])
+
+        PharmacyOwnershipRequest.objects.filter(
+            user=owner,
+            pharmacy=pharmacy,
+            status=PharmacyOwnershipRequest.Status.PENDING,
+        ).update(
+            status=PharmacyOwnershipRequest.Status.REJECTED,
+            processed_at=timezone.now(),
+        )
+
+        AuditLog.objects.create(
+            user=request.user,
+            action="점주 계정 비활성화",
+            target=f"User #{owner.pk}",
+            detail=f"{owner.username} / {pharmacy.pharmacy_name}",
+        )
+
+    messages.success(
+        request,
+        f"{owner.username} 점주 계정을 비활성화했습니다.",
+    )
+    return redirect("accounts:pharmacy_list")
+
+
+def _delete_with_protected_relations(instance, deleted_labels=None, seen=None):
+    """PROTECT로 연결된 하위 업무 데이터를 먼저 삭제한 뒤 대상 객체를 삭제한다.
+
+    약국 삭제 시 발주, 입출고, 재고처럼 PROTECT 관계로 보존되던 데이터를
+    하위 객체부터 순서대로 제거한다. 같은 객체를 반복 처리하지 않도록
+    모델 라벨과 기본키 조합을 기록한다.
+    """
+    if deleted_labels is None:
+        deleted_labels = []
+    if seen is None:
+        seen = set()
+
+    identity = (instance._meta.label_lower, instance.pk)
+    if identity in seen:
+        return deleted_labels
+    seen.add(identity)
+
+    try:
+        verbose_name = str(instance._meta.verbose_name)
+        instance.delete()
+        deleted_labels.append(verbose_name)
+        return deleted_labels
+    except ProtectedError as exc:
+        # 보호된 객체를 먼저 제거한 뒤 원래 객체 삭제를 다시 시도한다.
+        protected_objects = list(exc.protected_objects)
+        if not protected_objects:
+            raise
+
+        for protected_object in protected_objects:
+            _delete_with_protected_relations(
+                protected_object,
+                deleted_labels=deleted_labels,
+                seen=seen,
+            )
+
+        verbose_name = str(instance._meta.verbose_name)
+        instance.delete()
+        deleted_labels.append(verbose_name)
+        return deleted_labels
+
+
 # -------------------- 약국 관리: 관리자가 선택한 약국을 삭제하되 소속 사용자가 있으면 삭제를 막는다. --------------------
 @login_required
 @superuser_required
 def pharmacy_delete(request, pk):
-    pharmacy = get_object_or_404(
-        Pharmacy,
-        pk=pk,
-    )
+    pharmacy = get_object_or_404(Pharmacy, pk=pk)
 
     if request.method == "POST":
-        # 삭제 후에는 pharmacy 객체를 못 쓰므로 기록에 쓸 이름/번호를 미리 저장해둠
+        active_owner_exists = pharmacy.users.filter(
+            role=User.Role.OWNER,
+            is_active=True,
+            is_superuser=False,
+        ).exists()
+
+        if active_owner_exists:
+            messages.error(
+                request,
+                "활성 점주 계정이 있어 약국을 삭제할 수 없습니다. "
+                "먼저 점주 해지를 진행해 주세요.",
+            )
+            return redirect("accounts:pharmacy_list")
+
         pharmacy_pk = pharmacy.pk
         pharmacy_name = pharmacy.pharmacy_name
 
         try:
-            pharmacy.delete()
+            with transaction.atomic():
+                # 사용자 계정 자체는 보존하되 로그인과 승인을 차단하고
+                # 삭제 대상 약국과의 소속 관계만 해제한다.
+                pharmacy.users.filter(is_superuser=False).update(
+                    pharmacy=None,
+                    is_active=False,
+                    is_approved=False,
+                )
 
-            # 누가 어떤 약국을 삭제했는지 기록
-            AuditLog.objects.create(
-                user=request.user,
-                action="약국 삭제",
-                target=f"Pharmacy #{pharmacy_pk}",
-                detail=pharmacy_name,
-            )
+                # 점주 권한 신청 기록도 약국 삭제 대상에 포함한다.
+                # 과거 승인·거절 기록까지 FK로 약국을 보호할 수 있으므로
+                # 해당 약국의 신청 기록을 명시적으로 먼저 삭제한다.
+                PharmacyOwnershipRequest.objects.filter(
+                    pharmacy=pharmacy,
+                ).delete()
+
+                # 발주, 입출고, 재고 등 PROTECT 관계로 연결된 업무 데이터를
+                # 하위 객체부터 재귀적으로 삭제한 다음 약국을 삭제한다.
+                deleted_labels = _delete_with_protected_relations(pharmacy)
+
+                AuditLog.objects.create(
+                    user=request.user,
+                    action="약국 삭제",
+                    target=f"Pharmacy #{pharmacy_pk}",
+                    detail=(
+                        f"{pharmacy_name} 및 연결 데이터 삭제: "
+                        + ", ".join(sorted(set(deleted_labels)))
+                    ),
+                )
 
             messages.success(
                 request,
-                "약국이 삭제되었습니다.",
+                (
+                    f"{pharmacy_name} 약국과 연결된 재고·입출고·"
+                    "발주 데이터를 모두 삭제했습니다."
+                ),
             )
 
-        except ProtectedError:
+        except Exception:
+            logger.exception(
+                "약국 및 연결 데이터 삭제에 실패했습니다. pharmacy_id=%s",
+                pharmacy_pk,
+            )
             messages.error(
                 request,
-                "소속 사용자가 존재하는 약국은 삭제할 수 없습니다.",
+                (
+                    "약국과 연결 데이터를 삭제하지 못했습니다. "
+                    "서버 로그에서 남아 있는 연결 관계를 확인해 주세요."
+                ),
             )
 
         return redirect("accounts:pharmacy_list")
@@ -616,6 +967,10 @@ def pharmacy_delete(request, pk):
         "accounts/pharmacy_confirm_delete.html",
         {
             "pharmacy": pharmacy,
+            "active_users": pharmacy.users.filter(
+                is_active=True,
+                is_superuser=False,
+            ).order_by("role", "username"),
         },
     )
 

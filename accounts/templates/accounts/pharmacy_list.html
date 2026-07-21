@@ -8,6 +8,140 @@
 {# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 전체 약국 관리 | PharmaFlow
+{% endblock %}
+
+{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
+{% block content %}
+
+<div class="mb-4">
+    <h2 class="mb-0">
+        전체 약국 관리
+    </h2>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="table-responsive">
+            {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
+            <table class="table table-hover align-middle mb-0">
+
+                <thead class="table-success">
+                    <tr>
+                        <th>약국명</th>
+                        <th>대표자</th>
+                        <th>점주 계정</th>
+                        <th>대표 연락처</th>
+                        <th>상태</th>
+                        <th class="text-center">관리</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for pharmacy in pharmacies %}
+                        <tr>
+                            <td>
+                                {{ pharmacy.pharmacy_name }}
+                            </td>
+
+                            <td>
+                                {{ pharmacy.owner_name|default:"-" }}
+                            </td>
+
+                            <td>
+                                {% if pharmacy.owner_account %}
+                                    {{ pharmacy.owner_account.username }}
+                                    {% if pharmacy.owner_account.is_active %}
+                                        <span class="badge bg-success ms-1">활성</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary ms-1">비활성</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">미등록</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ pharmacy.phone|default:"-" }}
+                            </td>
+
+                            <td>
+                                {% if pharmacy.status == "ACTIVE" %}
+                                    <span class="badge bg-success">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+
+                                {% elif pharmacy.status == "SUSPENDED" %}
+                                    <span class="badge bg-warning text-dark">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ pharmacy.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+
+                                <a
+                                    href="{% url 'accounts:pharmacy_admin_update' pharmacy.pk %}"
+                                    class="btn btn-outline-primary btn-sm"
+                                >
+                                    수정
+                                </a>
+
+                                {% if pharmacy.owner_account and pharmacy.owner_account.is_active %}
+                                    {# 활성 점주가 있으면 삭제 버튼을 숨기고 점주 해지만 제공한다. #}
+                                    <form
+                                        method="post"
+                                        action="{% url 'accounts:pharmacy_owner_deactivate' pharmacy.pk %}"
+                                        class="d-inline"
+                                        onsubmit="return confirm('이 약국의 점주 계정을 비활성화하시겠습니까?');"
+                                    >
+                                        {% csrf_token %}
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-warning btn-sm"
+                                        >
+                                            점주 해지
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    {# 점주가 없거나 이미 해지된 뒤에만 약국 삭제 버튼을 표시한다. #}
+                                    <a
+                                        href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
+                                        class="btn btn-outline-danger btn-sm"
+                                    >
+                                        약국 삭제
+                                    </a>
+                                {% endif %}
+
+                            </td>
+                        </tr>
+
+                    {# 반복할 데이터가 없을 때 안내 문구를 표시한다. #}
+                    {% empty %}
+                        <tr>
+                            <td
+                                colspan="6"
+                                class="text-center text-muted py-4"
+                            >
+                               등록된 약국이 없습니다.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+</div>
+
+
 
 {# 조건에 따라 필요한 화면 요소만 표시한다. #}
 {% if pharmacies.has_other_pages %}
@@ -96,116 +230,5 @@
     </nav>
 
 {% endif %}
-
-
-{% endblock %}
-
-{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
-{% block content %}
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-        전체 약국 관리
-    </h2>
-
-    {% if user.is_superuser %}
-        <a
-            href="{% url 'accounts:pharmacy_create' %}"
-            class="btn btn-success"
-        >
-            + 약국 등록
-        </a>
-    {% endif %}
-</div>
-
-<div class="card shadow-sm">
-    <div class="card-body">
-
-        <div class="table-responsive">
-            {# 서버에서 전달받은 목록 데이터를 표 형태로 표시한다. #}
-            <table class="table table-hover align-middle mb-0">
-
-                <thead class="table-success">
-                    <tr>
-                        <th>약국명</th>
-                        <th>대표자</th>
-                        <th>대표 연락처</th>
-                        <th>상태</th>
-                        <th class="text-center">관리</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for pharmacy in pharmacies %}
-                        <tr>
-                            <td>
-                                {{ pharmacy.pharmacy_name }}
-                            </td>
-
-                            <td>
-                                {{ pharmacy.owner_name|default:"-" }}
-                            </td>
-
-                            <td>
-                                {{ pharmacy.phone|default:"-" }}
-                            </td>
-
-                            <td>
-                                {% if pharmacy.status == "ACTIVE" %}
-                                    <span class="badge bg-success">
-                                        {{ pharmacy.get_status_display }}
-                                    </span>
-
-                                {% elif pharmacy.status == "SUSPENDED" %}
-                                    <span class="badge bg-warning text-dark">
-                                        {{ pharmacy.get_status_display }}
-                                    </span>
-
-                                {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ pharmacy.get_status_display }}
-                                    </span>
-                                {% endif %}
-                            </td>
-
-                            <td class="text-center">
-
-                                <a
-                                    href="{% url 'accounts:pharmacy_admin_update' pharmacy.pk %}"
-                                    class="btn btn-outline-primary btn-sm"
-                                >
-                                    수정
-                                </a>
-
-                                <a
-                                    href="{% url 'accounts:pharmacy_delete' pharmacy.pk %}"
-                                    class="btn btn-outline-danger btn-sm"
-                                    onclick="return confirm('정말 삭제하시겠습니까?');"
-                                >
-                                    삭제
-                                </a>
-
-                            </td>
-                        </tr>
-
-                    {# 반복할 데이터가 없을 때 안내 문구를 표시한다. #}
-                    {% empty %}
-                        <tr>
-                            <td
-                                colspan="5"
-                                class="text-center text-muted py-4"
-                            >
-                               등록된 약국이 없습니다.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-</div>
 
 {% endblock %}

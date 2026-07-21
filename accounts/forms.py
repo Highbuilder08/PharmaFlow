@@ -7,6 +7,7 @@ from django import forms
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import (
     AuthenticationForm,
+    PasswordResetForm,
     UserCreationForm,
 )
 from django.core.exceptions import ValidationError
@@ -196,6 +197,15 @@ class SignUpForm(UserCreationForm):
             ]
         )
 
+    # 회원가입 이메일을 정규화하고 기존 계정과 중복되는지 검사한다.
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("이미 가입된 이메일입니다.")
+
+        return email
+
     # business_number 필드의 입력값을 추가로 검증한다.
     def clean_business_number(self):
         business_number = self.cleaned_data.get(
@@ -248,6 +258,68 @@ class SignUpForm(UserCreationForm):
         return cleaned_data
 
 
+# 비밀번호 재설정 요청 시 아이디와 이메일이 모두 일치하는 계정만 조회한다.
+class CustomPasswordResetForm(PasswordResetForm):
+    username = forms.CharField(
+        label="아이디",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "아이디를 입력하세요.",
+                "autocomplete": "username",
+            }
+        ),
+    )
+
+    email = forms.EmailField(
+        label="이메일",
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "회원가입 시 인증한 이메일을 입력하세요.",
+                "autocomplete": "email",
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get("username", "").strip()
+        email = cleaned_data.get("email", "").strip().lower()
+
+        if username and email:
+            account_exists = User.objects.filter(
+                username=username,
+                email__iexact=email,
+                is_active=True,
+            ).exists()
+
+            if not account_exists:
+                raise ValidationError(
+                    "아이디와 이메일이 일치하는 계정을 찾을 수 없습니다."
+                )
+
+        cleaned_data["username"] = username
+        cleaned_data["email"] = email
+        return cleaned_data
+
+    def get_users(self, email):
+        """입력한 아이디와 이메일이 모두 일치하는 활성 사용자만 반환한다."""
+        username = self.cleaned_data.get("username", "").strip()
+
+        return (
+            user
+            for user in User.objects.filter(
+                username=username,
+                email__iexact=email,
+                is_active=True,
+            )
+            if user.has_usable_password()
+        )
+
+
 # 약국의 사업자 및 연락처 정보를 등록하거나 수정한다.
 class PharmacyUpdateForm(forms.ModelForm):
 
@@ -298,21 +370,30 @@ class PharmacyUpdateForm(forms.ModelForm):
             "phone": forms.TextInput(),
             "email": forms.EmailInput(),
             "status": forms.Select(),
-            "latitude": forms.NumberInput(
-                attrs={
-                    "step": "0.0000001",
-                }
-            ),
-            "longitude": forms.NumberInput(
-                attrs={
-                    "step": "0.0000001",
-                }
-            ),
+            # 좌표는 지도 표시와 기존 위치 보존에 사용하므로 화면에는 숨긴다.
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
         }
 
     # __init__ 기능을 처리한다.
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, current_user=None, **kwargs):
+        # 현재 로그인 사용자를 별도로 받아 약국 이메일과 계정 이메일을 연결한다.
+        self.current_user = current_user
         super().__init__(*args, **kwargs)
+
+        # 기존 약국 이메일이 비어 있으면 로그인 계정 이메일을 초기값으로 표시한다.
+        # POST 요청(self.is_bound=True)에서는 사용자가 제출한 값을 덮어쓰지 않는다.
+        if (
+            self.current_user is not None
+            and not self.is_bound
+            and not (self.instance and self.instance.email)
+        ):
+            # ModelForm은 instance에서 만든 self.initial 값을 우선 사용하므로
+            # field.initial만 설정하면 빈 Pharmacy.email 값에 가려질 수 있다.
+            # 화면에 계정 이메일이 확실히 표시되도록 폼 초기값을 직접 갱신한다.
+            account_email = (self.current_user.email or "").strip().lower()
+            self.initial["email"] = account_email
+            self.fields["email"].initial = account_email
 
         for field in self.fields.values():
             if isinstance(field.widget, forms.Select):
@@ -341,6 +422,39 @@ class PharmacyUpdateForm(forms.ModelForm):
         self.fields["address"].widget.attrs["placeholder"] = "주소"
         self.fields["phone"].widget.attrs["placeholder"] = "대표 연락처"
         self.fields["email"].widget.attrs["placeholder"] = "이메일"
+
+    # 약국 이메일을 정규화하고 다른 사용자 계정과의 중복 여부를 검사한다.
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+
+        if not email:
+            return ""
+
+        duplicate_users = User.objects.filter(email__iexact=email)
+
+        # 현재 로그인 사용자가 자신의 기존 이메일을 그대로 저장하는 것은 허용한다.
+        if self.current_user is not None:
+            duplicate_users = duplicate_users.exclude(pk=self.current_user.pk)
+
+        if duplicate_users.exists():
+            raise ValidationError("다른 계정에서 이미 사용 중인 이메일입니다.")
+
+        return email
+
+    def save(self, commit=True):
+        """약국 이메일과 현재 로그인 사용자의 이메일을 함께 저장한다."""
+        pharmacy = super().save(commit=commit)
+
+        if self.current_user is not None:
+            new_email = self.cleaned_data.get("email", "").strip().lower()
+
+            if self.current_user.email != new_email:
+                self.current_user.email = new_email
+
+                if commit:
+                    self.current_user.save(update_fields=["email"])
+
+        return pharmacy
 
     # business_number 필드의 입력값을 추가로 검증한다.
     def clean_business_number(self):
@@ -475,6 +589,16 @@ class StaffCreateForm(UserCreationForm):
         )
 
 
+    def clean_email(self):
+        """직원 계정 이메일을 정규화하고 중복 가입을 막는다."""
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if not email:
+            raise ValidationError("이메일을 입력해 주세요.")
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("이미 사용 중인 이메일입니다.")
+        return email
+
+
 # 소속 직원의 계정 정보를 수정할 때 사용하는 폼이다.
 class StaffUpdateForm(forms.ModelForm):
 
@@ -526,6 +650,16 @@ class StaffUpdateForm(forms.ModelForm):
                 }
             ),
         }
+
+
+    def clean_email(self):
+        """다른 사용자와 이메일이 중복되지 않도록 검사한다."""
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if not email:
+            raise ValidationError("이메일을 입력해 주세요.")
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("이미 사용 중인 이메일입니다.")
+        return email
 
 
 # 마이페이지의 민감한 기능에 앞서 현재 비밀번호를 확인한다.
@@ -631,6 +765,15 @@ class MyPageUpdateForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_email(self):
+        """내 계정 이외의 사용자와 이메일 중복을 막는다."""
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if not email:
+            raise ValidationError("이메일을 입력해 주세요.")
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("이미 사용 중인 이메일입니다.")
+        return email
 
     # 여러 필드 사이의 관계를 종합적으로 검증한다.
     def clean(self):

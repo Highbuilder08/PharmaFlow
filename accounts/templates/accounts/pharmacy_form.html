@@ -1,17 +1,19 @@
 {# ================================================== #}
-{# 파일 역할: 약국 정보를 등록하거나 수정하는 공용 폼 화면 #}
+{# 파일 역할: 약국 정보를 수정하고 저장된 위치를 지도에서 확인하는 화면 #}
 {# Django 템플릿 주석은 최종 브라우저 HTML에는 출력되지 않는다. #}
 {# ================================================== #}
-{# 공통 레이아웃을 상속하여 내비게이션과 푸터를 함께 사용한다. #}
 {% extends "base.html" %}
 
-{# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 {{ title|default:"약국 정보 수정" }} | PharmaFlow
 {% endblock %}
 
-{# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
 {% block content %}
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
+
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-7">
         <div class="card shadow-sm">
@@ -21,44 +23,75 @@
                     {{ title|default:"약국 정보 수정" }}
                 </h2>
 
-                {# 사용자 입력값을 서버로 전송하는 폼 영역이다. #}
                 <form method="post" novalidate>
-                    {# POST 요청 위조를 막기 위한 Django CSRF 토큰을 포함한다. #}
                     {% csrf_token %}
 
-                    {# 특정 필드 하나에 속하지 않는 폼 전체 오류를 표시한다. #}
-                    {# 조건에 따라 필요한 화면 요소만 표시한다. #}
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
                             {{ form.non_field_errors }}
                         </div>
                     {% endif %}
 
-                    {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
+                    {# 위도·경도는 사용자가 직접 수정하지 않고 지도 위치 보존에만 사용한다. #}
+                    {{ form.latitude }}
+                    {{ form.longitude }}
+
                     {% for field in form %}
-                        <div class="mb-3">
-                            <label
-                                for="{{ field.id_for_label }}"
-                                class="form-label"
-                            >
-                                {{ field.label }}
-                            </label>
+                        {% if field.name != "latitude" and field.name != "longitude" %}
+                            <div class="mb-3">
+                                <label
+                                    for="{{ field.id_for_label }}"
+                                    class="form-label"
+                                >
+                                    {{ field.label }}
+                                </label>
 
-                            {{ field }}
+                                {{ field }}
 
-                            {% if field.help_text %}
-                                <div class="form-text">
-                                    {{ field.help_text }}
-                                </div>
-                            {% endif %}
+                                {% if field.help_text %}
+                                    <div class="form-text">
+                                        {{ field.help_text }}
+                                    </div>
+                                {% endif %}
 
-                            {% for error in field.errors %}
-                                <div class="text-danger small mt-1">
-                                    {{ error }}
-                                </div>
-                            {% endfor %}
-                        </div>
+                                {% for error in field.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     {% endfor %}
+
+                    <div class="mb-4">
+                        <label class="form-label">약국 위치</label>
+
+                        <div
+                            id="pharmacy-location-summary"
+                            class="alert alert-success mb-2"
+                        >
+                            <strong id="map-pharmacy-name">
+                                {{ form.pharmacy_name.value|default:"약국명 미등록" }}
+                            </strong>
+                            <div
+                                id="map-pharmacy-address"
+                                class="small mt-1"
+                            >
+                                {{ form.address.value|default:"주소 정보가 없습니다." }}
+                            </div>
+                        </div>
+
+                        <div
+                            id="pharmacy-map"
+                            style="height: 320px;"
+                            class="border rounded"
+                        ></div>
+
+                        <div
+                            id="pharmacy-map-message"
+                            class="form-text"
+                        ></div>
+                    </div>
 
                     <div class="d-flex justify-content-end gap-2">
                         {% if cancel_url_name %}
@@ -90,4 +123,89 @@
         </div>
     </div>
 </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const pharmacyNameInput = document.getElementById("id_pharmacy_name");
+    const addressInput = document.getElementById("id_address");
+    const latitudeInput = document.getElementById("id_latitude");
+    const longitudeInput = document.getElementById("id_longitude");
+    const mapName = document.getElementById("map-pharmacy-name");
+    const mapAddress = document.getElementById("map-pharmacy-address");
+    const mapMessage = document.getElementById("pharmacy-map-message");
+
+    const defaultPosition = [37.5665, 126.9780];
+    const latitude = Number(latitudeInput ? latitudeInput.value : "");
+    const longitude = Number(longitudeInput ? longitudeInput.value : "");
+    const hasCoordinates = (
+        Number.isFinite(latitude)
+        && Number.isFinite(longitude)
+        && latitude !== 0
+        && longitude !== 0
+    );
+
+    const initialPosition = hasCoordinates
+        ? [latitude, longitude]
+        : defaultPosition;
+
+    const map = L.map("pharmacy-map").setView(
+        initialPosition,
+        hasCoordinates ? 16 : 11
+    );
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">'
+                + "OpenStreetMap</a> contributors"
+        }
+    ).addTo(map);
+
+    let marker = null;
+
+    if (hasCoordinates) {
+        marker = L.marker(initialPosition).addTo(map);
+        marker.bindPopup(
+            pharmacyNameInput && pharmacyNameInput.value
+                ? pharmacyNameInput.value
+                : "약국 위치"
+        ).openPopup();
+        mapMessage.textContent = "저장된 약국 위치입니다.";
+    } else {
+        mapMessage.textContent = (
+            "저장된 위도·경도 정보가 없어 기본 지도를 표시합니다. "
+            + "회원가입 시 HIRA 검색으로 등록된 약국은 위치가 자동 표시됩니다."
+        );
+    }
+
+    function updateLocationSummary() {
+        const pharmacyName = pharmacyNameInput
+            ? pharmacyNameInput.value.trim()
+            : "";
+        const address = addressInput
+            ? addressInput.value.trim()
+            : "";
+
+        mapName.textContent = pharmacyName || "약국명 미등록";
+        mapAddress.textContent = address || "주소 정보가 없습니다.";
+
+        if (marker) {
+            marker.setPopupContent(pharmacyName || "약국 위치");
+        }
+    }
+
+    if (pharmacyNameInput) {
+        pharmacyNameInput.addEventListener("input", updateLocationSummary);
+    }
+
+    if (addressInput) {
+        addressInput.addEventListener("input", updateLocationSummary);
+    }
+
+    setTimeout(function () {
+        map.invalidateSize();
+    }, 100);
+</script>
 {% endblock %}

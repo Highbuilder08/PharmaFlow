@@ -10,8 +10,24 @@ from . import views
 app_name = "accounts"
 
 urlpatterns = [
+    # 비밀번호 찾기: 아이디와 이메일이 모두 일치할 때만 재설정 메일을 발송한다.
+    path(
+        "password_reset/",
+        views.CustomPasswordResetView.as_view(),
+        name="password_reset",
+    ),
     # 회원
     path("signup/", views.signup, name="signup"),
+    path(
+        "email-verification/send/",
+        views.email_verification_send,
+        name="email_verification_send",
+    ),
+    path(
+        "email-verification/check/",
+        views.email_verification_check,
+        name="email_verification_check",
+    ),
     path("mypage/", views.my_page, name="my_page"),
     path("mypage/edit/", views.my_page_update, name="my_page_update"),
     path(
@@ -30,11 +46,15 @@ urlpatterns = [
     path("pharmacy-search/", views.pharmacy_search, name="pharmacy_search"),
     # 관리자(전체 약국 관리)
     path("pharmacies/", views.pharmacy_list, name="pharmacy_list"),
-    path("pharmacies/create/", views.pharmacy_create, name="pharmacy_create"),
     path(
         "pharmacies/<int:pk>/edit/",
         views.pharmacy_admin_update,
         name="pharmacy_admin_update",
+    ),
+    path(
+        "pharmacies/<int:pk>/owner/deactivate/",
+        views.pharmacy_owner_deactivate,
+        name="pharmacy_owner_deactivate",
     ),
     path("pharmacies/<int:pk>/delete/", views.pharmacy_delete, name="pharmacy_delete"),
     # 직원 관리

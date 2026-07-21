@@ -113,6 +113,7 @@
                         {% endfor %}
                     </div>
 
+                    {# 이메일 인증: 이메일 입력 후 인증번호를 발송하고 확인한다. #}
                     <div class="mb-3">
                         <label
                             for="{{ form.email.id_for_label }}"
@@ -121,13 +122,62 @@
                             {{ form.email.label }}
                         </label>
 
-                        {{ form.email }}
+                        <div class="input-group">
+                            {{ form.email }}
+
+                            <button
+                                type="button"
+                                id="email-code-send-button"
+                                class="btn btn-outline-success"
+                            >
+                                인증번호 발송
+                            </button>
+                        </div>
 
                         {% for error in form.email.errors %}
                             <div class="text-danger small mt-1">
                                 {{ error }}
                             </div>
                         {% endfor %}
+
+                        <div
+                            id="email-send-message"
+                            class="small mt-2 text-muted"
+                        ></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="email-verification-code"
+                            class="form-label"
+                        >
+                            이메일 인증번호
+                        </label>
+
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="email-verification-code"
+                                class="form-control"
+                                maxlength="6"
+                                inputmode="numeric"
+                                autocomplete="one-time-code"
+                                placeholder="6자리 인증번호"
+                            >
+
+                            <button
+                                type="button"
+                                id="email-code-verify-button"
+                                class="btn btn-outline-primary"
+                            >
+                                인증 확인
+                            </button>
+                        </div>
+
+                        <div
+                            id="email-verify-message"
+                            class="small mt-2 text-muted"
+                        ></div>
                     </div>
 
                     <div class="mb-3">
@@ -317,6 +367,27 @@
     const profilePreview = document.getElementById(
         "profile-preview"
     );
+
+    const signupForm = document.getElementById("signup-form");
+    const emailInput = document.getElementById("id_email");
+    const emailCodeInput = document.getElementById(
+        "email-verification-code"
+    );
+    const emailSendButton = document.getElementById(
+        "email-code-send-button"
+    );
+    const emailVerifyButton = document.getElementById(
+        "email-code-verify-button"
+    );
+    const emailSendMessage = document.getElementById(
+        "email-send-message"
+    );
+    const emailVerifyMessage = document.getElementById(
+        "email-verify-message"
+    );
+    let emailVerified = false;
+    let verifiedEmail = "";
+    let resendTimer = null;
 
     const searchInput = document.getElementById("pharmacy-query");
     const searchButton = document.getElementById(
@@ -586,6 +657,154 @@
             searchButton.textContent = "검색";
         }
     }
+
+    function getCsrfToken() {
+        const tokenInput = signupForm.querySelector(
+            "input[name='csrfmiddlewaretoken']"
+        );
+        return tokenInput ? tokenInput.value : "";
+    }
+
+    function setEmailMessage(element, message, type) {
+        element.className = `small mt-2 text-${type}`;
+        element.textContent = message;
+    }
+
+    async function readJsonResponse(response) {
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+            throw new Error("서버 응답 형식이 올바르지 않습니다.");
+        }
+        return response.json();
+    }
+
+    function startResendCountdown(seconds) {
+        if (resendTimer) window.clearInterval(resendTimer);
+        let remaining = seconds;
+        emailSendButton.disabled = true;
+        emailSendButton.textContent = `재발송 (${remaining}초)`;
+
+        resendTimer = window.setInterval(function () {
+            remaining -= 1;
+            if (remaining <= 0) {
+                window.clearInterval(resendTimer);
+                resendTimer = null;
+                emailSendButton.disabled = false;
+                emailSendButton.textContent = "인증번호 재발송";
+                return;
+            }
+            emailSendButton.textContent = `재발송 (${remaining}초)`;
+        }, 1000);
+    }
+
+    emailSendButton.addEventListener("click", async function () {
+        const email = emailInput.value.trim();
+        if (!email) {
+            setEmailMessage(emailSendMessage, "이메일을 입력해 주세요.", "danger");
+            return;
+        }
+
+        emailSendButton.disabled = true;
+        emailSendButton.textContent = "발송 중...";
+        setEmailMessage(emailSendMessage, "인증번호를 발송하고 있습니다.", "muted");
+
+        try {
+            const response = await fetch(
+                "{% url 'accounts:email_verification_send' %}",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: JSON.stringify({email: email}),
+                }
+            );
+            const data = await readJsonResponse(response);
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "인증번호를 발송하지 못했습니다.");
+            }
+
+            emailVerified = false;
+            verifiedEmail = "";
+            emailCodeInput.value = "";
+            setEmailMessage(emailSendMessage, data.message, "success");
+            setEmailMessage(emailVerifyMessage, "인증번호를 입력해 주세요.", "muted");
+            startResendCountdown(data.resend_after || 60);
+            emailCodeInput.focus();
+        } catch (error) {
+            emailSendButton.disabled = false;
+            emailSendButton.textContent = "인증번호 발송";
+            setEmailMessage(emailSendMessage, error.message, "danger");
+        }
+    });
+
+    emailVerifyButton.addEventListener("click", async function () {
+        const email = emailInput.value.trim();
+        const code = emailCodeInput.value.trim();
+        if (!/^\d{6}$/.test(code)) {
+            setEmailMessage(emailVerifyMessage, "6자리 인증번호를 입력해 주세요.", "danger");
+            return;
+        }
+
+        emailVerifyButton.disabled = true;
+        emailVerifyButton.textContent = "확인 중...";
+        try {
+            const response = await fetch(
+                "{% url 'accounts:email_verification_check' %}",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: JSON.stringify({email: email, code: code}),
+                }
+            );
+            const data = await readJsonResponse(response);
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "이메일 인증에 실패했습니다.");
+            }
+
+            emailVerified = true;
+            verifiedEmail = email;
+            emailInput.readOnly = true;
+            emailCodeInput.readOnly = true;
+            emailVerifyButton.disabled = true;
+            emailVerifyButton.textContent = "인증 완료";
+            setEmailMessage(emailVerifyMessage, data.message, "success");
+        } catch (error) {
+            emailVerifyButton.disabled = false;
+            emailVerifyButton.textContent = "인증 확인";
+            setEmailMessage(emailVerifyMessage, error.message, "danger");
+        }
+    });
+
+    emailInput.addEventListener("input", function () {
+        if (this.value.trim() !== verifiedEmail) {
+            emailVerified = false;
+            emailCodeInput.readOnly = false;
+            emailVerifyButton.disabled = false;
+            emailVerifyButton.textContent = "인증 확인";
+            setEmailMessage(emailVerifyMessage, "", "muted");
+        }
+    });
+
+    signupForm.addEventListener("submit", function (event) {
+        if (!emailVerified || verifiedEmail !== emailInput.value.trim()) {
+            event.preventDefault();
+            setEmailMessage(
+                emailVerifyMessage,
+                "회원가입 전에 이메일 인증을 완료해 주세요.",
+                "danger"
+            );
+            emailInput.focus();
+        }
+    });
 
     roleSelect.addEventListener(
         "change",

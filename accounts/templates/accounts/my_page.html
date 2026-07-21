@@ -8,36 +8,6 @@
 {# 브라우저 탭에 표시할 페이지 제목을 정의한다. #}
 {% block title %}
 마이페이지 | PharmaFlow
-
-{# 조건에 따라 필요한 화면 요소만 표시한다. #}
-{% if open_deactivate_modal %}
-{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
-<script>
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        const modalElement =
-            document.getElementById(
-                "accountDeactivateModal"
-            );
-
-        if (!modalElement) {
-            return;
-        }
-
-        const accountDeactivateModal =
-            new bootstrap.Modal(
-                modalElement
-            );
-
-        accountDeactivateModal.show();
-
-    }
-);
-</script>
-{% endif %}
-
 {% endblock %}
 
 {# 이 페이지에서 실제로 표시할 본문 영역을 시작한다. #}
@@ -413,6 +383,37 @@ document.addEventListener(
             );
 
         passwordModal.show();
+
+    }
+);
+</script>
+{% endif %}
+
+
+
+{# 조건에 따라 필요한 화면 요소만 표시한다. #}
+{% if open_deactivate_modal %}
+{# 페이지의 동적 동작을 담당하는 JavaScript 영역이다. #}
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const modalElement =
+            document.getElementById(
+                "accountDeactivateModal"
+            );
+
+        if (!modalElement) {
+            return;
+        }
+
+        const accountDeactivateModal =
+            new bootstrap.Modal(
+                modalElement
+            );
+
+        accountDeactivateModal.show();
 
     }
 );
