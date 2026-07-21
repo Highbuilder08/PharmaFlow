@@ -1,9 +1,11 @@
+{# 의약품 신규 등록과 기존 의약품 수정에 공통으로 사용하는 입력 화면입니다. #}
 {% extends "inventory/base.html" %}
 
 {% block title %}
 {{ page_title }} | PharmaFlow
 {% endblock %}
 
+{# 의약품 입력 폼을 공통 레이아웃의 content 영역에 출력합니다. #}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -13,9 +15,11 @@
                     {{ page_title }}
                 </h1>
 
+                {# 이미지 파일도 전송하므로 multipart/form-data 형식을 사용합니다. #}
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
+                    {# 특정 필드에 속하지 않는 폼 전체 검증 오류를 표시합니다. #}
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
                             {{ form.non_field_errors }}
@@ -66,6 +70,7 @@
 
                         {{ form.box_image }}
 
+                        {# 수정 화면에서 기존 상자 이미지가 있으면 현재 파일을 미리 보여 줍니다. #}
                         {% if form.instance.box_image %}
                             <div class="mt-2">
                                 <small class="text-muted">
@@ -91,6 +96,7 @@
 
                         {{ form.medicine_image }}
 
+                        {# 수정 화면에서 기존 의약품 이미지가 있으면 현재 파일을 미리 보여 줍니다. #}
                         {% if form.instance.medicine_image %}
                             <div class="mt-2">
                                 <small class="text-muted">
@@ -141,14 +147,15 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        {% if form.instance.pk %} <!-- 수정할때 -->
+                        {# 저장된 객체에 pk가 있으면 수정 화면이므로 버튼 문구를 구분합니다. #}
+                        {% if form.instance.pk %}
                             <a
                                 href="{% url 'inventory:medicine_detail' form.instance.pk %}"
                                 class="btn btn-outline-secondary"
                             >
                                 취소
                             </a>
-                        {% else %} <!-- 등록할때 -->
+                        {% else %} {# 등록할때 #}
                             <a
                                 href="{% url 'inventory:medicine_list' %}"
                                 class="btn btn-outline-secondary"

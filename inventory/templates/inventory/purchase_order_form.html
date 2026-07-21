@@ -1,9 +1,11 @@
+{# 발주 등록 또는 수정에 필요한 입력값을 받는 화면입니다. #}
 {% extends "inventory/base.html" %}
 
 {% block title %}
 발주 등록 | PharmaFlow
 {% endblock %}
 
+{# 발주 입력 폼을 공통 레이아웃의 content 영역에 출력합니다. #}
 {% block content %}
 
 <div class="row justify-content-center">
@@ -23,15 +25,18 @@
                     </p>
                 </div>
 
+                {# 발주 생성·수정은 데이터 변경 작업이므로 POST 방식과 CSRF 토큰을 사용합니다. #}
                 <form method="post">
                     {% csrf_token %}
 
+                    {# 특정 필드가 아닌 폼 전체 검증 오류를 표시합니다. #}
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">
                             {{ form.non_field_errors }}
                         </div>
                     {% endif %}
 
+                    {# 폼에 정의된 필드를 순회하며 라벨, 입력창, 도움말과 오류를 출력합니다. #}
                     {% for field in form %}
                         <div class="mb-3">
 
@@ -44,6 +49,7 @@
 
                             {{ field }}
 
+                            {# 의약품 선택 필드에는 현재 재고 등 추가 정보를 함께 표시합니다. #}
                             {% if field.name == "medicine" %}
                                 <div
                                     id="medicine-info"
@@ -128,9 +134,11 @@
     </div>
 </div>
 
+{# 서버에서 전달한 의약품 정보를 안전한 JSON 형태로 페이지에 삽입합니다. #}
 {{ medicine_data|json_script:"medicine-data" }}
 
 <script>
+    // 선택한 의약품에 맞춰 화면의 재고 및 관련 정보를 갱신합니다.
     document.addEventListener("DOMContentLoaded", function () {
         const medicineSelect =
             document.getElementById("id_medicine");

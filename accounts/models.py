@@ -5,6 +5,7 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from accounts.validators import validate_business_number
 
 
 # 약국의 기본 정보, 위치, 운영 상태와 데이터 출처를 저장한다.
@@ -22,11 +23,13 @@ class Pharmacy(models.Model):
         MANUAL = "MANUAL", "직접 등록"
 
     business_number = models.CharField(
-        max_length=20,
+        max_length=12,
         unique=True,
         null=True,
         blank=True,
         verbose_name="사업자등록번호",
+        validators=[validate_business_number],
+        help_text="000-00-00000 형식으로 입력해 주세요.",
     )
 
     business_name = models.CharField(
@@ -225,8 +228,17 @@ class PharmacyOwnershipRequest(models.Model):
     )
 
     business_number = models.CharField(
-        max_length=20,
+        max_length=12,
         verbose_name="사업자등록번호",
+        validators=[validate_business_number],
+        help_text="000-00-00000 형식으로 입력해 주세요.",
+    )
+
+    business_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        verbose_name="사업자명",
     )
 
     status = models.CharField(

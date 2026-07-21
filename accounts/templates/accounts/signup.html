@@ -201,6 +201,33 @@
                         {% endfor %}
                     </div>
 
+                    <div
+                        class="mb-3 d-none"
+                        {# 점주 역할을 선택했을 때만 사업자명 입력 영역을 표시한다. #}
+                        id="business-name-area"
+                    >
+                        <label
+                            for="{{ form.business_name.id_for_label }}"
+                            class="form-label"
+                        >
+                            {{ form.business_name.label }}
+                        </label>
+
+                        {{ form.business_name }}
+
+                        {% if form.business_name.help_text %}
+                            <div class="form-text">
+                                {{ form.business_name.help_text }}
+                            </div>
+                        {% endif %}
+
+                        {% for error in form.business_name.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
                     <div class="mb-3">
                         <label
                             for="pharmacy-query"
@@ -280,6 +307,9 @@
     const businessNumberArea = document.getElementById(
         "business-number-area"
     );
+    const businessNameArea = document.getElementById(
+        "business-name-area"
+    );
 
     const profileInput = document.getElementById(
         "id_profile_image"
@@ -356,11 +386,17 @@
     let profilePreviewUrl = null;
 
     function updateBusinessNumberVisibility() {
-        if (roleSelect.value === "OWNER") {
-            businessNumberArea.classList.remove("d-none");
-        } else {
-            businessNumberArea.classList.add("d-none");
-        }
+        const isOwner = roleSelect.value === "OWNER";
+
+        businessNumberArea.classList.toggle(
+            "d-none",
+            !isOwner
+        );
+
+        businessNameArea.classList.toggle(
+            "d-none",
+            !isOwner
+        );
     }
 
     {# 프로필 이미지 파일 형식을 확인한 뒤 브라우저 미리보기를 갱신한다. #}

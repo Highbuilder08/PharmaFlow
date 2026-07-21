@@ -1,13 +1,15 @@
+{# 선택한 의약품의 기본 정보, 이미지, 재고 상태와 최근 입출고 내역을 보여 주는 화면입니다. #}
 {% extends "inventory/base.html" %}
 
 {% block title %}
 {{ medicine.name }} 상세 | PharmaFlow
 {% endblock %}
 
+{# 공통 레이아웃의 content 영역에 의약품 상세 내용을 출력합니다. #}
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <!-- 약 이름과 재고 상태-->
+        {# 약 이름과 재고 상태#}
         <div class="border-bottom pb-4 mb-4">
             <div class="row align-items-center g-3">
                 <div class="col-md-8">
@@ -43,6 +45,7 @@
                 </div>
 
                 <div class="col-md-4 text-md-end">
+                    {# 현재 재고가 최소 재고보다 부족한지에 따라 상태 배지를 구분합니다. #}
                     {% if medicine.is_low_stock %}
                         <span class="badge bg-danger fs-6 mb-2">
                             재고 부족
@@ -70,7 +73,7 @@
             </div>
         </div>
 
-        <!-- 이미지 -->
+        {# 이미지 #}
         <div class="row g-4 mb-4">
             <div class="col-md-6">
                 <div class="border rounded p-3 text-center h-100">
@@ -78,7 +81,8 @@
                         약 상자 이미지
                     </h2>
 
-                    {% if medicine.box_image %} <!-- 이미지 있을때만 .url을 쓸수 있게 함 -->
+                    {# 이미지가 등록된 경우에만 .url에 접근하여 파일을 출력합니다. #}
+                    {% if medicine.box_image %}
                         <img
                             src="{{ medicine.box_image.url }}"
                             alt="{{ medicine.name }} 상자 이미지"
@@ -106,6 +110,7 @@
                         약 이미지
                     </h2>
 
+                    {# 의약품 이미지가 없을 때는 안내 문구를 대신 표시합니다. #}
                     {% if medicine.medicine_image %}
                         <img
                             src="{{ medicine.medicine_image.url }}"
@@ -129,7 +134,7 @@
             </div>
         </div>
 
-        <!-- 기본 정보 -->
+        {# 기본 정보 #}
         <div class="border rounded">
             <div class="p-3 border-bottom bg-light">
                 <h2 class="h5 mb-0">
@@ -182,7 +187,7 @@
             </div>
         </div>
 
-        <!-- 최근 입출고 -->
+        {# 최근 입출고 #}
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h2 class="h5 mb-0">
@@ -210,6 +215,7 @@
                         </thead>
 
                         <tbody>
+                            {# view에서 전달한 최근 입출고 기록을 한 행씩 출력합니다. #}
                             {% for transaction in recent_transactions %}
                                 <tr>
                                     <td>
@@ -244,6 +250,7 @@
                                         {{ transaction.note|default:"-" }}
                                     </td>
                                 </tr>
+                            {# 최근 입출고 기록이 하나도 없을 때 표시할 행입니다. #}
                             {% empty %}
                                 <tr>
                                     <td
@@ -260,7 +267,7 @@
             </div>
         </div>
 
-        <!-- 수정/삭제/목록 버튼 -->
+        {# 수정/삭제/목록 버튼 #}
         <div class="d-flex justify-content-between align-items-center mt-4">
             <a
                 href="{% url 'inventory:medicine_list' %}"

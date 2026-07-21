@@ -12,6 +12,7 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import ValidationError
 
 from .models import Pharmacy, User
+from .validators import normalize_business_number, validate_business_number
 
 
 # 회원가입 입력값과 HIRA에서 선택한 약국 정보를 검증한다.
@@ -44,9 +45,36 @@ class SignUpForm(UserCreationForm):
 
     business_number = forms.CharField(
         required=False,
-        max_length=20,
+        max_length=12,
         label="사업자등록번호",
+        validators=[validate_business_number],
+        help_text=(
+            "점주로 가입하는 경우 000-00-00000 형식으로 "
+            "입력하세요."
+        ),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control business-number-input",
+                "placeholder": "000-00-00000",
+                "inputmode": "numeric",
+                "maxlength": "12",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    business_name = forms.CharField(
+        required=False,
+        max_length=100,
+        label="사업자명",
         help_text="점주로 가입하는 경우에만 입력하세요.",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "사업자명",
+                "autocomplete": "organization",
+            }
+        ),
     )
 
     pharmacy_external_id = forms.CharField(
@@ -96,6 +124,7 @@ class SignUpForm(UserCreationForm):
             "profile_image",
             "requested_role",
             "business_number",
+            "business_name",
             "pharmacy_external_id",
             "pharmacy_name",
             "pharmacy_address",
@@ -130,8 +159,21 @@ class SignUpForm(UserCreationForm):
         )
         self.fields["name"].widget.attrs["placeholder"] = "이름"
         self.fields["email"].widget.attrs["placeholder"] = "이메일"
-        self.fields["business_number"].widget.attrs["placeholder"] = (
-            "사업자등록번호"
+        self.fields["business_number"].widget.attrs.update(
+            {
+                "class": "form-control business-number-input",
+                "placeholder": "000-00-00000",
+                "inputmode": "numeric",
+                "maxlength": "12",
+                "autocomplete": "off",
+            }
+        )
+        self.fields["business_name"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "placeholder": "사업자명",
+                "autocomplete": "organization",
+            }
         )
 
         self.order_fields(
@@ -144,6 +186,7 @@ class SignUpForm(UserCreationForm):
                 "profile_image",
                 "requested_role",
                 "business_number",
+                "business_name",
                 "pharmacy_external_id",
                 "pharmacy_name",
                 "pharmacy_address",
@@ -160,7 +203,19 @@ class SignUpForm(UserCreationForm):
             "",
         )
 
-        return business_number.strip()
+        if not business_number:
+            return ""
+
+        return normalize_business_number(business_number)
+
+    # business_name 필드의 앞뒤 공백을 제거한다.
+    def clean_business_name(self):
+        business_name = self.cleaned_data.get(
+            "business_name",
+            "",
+        )
+
+        return business_name.strip()
 
     # 여러 필드 사이의 관계를 종합적으로 검증한다.
     def clean(self):
@@ -170,20 +225,25 @@ class SignUpForm(UserCreationForm):
         external_id = cleaned_data.get("pharmacy_external_id")
         pharmacy_name = cleaned_data.get("pharmacy_name")
         business_number = cleaned_data.get("business_number")
+        business_name = cleaned_data.get("business_name")
 
         if not external_id or not pharmacy_name:
             raise forms.ValidationError(
                 "약국 검색 결과에서 소속 약국을 선택해 주세요."
             )
 
-        if (
-            requested_role == User.Role.OWNER
-            and not business_number
-        ):
-            self.add_error(
-                "business_number",
-                "점주 권한 신청에는 사업자등록번호가 필요합니다.",
-            )
+        if requested_role == User.Role.OWNER:
+            if not business_number:
+                self.add_error(
+                    "business_number",
+                    "점주 권한 신청에는 사업자등록번호가 필요합니다.",
+                )
+
+            if not business_name:
+                self.add_error(
+                    "business_name",
+                    "점주 권한 신청에는 사업자명이 필요합니다.",
+                )
 
         return cleaned_data
 
@@ -222,7 +282,15 @@ class PharmacyUpdateForm(forms.ModelForm):
         }
 
         widgets = {
-            "business_number": forms.TextInput(),
+            "business_number": forms.TextInput(
+                attrs={
+                    "class": "form-control business-number-input",
+                    "placeholder": "000-00-00000",
+                    "inputmode": "numeric",
+                    "maxlength": "12",
+                    "autocomplete": "off",
+                }
+            ),
             "business_name": forms.TextInput(),
             "pharmacy_name": forms.TextInput(),
             "owner_name": forms.TextInput(),
@@ -252,8 +320,14 @@ class PharmacyUpdateForm(forms.ModelForm):
             else:
                 field.widget.attrs["class"] = "form-control"
 
-        self.fields["business_number"].widget.attrs["placeholder"] = (
-            "사업자등록번호"
+        self.fields["business_number"].widget.attrs.update(
+            {
+                "class": "form-control business-number-input",
+                "placeholder": "000-00-00000",
+                "inputmode": "numeric",
+                "maxlength": "12",
+                "autocomplete": "off",
+            }
         )
         self.fields["business_name"].widget.attrs["placeholder"] = (
             "사업자명"
@@ -277,7 +351,7 @@ class PharmacyUpdateForm(forms.ModelForm):
         if not business_number:
             return None
 
-        return business_number.strip()
+        return normalize_business_number(business_number)
 
     # pharmacy_name 필드의 입력값을 추가로 검증한다.
     def clean_pharmacy_name(self):
