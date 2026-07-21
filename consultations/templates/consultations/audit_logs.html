@@ -13,6 +13,23 @@
     <span class="badge bg-warning text-dark fs-6 shadow-sm px-3 py-2">관리자 전용</span>
 </div>
 
+{# 계정/작업 종류로 필터링하는 검색 폼 #}
+{# GET 방식이라 검색 결과도 주소(URL)로 남아서 새로고침해도 유지됨 #}
+<form method="GET" class="d-flex flex-wrap gap-2 mb-3">
+    <select name="action" class="form-select shadow-sm" style="width: 200px;">
+        <option value="">전체 작업 종류</option>
+        {% for action in action_choices %}
+            <option value="{{ action }}" {% if action == selected_action %}selected{% endif %}>{{ action }}</option>
+        {% endfor %}
+    </select>
+    <input type="text" name="user" class="form-control shadow-sm" style="width: 200px;" placeholder="작업자 아이디 검색" value="{{ username_query }}">
+    <button type="submit" class="btn btn-secondary shadow-sm">검색</button>
+    {% if selected_action or username_query %}
+        {# 필터가 걸려있을 때만 "초기화" 버튼을 보여줌 #}
+        <a href="{% url 'consultations:audit_logs' %}" class="btn btn-outline-secondary shadow-sm">초기화</a>
+    {% endif %}
+</form>
+
 {# 로그 목록 카드 영역 #}
 <div class="card shadow-sm border-0 rounded-3 mb-5">
     <div class="card-body p-0">
@@ -43,12 +60,14 @@
                             {{ log.user.username|default:"알수없음" }}
                         </td>
                         
-                        {# 🚀 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) #}
+                        {# 작업 구분 (삭제는 빨간색, 수정은 노란색, 나머지는 파란색 배지) #}
                         <td>
                             {# 조건에 따라 필요한 화면 요소만 표시한다. #}
-                            {% if log.action == '삭제' %}
+                            {# action 값이 "게시글 삭제"처럼 항상 앞에 수식어가 붙어있어서 #}
+                            {# 정확히 같은지(==)가 아니라 "삭제"라는 글자가 포함되어 있는지(in)로 확인한다. #}
+                            {% if '삭제' in log.action %}
                                 <span class="badge bg-danger shadow-sm px-2 py-1">{{ log.action }}</span>
-                            {% elif log.action == '수정' %}
+                            {% elif '수정' in log.action %}
                                 <span class="badge bg-warning text-dark shadow-sm px-2 py-1">{{ log.action }}</span>
                             {% else %}
                                 <span class="badge bg-primary shadow-sm px-2 py-1">{{ log.action }}</span>
@@ -78,5 +97,44 @@
         </div>
     </div>
 </div>
+
+{# 페이지네이션: 페이지를 옮겨도 지금 걸어둔 필터(action, user)가 그대로 유지되게 함 #}
+{% if logs.has_other_pages %}
+<nav aria-label="Page navigation" class="d-flex justify-content-center mt-4">
+    <ul class="pagination shadow-sm">
+        {% if logs.has_previous %}
+            <li class="page-item">
+                <a class="page-link text-success" href="?page={{ logs.previous_page_number }}{% if selected_action %}&action={{ selected_action }}{% endif %}{% if username_query %}&user={{ username_query }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in logs.paginator.page_range %}
+            {% if logs.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link bg-success border-success text-white">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link text-success" href="?page={{ num }}{% if selected_action %}&action={{ selected_action }}{% endif %}{% if username_query %}&user={{ username_query }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if logs.has_next %}
+            <li class="page-item">
+                <a class="page-link text-success" href="?page={{ logs.next_page_number }}{% if selected_action %}&action={{ selected_action }}{% endif %}{% if username_query %}&user={{ username_query }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 
 {% endblock %}

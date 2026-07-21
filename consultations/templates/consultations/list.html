@@ -70,7 +70,7 @@
 
                     {# 공지사항 목록 루프 (매 페이지 최상단 고정 노출) #}
                     {# 서버에서 전달받은 목록을 항목별로 반복 출력한다. #}
-                    {# views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 표의 한 줄씩 반복해서 출력한다. #}
+                    {# {% for %}는 views.py에서 넘겨준 notices 목록을 하나씩 꺼내며 <tr> 한 줄씩 반복해서 그려줌 #}
                     {% for post in notices %}
                     <tr class="table-warning fw-bold">
                         <td class="text-muted">📢</td>
