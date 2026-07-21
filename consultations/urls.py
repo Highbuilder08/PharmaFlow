@@ -14,6 +14,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.consultation_delete, name='delete'),  # 글 삭제
     path('comment/<int:pk>/update/', views.comment_update, name='comment_update'),  # 댓글 수정
     path('comment/<int:pk>/delete/', views.comment_delete, name='comment_delete'),  # 댓글 삭제
+    path('attachment/<int:pk>/download/', views.attachment_download, name='attachment_download'),  # 첨부파일 다운로드
     path('attachment/<int:pk>/delete/', views.attachment_delete, name='attachment_delete'),  # 첨부파일 삭제
     path('logs/', views.audit_log_list, name='audit_logs'),  # 관리자용 작업 기록 목록
 ]

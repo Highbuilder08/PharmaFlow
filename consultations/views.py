@@ -13,6 +13,7 @@ from PIL import Image, UnidentifiedImageError
 # redirect: 다른 페이지 주소로 이동시킴
 # get_object_or_404: DB에서 데이터를 찾고, 없으면 "404 없음" 에러 페이지를 보여줌
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import FileResponse, Http404
 # messages: 사용자에게 "성공했어요", "실패했어요" 같은 알림 메시지를 보여줄 때 사용
 from django.contrib import messages
 # wraps: 아래에서 만드는 로그인 체크 함수(데코레이터)가 원래 함수 이름을 잃지 않게 도와줌
@@ -317,6 +318,29 @@ def comment_delete(request, pk):
         )
         comment.delete()
     return redirect('consultations:detail', pk=consultation_pk)
+
+# attachment_download: 브라우저에서 바로 열지 않고 첨부파일로 내려받게 한다.
+@login_message_required
+def attachment_download(request, pk):
+    attachment = get_object_or_404(
+        ConsultationAttachment.objects.select_related('consultation'),
+        pk=pk,
+    )
+
+    try:
+        attachment.file.open('rb')
+    except (FileNotFoundError, OSError):
+        raise Http404('첨부파일을 찾을 수 없습니다.')
+
+    content_type, _ = mimetypes.guess_type(attachment.filename)
+
+    return FileResponse(
+        attachment.file,
+        as_attachment=True,
+        filename=attachment.filename,
+        content_type=content_type or 'application/octet-stream',
+    )
+
 
 # attachment_delete: 첨부파일 삭제 + 작업 기록 남기기
 @login_message_required
