@@ -32,8 +32,19 @@ urlpatterns = [
         name="calendar_memo_dates",
     ),
     path(
+        "health/live/",
+        views.health_live,
+        name="health_live",
+    ),
+    path(
+        "health/ready/",
+        views.health_ready,
+        name="health_ready",
+    ),
+    # PR #78로 먼저 배포된 경로. readiness의 별칭으로 유지한다.
+    path(
         "health/",
-        views.health,
+        views.health_ready,
         name="health",
     ),
 ]

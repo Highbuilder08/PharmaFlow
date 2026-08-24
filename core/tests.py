@@ -63,3 +63,48 @@ class HealthCheckTests(TestCase):
     def test_health_rejects_post(self):
         response = self.client.post(reverse("core:health"))
         self.assertEqual(response.status_code, 405)
+
+
+# liveness/readiness 분리 후 각 엔드포인트의 역할을 확인한다.
+class LivenessReadinessTests(TestCase):
+    # liveness가 로그인 없이 200을 반환하고, 이때 DB 쿼리가 0건인지 확인한다.
+    def test_live_returns_200_without_any_db_query(self):
+        with self.assertNumQueries(0):
+            response = self.client.get(reverse("core:health_live"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "alive")
+
+    # DB가 죽어도 liveness는 200인지 확인한다. (ASG 교체 루프 방지의 핵심 성질)
+    def test_live_returns_200_even_when_db_is_down(self):
+        from unittest import mock
+
+        from django.db import DatabaseError
+
+        with mock.patch(
+            "core.views.connection.cursor",
+            side_effect=DatabaseError("connection refused"),
+        ):
+            response = self.client.get(reverse("core:health_live"))
+
+        self.assertEqual(response.status_code, 200)
+
+    # readiness가 로그인 없이 200과 healthy 상태를 반환하는지 확인한다.
+    def test_ready_returns_200_without_auth(self):
+        response = self.client.get(reverse("core:health_ready"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "healthy")
+
+    # DB 연결이 끊어지면 readiness만 503이 되는지 확인한다.
+    def test_ready_returns_503_when_db_is_down(self):
+        from unittest import mock
+
+        from django.db import DatabaseError
+
+        with mock.patch(
+            "core.views.connection.cursor",
+            side_effect=DatabaseError("connection refused"),
+        ):
+            response = self.client.get(reverse("core:health_ready"))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "unhealthy")
