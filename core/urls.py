@@ -31,4 +31,9 @@ urlpatterns = [
         views.calendar_memo_dates,
         name="calendar_memo_dates",
     ),
+    path(
+        "health/",
+        views.health,
+        name="health",
+    ),
 ]

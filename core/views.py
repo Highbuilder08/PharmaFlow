@@ -8,10 +8,12 @@ import json
 from datetime import datetime, time, timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db import DatabaseError, connection
 from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -266,3 +268,22 @@ def calendar_memo_dates(request):
             "dates": [memo_date.isoformat() for memo_date in memo_dates],
         },
     )
+
+
+# -------------------- Health Check: ALB가 인스턴스 상태를 판정할 때 호출하는 엔드포인트. --------------------
+# 로그인 데코레이터를 붙이지 않는다. ALB는 인증 정보 없이 GET /health/ 를 호출한다.
+# SELECT 1 은 읽기 전용이라 어떤 데이터도 변경하지 않는다.
+@never_cache
+@require_GET
+def health(request):
+    # DB 연결이 살아 있는지 최소 비용으로 확인한다.
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        # 연결 실패 = 이 인스턴스는 요청을 처리할 수 없는 상태이므로 503을 반환해
+        # ALB Target Group에서 제외되도록 한다.
+        return JsonResponse({"status": "unhealthy"}, status=503)
+
+    return JsonResponse({"status": "healthy"})
