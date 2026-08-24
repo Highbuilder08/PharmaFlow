@@ -32,3 +32,34 @@ class CalendarMemoTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["success"])
+
+
+# ALB Health Check 엔드포인트의 응답 규격을 확인한다.
+class HealthCheckTests(TestCase):
+    # 로그인 없이 GET 요청이 200과 healthy 상태를 반환하는지 확인한다.
+    # (ALB는 인증 정보 없이 호출하므로 setUp 로그인 없이 요청한다)
+    def test_health_returns_200_without_auth(self):
+        response = self.client.get(reverse("core:health"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "healthy")
+
+    # DB 연결이 끊어진 상황에서 503과 unhealthy 상태를 반환하는지 확인한다.
+    def test_health_returns_503_when_db_is_down(self):
+        from unittest import mock
+
+        from django.db import DatabaseError
+
+        with mock.patch(
+            "core.views.connection.cursor",
+            side_effect=DatabaseError("connection refused"),
+        ):
+            response = self.client.get(reverse("core:health"))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "unhealthy")
+
+    # GET 외의 메서드가 뷰 수준에서 405로 거부되는지 확인한다.
+    # (운영에서는 CSRF 미들웨어가 그보다 먼저 403으로 차단한다. 어느 쪽이든 거부된다)
+    def test_health_rejects_post(self):
+        response = self.client.post(reverse("core:health"))
+        self.assertEqual(response.status_code, 405)
