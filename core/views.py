@@ -270,12 +270,32 @@ def calendar_memo_dates(request):
     )
 
 
-# -------------------- Health Check: ALB가 인스턴스 상태를 판정할 때 호출하는 엔드포인트. --------------------
-# 로그인 데코레이터를 붙이지 않는다. ALB는 인증 정보 없이 GET /health/ 를 호출한다.
-# SELECT 1 은 읽기 전용이라 어떤 데이터도 변경하지 않는다.
+# -------------------- Health Check: ALB/ASG가 인스턴스 상태를 판정할 때 호출하는 엔드포인트. --------------------
+# 용도를 둘로 분리한다. 어느 쪽도 로그인 없이 GET으로 호출되며 데이터를 변경하지 않는다.
+#
+#   /health/live/  (liveness)  : Django 프로세스가 요청을 받을 수 있는가만 본다.
+#                                DB를 조회하지 않으므로 RDS 장애와 무관하게 200이다.
+#                                → "인스턴스를 교체하면 나아지는가?"에 답한다.
+#                                  (ASG 인스턴스 교체 판정에 적합)
+#   /health/ready/ (readiness) : Django + DB 연결까지 본다. SELECT 1 실패 시 503.
+#                                → "지금 트래픽을 보내도 되는가?"에 답한다.
+#                                  (ALB Target Group 라우팅 판정에 적합)
+#
+# 이렇게 나누면 RDS 장애 시 ready만 503이 되어 트래픽은 차단되지만,
+# live는 200이므로 ASG가 멀쩡한 인스턴스를 교체하는 루프는 생기지 않는다.
+#
+# /health/ 는 readiness의 별칭이다. PR #78로 먼저 배포된 경로라
+# Target Group 설정이 어느 쪽을 가리켜도 동작하도록 유지한다.
 @never_cache
 @require_GET
-def health(request):
+def health_live(request):
+    # 이 응답이 나갔다는 것 자체가 프로세스 생존의 증거다. 아무것도 조회하지 않는다.
+    return JsonResponse({"status": "alive"})
+
+
+@never_cache
+@require_GET
+def health_ready(request):
     # DB 연결이 살아 있는지 최소 비용으로 확인한다.
     try:
         with connection.cursor() as cursor:
