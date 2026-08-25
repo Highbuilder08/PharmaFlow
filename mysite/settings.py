@@ -267,7 +267,10 @@ EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND",
     "django.core.mail.backends.smtp.EmailBackend",
 )
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+# 메일 서비스(Gmail SMTP / AWS SES 등)는 아직 확정 전이므로 특정 서비스를
+# 기본값으로 두지 않는다. 실제 서버 주소는 .env 의 EMAIL_HOST 로 주입한다.
+# (localhost 는 Django 의 서비스 중립 기본값이다)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").lower() == "true"
