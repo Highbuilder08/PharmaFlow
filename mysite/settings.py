@@ -233,7 +233,11 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# collectstatic 산출물이 모이는 위치입니다.
+# 운영 환경에서는 Nginx가 직접 서빙하는 경로나 공유 스토리지(EFS 등)로
+# 바꿔야 할 수 있어, 코드 수정 없이 환경변수로 지정할 수 있게 합니다.
+# 개발 환경에서는 기본값(프로젝트 내부 staticfiles/)을 그대로 사용합니다.
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
 
 
 # ==================================================
