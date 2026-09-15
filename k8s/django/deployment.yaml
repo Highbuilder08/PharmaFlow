@@ -101,16 +101,24 @@ spec:
               cpu: 500m
               memory: 512Mi
 
+      # EKS 전환: AWS 클라우드 프로바이더가 채워주는 topology.kubernetes.io/zone 기준으로
+      # AZ 분산 (로컬 kubeadm 검증 때는 이 레이블이 없어서 kubernetes.io/hostname 사용).
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
+          topologyKey: topology.kubernetes.io/zone
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
               app: django
 
+      # EKS 전환: EFS CSI 기반 ReadWriteMany PVC로 교체 (로컬 검증 때는 emptyDir).
+      # Nginx도 같은 정적/미디어 파일을 서빙해야 하므로 이 PVC를 그대로 마운트해야 함
+      # (별도 PVC를 새로 만들면 EFS 동적 프로비저닝 특성상 서로 다른 디렉터리가 생겨
+      # 파일 공유가 깨짐 - pvc.yaml 참고).
       volumes:
         - name: static-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: pharmaflow-static
         - name: media-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: pharmaflow-media

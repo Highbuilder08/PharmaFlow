@@ -5,15 +5,30 @@ metadata:
   namespace: pharmaflow-dev
 data:
   DJANGO_DEBUG: "False"
-  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,django,nginx,pharmaflow.local"
+  # localhost는 Django/Nginx livenessProbe·readinessProbe 전용 고정 Host 헤더값
+  # (kubelet이 probe를 pod IP로 직접 보내서 ALLOWED_HOSTS 검증에 걸리는 것 방지).
+  # 나머지는 ALB/Ingress 도메인 확정 후 실제 값으로 교체.
+  DJANGO_ALLOWED_HOSTS: "localhost,REPLACE-WITH-ALLOWED-HOSTS"
+
   DB_ENGINE: "django.db.backends.mysql"
   DB_NAME: "pharmaflow"
   DB_USER: "pharmaflow_user"
-  DB_HOST: "mariadb"
+  # EKS 전환: 기존 로컬 검증용 in-cluster MariaDB(mariadb) 대신 AWS RDS 엔드포인트로 교체.
+  # 실제 엔드포인트는 커밋하지 않는다 - 배포 시점에 주입.
+  DB_HOST: "REPLACE-WITH-RDS-ENDPOINT"
   DB_PORT: "3306"
+
   GUNICORN_BIND: "0.0.0.0:8000"
   GUNICORN_WORKERS: "3"
+
   STATIC_ROOT: "/app/staticfiles"
   LOG_DIR: "/app/logs"
   LOG_LEVEL: "INFO"
-  EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
+
+  # EKS 전환: 로컬 검증용 console 백엔드 대신 SES SMTP로 교체.
+  EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
+  EMAIL_HOST: "email-smtp.ap-northeast-2.amazonaws.com"
+  EMAIL_PORT: "587"
+  EMAIL_USE_TLS: "True"
+  EMAIL_USE_SSL: "False"
+  DEFAULT_FROM_EMAIL: "PharmaFlow <noreply@pharmaflow.homes>"
