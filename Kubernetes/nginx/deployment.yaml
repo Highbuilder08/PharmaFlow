@@ -19,7 +19,7 @@ spec:
     spec:
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
+          topologyKey: topology.kubernetes.io/zone
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
@@ -41,6 +41,9 @@ spec:
             httpGet:
               path: /health/ready/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
@@ -50,6 +53,9 @@ spec:
             httpGet:
               path: /health/live/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 10
             periodSeconds: 20
             timeoutSeconds: 3
@@ -74,10 +80,11 @@ spec:
           configMap:
             name: pharmaflow-nginx-config
 
-        # Local validation only.
-        # EFS CSI / RWX PVC will replace these in the EKS integration stage.
+        # Shared storage provided by Amazon EFS CSI through RWX PVCs.
         - name: static
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: pharmaflow-static
 
         - name: media
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: pharmaflow-media
