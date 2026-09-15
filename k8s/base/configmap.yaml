@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pharmaflow-config
+  namespace: pharmaflow-dev
+data:
+  DJANGO_DEBUG: "False"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,django,nginx,pharmaflow.local"
+  DB_ENGINE: "django.db.backends.mysql"
+  DB_NAME: "pharmaflow"
+  DB_USER: "pharmaflow_user"
+  DB_HOST: "mariadb"
+  DB_PORT: "3306"
+  GUNICORN_BIND: "0.0.0.0:8000"
+  GUNICORN_WORKERS: "3"
+  STATIC_ROOT: "/app/staticfiles"
+  LOG_DIR: "/app/logs"
+  LOG_LEVEL: "INFO"
+  EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"

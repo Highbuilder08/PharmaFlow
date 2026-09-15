@@ -12,3 +12,6 @@ staticfiles/
 CLAUDE.md
 .claude/
 logs/
+
+# Kubernetes local secrets
+k8s/**/secret.yaml
