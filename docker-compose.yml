@@ -1,0 +1,128 @@
+services:
+  # ============================================================
+  # Static / Media Volume 권한 초기화
+  # ============================================================
+  volume-init:
+    image: alpine:3.22
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - |
+        chown -R 999:999 /static /media
+        chmod -R u+rwX,g+rwX /static /media
+    volumes:
+      - static_data:/static
+      - media_data:/media
+    restart: "no"
+
+  # ============================================================
+  # MariaDB
+  # ============================================================
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+
+    volumes:
+      - db_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
+
+  # ============================================================
+  # Django / Gunicorn
+  # ============================================================
+  django:
+    build:
+      context: .
+      dockerfile: Docker/django/Dockerfile
+
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,django,nginx}
+
+      DB_ENGINE: django.db.backends.mysql
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: "3306"
+
+      GUNICORN_BIND: 0.0.0.0:8000
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+
+      STATIC_ROOT: /app/staticfiles
+
+      LOG_DIR: /app/logs
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      HIRA_SERVICE_KEY: ${HIRA_SERVICE_KEY:-}
+
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready/', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
+
+  # ============================================================
+  # Nginx
+  # ============================================================
+  nginx:
+    build:
+      context: Docker/nginx
+      dockerfile: Dockerfile
+
+    ports:
+      - "8080:80"
+
+    volumes:
+      - static_data:/vol/static:ro
+      - media_data:/vol/media:ro
+
+    depends_on:
+      django:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+# ============================================================
+# Persistent / Shared Volumes
+# ============================================================
+volumes:
+  db_data:
+  static_data:
+  media_data:
