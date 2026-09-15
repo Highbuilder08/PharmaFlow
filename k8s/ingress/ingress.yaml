@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pharmaflow
+  namespace: pharmaflow-dev
+  labels:
+    app.kubernetes.io/part-of: pharmaflow
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - host: pharmaflow.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pharmaflow-nginx
+                port:
+                  number: 80

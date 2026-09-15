@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  namespace: pharmaflow-dev
+  labels:
+    app: django
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: django
+
+  template:
+    metadata:
+      labels:
+        app: django
+
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+
+      securityContext:
+        runAsNonRoot: true
+
+      initContainers:
+        - name: volume-init
+          image: alpine:3.22
+          command:
+            - sh
+            - -c
+            - |
+              chown -R 999:999 /static /media
+              chmod -R u+rwX,g+rwX /static /media
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          volumeMounts:
+            - name: static-data
+              mountPath: /static
+            - name: media-data
+              mountPath: /media
+
+      containers:
+        - name: django
+          image: REPLACE-WITH-ECR-REGISTRY/pharmaflow-django:REPLACE-WITH-IMAGE-TAG
+          imagePullPolicy: IfNotPresent
+
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: pharmaflow-config
+            - secretRef:
+                name: pharmaflow-secret
+
+          volumeMounts:
+            - name: static-data
+              mountPath: /app/staticfiles
+            - name: media-data
+              mountPath: /app/media
+
+          livenessProbe:
+            httpGet:
+              path: /health/live/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: django
+
+      volumes:
+        - name: static-data
+          emptyDir: {}
+        - name: media-data
+          emptyDir: {}

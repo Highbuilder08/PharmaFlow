@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pharmaflow-nginx
+  namespace: pharmaflow-dev
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: pharmaflow-nginx
+
+  template:
+    metadata:
+      labels:
+        app: pharmaflow-nginx
+
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: pharmaflow-nginx
+
+      containers:
+        - name: nginx
+
+          # Replaced with the sha-<commit> ECR image during deployment integration.
+          image: REPLACE-WITH-ECR-REGISTRY/pharmaflow-nginx:REPLACE-WITH-IMAGE-TAG
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health/live/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/pharmaflow.conf
+              subPath: pharmaflow.conf
+              readOnly: true
+
+            - name: static
+              mountPath: /vol/static
+              readOnly: true
+
+            - name: media
+              mountPath: /vol/media
+              readOnly: true
+
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: pharmaflow-nginx-config
+
+        # Local validation only.
+        # EFS CSI / RWX PVC will replace these in the EKS integration stage.
+        - name: static
+          emptyDir: {}
+
+        - name: media
+          emptyDir: {}
