@@ -1,0 +1,209 @@
+name: Container CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_DJANGO_REPOSITORY: pharmaflow-django
+  ECR_NGINX_REPOSITORY: pharmaflow-nginx
+
+jobs:
+  # ==========================================================
+  # Django Container Build / Validation
+  # ==========================================================
+  django-container:
+    name: Django Container
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Django image
+        run: |
+          docker build \
+            -f Docker/django/Dockerfile \
+            -t pharmaflow-django:ci \
+            .
+
+      - name: Verify non-root user
+        run: |
+          test "$(docker image inspect pharmaflow-django:ci --format '{{.Config.User}}')" = "django"
+
+      - name: Verify image does not contain local .env
+        run: |
+          if docker run --rm \
+            --entrypoint sh \
+            pharmaflow-django:ci \
+            -c 'test -f /app/.env'; then
+            echo "ERROR: /app/.env exists in the image"
+            exit 1
+          fi
+
+          echo "OK: .env is not included"
+
+      - name: Start Django smoke-test container
+        run: |
+          docker run -d \
+            --name pharmaflow-django-ci \
+            -p 8000:8000 \
+            -e DJANGO_SECRET_KEY=github-actions-container-test-secret \
+            -e DJANGO_DEBUG=False \
+            -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
+            -e DB_ENGINE=django.db.backends.sqlite3 \
+            -e HIRA_SERVICE_KEY=test-key \
+            pharmaflow-django:ci
+
+      - name: Wait for Django
+        run: |
+          for i in {1..30}; do
+            if curl --fail --silent \
+              http://127.0.0.1:8000/health/live/ \
+              >/dev/null; then
+              echo "Django is ready"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "ERROR: Django did not start"
+          docker logs pharmaflow-django-ci
+          exit 1
+
+      - name: Validate Django health endpoints
+        run: |
+          curl --fail http://127.0.0.1:8000/health/live/
+          curl --fail http://127.0.0.1:8000/health/ready/
+
+      - name: Django container logs
+        if: always()
+        run: |
+          docker logs pharmaflow-django-ci || true
+
+      - name: Cleanup Django container
+        if: always()
+        run: |
+          docker rm -f pharmaflow-django-ci || true
+
+
+  # ==========================================================
+  # Nginx Container Build / Validation
+  # ==========================================================
+  nginx-container:
+    name: Nginx Container
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Nginx image
+        run: |
+          docker build \
+            -t pharmaflow-nginx:ci \
+            Docker/nginx
+
+      - name: Create temporary Docker network
+        run: |
+          docker network create pharmaflow-ci-test
+
+      - name: Create temporary Django DNS target
+        run: |
+          docker run -d \
+            --name django \
+            --network pharmaflow-ci-test \
+            alpine:3.22 \
+            sleep 300
+
+      - name: Validate Nginx configuration
+        run: |
+          docker run --rm \
+            --network pharmaflow-ci-test \
+            pharmaflow-nginx:ci \
+            nginx -t
+
+      - name: Cleanup Nginx test environment
+        if: always()
+        run: |
+          docker rm -f django || true
+          docker network rm pharmaflow-ci-test || true
+
+
+  # ==========================================================
+  # ECR Push
+  #
+  # PR에서는 실행하지 않음.
+  # main push에서만 OIDC를 통해 AWS 인증 후 이미지 Push.
+  # ==========================================================
+  ecr-push:
+    name: Push Images to ECR
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    needs:
+      - django-container
+      - nginx-container
+
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::962450756907:role/pharmaflow-github-container-ci-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate image tag
+        run: |
+          echo "IMAGE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Build Django image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build \
+            -f Docker/django/Dockerfile \
+            -t "${ECR_REGISTRY}/${ECR_DJANGO_REPOSITORY}:${IMAGE_TAG}" \
+            .
+
+      - name: Build Nginx image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build \
+            -t "${ECR_REGISTRY}/${ECR_NGINX_REPOSITORY}:${IMAGE_TAG}" \
+            Docker/nginx
+
+      - name: Push Django image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker push \
+            "${ECR_REGISTRY}/${ECR_DJANGO_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Push Nginx image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker push \
+            "${ECR_REGISTRY}/${ECR_NGINX_REPOSITORY}:${IMAGE_TAG}"
