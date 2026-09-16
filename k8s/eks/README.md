@@ -4,8 +4,17 @@ Amazon EKS 환경에서 PharmaFlow를 배포하기 위한 Kubernetes Manifest입
 
 기존 `k8s/` 디렉터리는 로컬 kubeadm 검증 환경이며,
 이 디렉터리는 AWS EKS 전용 구성입니다.
+
 로컬 환경과 EKS 환경은 각각 독립적으로 배포할 수 있도록 Namespace를 포함한
 Manifest를 환경별로 분리해서 관리합니다.
+
+> [!WARNING]
+> `kubectl apply -f k8s/eks/ -R` 방식으로 전체 Manifest를 일괄 적용하지 않습니다.
+> Namespace 생성 순서가 보장되지 않으며 `secret.example.yaml`의 예제 값이
+> 실제 Secret으로 생성될 수 있습니다.
+>
+> 반드시 아래 Deployment order에 따라 단계별로 배포하고,
+> 실제 Secret은 `secret.example.yaml`을 직접 적용하지 않고 별도로 생성합니다.
 
 ## Architecture
 
@@ -72,7 +81,7 @@ PVC:
 ## Deployment order
 
 1. Namespace 생성
-2. ConfigMap / Secret 준비
+2. ConfigMap / 실제 Secret 준비
 3. EFS StorageClass 생성
 4. Static / Media PVC 생성 및 Bound 확인
 5. Django Migration Job 실행 및 Complete 확인
@@ -89,7 +98,7 @@ PVC:
 9. ALB Ingress 배포
 10. Health Check 및 E2E 검증
 
-### Migration Job execution
+## Migration Job execution
 
 새 이미지 배포 시 기존 Migration Job을 제거한 뒤 다시 생성합니다.
 
@@ -109,12 +118,15 @@ kubectl wait \
   --timeout=300s
 ```
 
-Migration Job이 `Complete`된 것을 확인한 뒤 Django Deployment를 진행합니다.
+Migration Job이 `Complete`된 것을 확인한 뒤 다음 단계로 진행합니다.
+
+Migration Job이 실패한 경우 TTL에 의해 Job/Pod가 정리되기 전에
+`kubectl logs`와 `kubectl describe job`을 사용해 실패 원인을 확인합니다.
 
 향후 Argo CD 기반 GitOps로 전환할 경우 Migration Job은
 PreSync hook 및 `BeforeHookCreation` 정책으로 자동화하는 방안을 검토합니다.
 
-### Collectstatic Job execution
+## Collectstatic Job execution
 
 Migration이 완료된 후 기존 Collectstatic Job을 제거하고 새 이미지 기준으로 다시 생성합니다.
 
@@ -136,6 +148,9 @@ kubectl wait \
 
 Collectstatic Job이 `Complete`된 것을 확인한 뒤 Django Deployment를 진행합니다.
 
+Collectstatic Job이 실패한 경우 TTL에 의해 Job/Pod가 정리되기 전에
+`kubectl logs`와 `kubectl describe job`을 사용해 실패 원인을 확인합니다.
+
 향후 Argo CD 기반 GitOps로 전환할 경우 Collectstatic Job도
 Migration Job과 동일하게 PreSync hook 및 `BeforeHookCreation` 정책으로
 자동화하는 방안을 검토합니다.
@@ -151,6 +166,9 @@ EKS ConfigMap의 `DB_SSL_CA`를 통해 다음 경로를 Django에 전달합니�
 
 Django는 `DB_SSL_CA`가 설정된 경우에만 MariaDB SSL 옵션을 활성화하므로
 기존 로컬 MariaDB 환경에서는 TLS 설정 없이 사용할 수 있습니다.
+
+실제 EKS/RDS 연결 단계에서는 TLS 연결 성공 여부뿐 아니라
+실제로 적용된 TLS 검증 수준도 확인합니다.
 
 ## Health endpoints
 
@@ -169,19 +187,22 @@ Nginx는 `/health/live/`, `/health/ready/` 요청을 Django로 전달할 때
 
 EKS 실제 생성 전 다음 검증을 완료했습니다.
 
-- YAML client-side dry-run
-- Kubernetes API server-side dry-run
+- YAML 문법 및 client-side 파싱 확인
+- Kubernetes API server-side dry-run (13/13)
+- README Deployment order 기반 단계별 적용 검증
 - Secret/Credential 패턴 검사
 - 환경별 AWS Account ID / Private IP 하드코딩 검사
 - Django/Nginx 공통 PVC 참조 검사
 - Django Docker image build
 - AWS RDS CA bundle image inclusion
+- Django runtime image의 불필요한 `curl` 제거 확인
 - Django `manage.py check`
 - Django RDS TLS configuration
 - Migration Job client/server-side dry-run
-- EFS Access Point UID/GID configuration
-- Django Deployment의 initContainer PodSpec 구조 검증
 - Collectstatic Job client/server-side dry-run
+- EFS Access Point UID/GID configuration
+- Django Deployment PodSpec server-side 검증
+- Namespace 환경별 Manifest 정합성 확인
 
 다음 항목은 실제 EKS 생성 후 검증합니다.
 
