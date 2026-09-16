@@ -139,6 +139,8 @@ DB_ENGINE = os.environ.get(
     "django.db.backends.mysql",
 )
 
+DB_SSL_CA = os.environ.get("DB_SSL_CA", "").strip()
+
 if DB_ENGINE == "django.db.backends.sqlite3":
     # CI 환경에서 사용하는 임시 SQLite 데이터베이스
     DATABASES = {
@@ -175,6 +177,15 @@ else:
             "OPTIONS": {
                 "charset": "utf8mb4",
                 "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+                **(
+                    {
+                        "ssl": {
+                            "ca": DB_SSL_CA,
+                        }
+                    }
+                    if DB_SSL_CA
+                    else {}
+                ),
             },
         }
     }

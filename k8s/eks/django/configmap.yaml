@@ -17,6 +17,7 @@ data:
   # 실제 엔드포인트는 커밋하지 않는다 - 배포 시점에 주입.
   DB_HOST: "REPLACE-WITH-RDS-ENDPOINT"
   DB_PORT: "3306"
+  DB_SSL_CA: "/etc/ssl/certs/aws-rds-global-bundle.pem"
 
   GUNICORN_BIND: "0.0.0.0:8000"
   GUNICORN_WORKERS: "3"

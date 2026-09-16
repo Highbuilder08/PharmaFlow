@@ -24,24 +24,32 @@ spec:
 
       securityContext:
         runAsNonRoot: true
+        fsGroup: 999
 
-      initContainers:
-        - name: volume-init
-          image: alpine:3.22
-          command:
-            - sh
-            - -c
-            - |
-              chown -R 999:999 /static /media
-              chmod -R u+rwX,g+rwX /static /media
+        initContainers:
+        - name: collectstatic
+          image: REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL:REPLACE-WITH-IMAGE-TAG
+          imagePullPolicy: IfNotPresent
+
           securityContext:
-            runAsUser: 0
-            runAsNonRoot: false
+            runAsUser: 999
+            runAsGroup: 999
+
+          envFrom:
+            - configMapRef:
+                name: pharmaflow-config
+            - secretRef:
+                name: pharmaflow-secret
+
+          command:
+            - python
+            - manage.py
+            - collectstatic
+            - --noinput
+
           volumeMounts:
             - name: static-data
-              mountPath: /static
-            - name: media-data
-              mountPath: /media
+              mountPath: /app/staticfiles
 
       containers:
         - name: django
