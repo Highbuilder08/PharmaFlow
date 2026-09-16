@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pharmaflow-nginx
+  namespace: pharmaflow-dev
+spec:
+  type: ClusterIP
+
+  selector:
+    app: pharmaflow-nginx
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

@@ -22,6 +22,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
     default-libmysqlclient-dev \
+    ca-certificates \
+    curl \
+    && curl -fsSL \
+      https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
+      -o /tmp/aws-rds-global-bundle.pem \
+    && test -s /tmp/aws-rds-global-bundle.pem \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -39,9 +45,14 @@ FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmariadb3 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system django \
     && useradd --system --gid django --home-dir /app --no-create-home django
+
+COPY --from=builder \
+    /tmp/aws-rds-global-bundle.pem \
+    /etc/ssl/certs/aws-rds-global-bundle.pem
 
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"

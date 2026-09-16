@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pharmaflow-django-migrate
+  namespace: pharmaflow-dev
+
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: pharmaflow-django-migrate
+
+    spec:
+      restartPolicy: Never
+
+      imagePullSecrets:
+        - name: ecr-registry-secret
+
+      securityContext:
+        runAsNonRoot: true
+
+      containers:
+        - name: migrate
+          image: REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL:REPLACE-WITH-IMAGE-TAG
+          imagePullPolicy: IfNotPresent
+
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+
+          envFrom:
+            - configMapRef:
+                name: pharmaflow-config
+            - secretRef:
+                name: pharmaflow-secret
+
+          command:
+            - python
+            - manage.py
+            - migrate
+            - --noinput
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

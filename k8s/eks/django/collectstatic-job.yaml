@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pharmaflow-django-collectstatic
+  namespace: pharmaflow-dev
+
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: pharmaflow-django-collectstatic
+
+    spec:
+      restartPolicy: Never
+
+      imagePullSecrets:
+        - name: ecr-registry-secret
+
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 999
+
+      containers:
+        - name: collectstatic
+          image: REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL:REPLACE-WITH-IMAGE-TAG
+          imagePullPolicy: IfNotPresent
+
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+
+          envFrom:
+            - configMapRef:
+                name: pharmaflow-config
+            - secretRef:
+                name: pharmaflow-secret
+
+          command:
+            - python
+            - manage.py
+            - collectstatic
+            - --noinput
+
+          volumeMounts:
+            - name: static-data
+              mountPath: /app/staticfiles
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      volumes:
+        - name: static-data
+          persistentVolumeClaim:
+            claimName: pharmaflow-static
