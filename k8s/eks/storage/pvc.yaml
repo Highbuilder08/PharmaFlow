@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pharmaflow-static
+  namespace: pharmaflow-dev
+
+spec:
+  accessModes:
+    - ReadWriteMany
+
+  storageClassName: efs-sc
+
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pharmaflow-media
+  namespace: pharmaflow-dev
+
+spec:
+  accessModes:
+    - ReadWriteMany
+
+  storageClassName: efs-sc
+
+  resources:
+    requests:
+      storage: 20Gi
