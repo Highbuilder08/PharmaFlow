@@ -4,3 +4,4 @@ metadata:
   name: pharmaflow-dev
   labels:
     app.kubernetes.io/part-of: pharmaflow
+    environment: development

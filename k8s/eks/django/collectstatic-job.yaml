@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: pharmaflow-django-migrate
+  name: pharmaflow-django-collectstatic
   namespace: pharmaflow-dev
 
 spec:
@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: pharmaflow-django-migrate
+        app: pharmaflow-django-collectstatic
 
     spec:
       restartPolicy: Never
@@ -21,9 +21,10 @@ spec:
 
       securityContext:
         runAsNonRoot: true
+        fsGroup: 999
 
       containers:
-        - name: migrate
+        - name: collectstatic
           image: REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL:REPLACE-WITH-IMAGE-TAG
           imagePullPolicy: IfNotPresent
 
@@ -40,8 +41,12 @@ spec:
           command:
             - python
             - manage.py
-            - migrate
+            - collectstatic
             - --noinput
+
+          volumeMounts:
+            - name: static-data
+              mountPath: /app/staticfiles
 
           resources:
             requests:
@@ -50,3 +55,8 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+
+      volumes:
+        - name: static-data
+          persistentVolumeClaim:
+            claimName: pharmaflow-static
