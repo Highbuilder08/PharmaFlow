@@ -52,6 +52,7 @@ Django와 Nginx는 Amazon EFS를 통해 Static/Media 데이터를 공유합니�
 - `REPLACE-WITH-RDS-ENDPOINT`
 - `REPLACE-WITH-ALLOWED-HOSTS`
 - `REPLACE-WITH-RDS-USERNAME`
+- `REPLACE-WITH-ACM-CERTIFICATE-ARN`
 
 `secret.example.yaml`의 `REPLACE-ME` 값은 실제 Secret 생성 시에만 사용하며
 실제 Secret 값은 Git에 커밋하지 않습니다.
