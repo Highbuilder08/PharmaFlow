@@ -321,14 +321,19 @@ HIRA_SERVICE_KEY = os.environ.get(
 # HTTPS 적용 후 활성화
 # ==================================================
 
-# SECURE_PROXY_SSL_HEADER = (
-#     "HTTP_X_FORWARDED_PROTO",
-#     "https",
-# )
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)
 
 # SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://pharmaflow.homes",
+]
 
 # SECURE_HSTS_SECONDS = 3600
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True

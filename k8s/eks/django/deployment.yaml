@@ -19,8 +19,6 @@ spec:
         app: django
 
     spec:
-      imagePullSecrets:
-        - name: ecr-registry-secret
 
       securityContext:
         runAsNonRoot: true
