@@ -13,6 +13,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /health/ready/
     alb.ingress.kubernetes.io/healthcheck-port: traffic-port
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
 
 spec:
   ingressClassName: alb
