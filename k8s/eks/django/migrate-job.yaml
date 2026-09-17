@@ -16,9 +16,6 @@ spec:
     spec:
       restartPolicy: Never
 
-      imagePullSecrets:
-        - name: ecr-registry-secret
-
       securityContext:
         runAsNonRoot: true
 

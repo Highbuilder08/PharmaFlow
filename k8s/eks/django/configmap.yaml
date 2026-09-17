@@ -12,7 +12,7 @@ data:
 
   DB_ENGINE: "django.db.backends.mysql"
   DB_NAME: "pharmaflow"
-  DB_USER: "pharmaflow_user"
+  DB_USER: "REPLACE-WITH-RDS-USERNAME"
   # EKS 전환: 기존 로컬 검증용 in-cluster MariaDB(mariadb) 대신 AWS RDS 엔드포인트로 교체.
   # 실제 엔드포인트는 커밋하지 않는다 - 배포 시점에 주입.
   DB_HOST: "REPLACE-WITH-RDS-ENDPOINT"
