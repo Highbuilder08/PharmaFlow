@@ -37,6 +37,7 @@ Django와 Nginx는 Amazon EFS를 통해 Static/Media 데이터를 공유합니�
 - Amazon EFS CSI Driver
 - EKS Pod Identity Agent
 - AWS Load Balancer Controller
+- Metrics Server
 - Amazon RDS MariaDB
 - Amazon EFS
 - Amazon ECR
@@ -56,6 +57,30 @@ Django와 Nginx는 Amazon EFS를 통해 Static/Media 데이터를 공유합니�
 
 `secret.example.yaml`의 `REPLACE-ME` 값은 실제 Secret 생성 시에만 사용하며
 실제 Secret 값은 Git에 커밋하지 않습니다.
+
+## Django autoscaling
+
+Django Deployment는 Metrics Server의 CPU metrics를 사용하는
+`autoscaling/v2` HorizontalPodAutoscaler(HPA)를 적용합니다.
+
+- `minReplicas`: 2
+- `maxReplicas`: 3
+- CPU target utilization: 60%
+- Scale-down stabilization window: 300초
+- Scale-down policy: 60초마다 최대 1 Pod 감소
+
+`maxReplicas: 3`은 현재 검증 환경의 `t3.small` EKS Worker와
+노드당 `max-pods: 11` 제약을 고려한 상한입니다.
+
+부하 검증에서는 2,000 requests / concurrency 20 조건에서
+HPA가 최대 222% CPU utilization을 관측했고,
+Django replicas가 2 → 3으로 자동 확장되었습니다.
+
+부하 종료 후에는 300초 stabilization window를 거쳐
+3 → 2 replicas로 자동 축소되는 것도 확인했습니다.
+
+Metrics API 상태는 `kubectl get apiservice v1beta1.metrics.k8s.io`,
+`kubectl top nodes`, `kubectl top pods -n pharmaflow-dev`로 확인합니다.
 
 ## Shared storage
 
@@ -98,7 +123,8 @@ PVC:
 7. Django Deployment / Service 배포
 8. Nginx Deployment / Service 배포
 9. ALB Ingress 배포
-10. Health Check 및 E2E 검증
+10. Django HPA 배포 및 Metrics 확인
+11. Health Check 및 E2E 검증
 
 ## Migration Job execution
 
