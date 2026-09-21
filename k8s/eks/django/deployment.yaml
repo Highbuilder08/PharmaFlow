@@ -9,6 +9,14 @@ metadata:
 spec:
   replicas: 2
 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  minReadySeconds: 10
+
   selector:
     matchLabels:
       app: django
@@ -19,6 +27,7 @@ spec:
         app: django
 
     spec:
+      terminationGracePeriodSeconds: 45
 
       securityContext:
         runAsNonRoot: true
@@ -73,6 +82,14 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
+
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 15
 
           resources:
             requests:
