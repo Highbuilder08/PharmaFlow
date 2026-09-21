@@ -3,6 +3,10 @@ kind: Job
 metadata:
   name: pharmaflow-django-migrate
   namespace: pharmaflow-dev
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-2"
 
 spec:
   ttlSecondsAfterFinished: 300
