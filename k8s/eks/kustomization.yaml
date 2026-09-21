@@ -14,8 +14,8 @@ resources:
 images:
   - name: REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL
     newName: 962450756907.dkr.ecr.ap-northeast-2.amazonaws.com/pharmaflow-django
-    newTag: sha-501aba638c57c53274179dc001570c8cb182ce59
+    newTag: sha-88d51c80a3df12ab324ef4c39bc44fec34040d36
 
   - name: REPLACE-WITH-NGINX-ECR-REPOSITORY-URL
     newName: 962450756907.dkr.ecr.ap-northeast-2.amazonaws.com/pharmaflow-nginx
-    newTag: sha-501aba638c57c53274179dc001570c8cb182ce59
+    newTag: sha-88d51c80a3df12ab324ef4c39bc44fec34040d36
