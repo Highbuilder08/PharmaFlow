@@ -157,11 +157,13 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -176,6 +178,13 @@ jobs:
       - name: Generate image tag
         run: |
           echo "IMAGE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Install Kustomize
+        run: |
+          curl -sSLo /tmp/kustomize.tar.gz             https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tar.gz -C /tmp
+          sudo install /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
 
       - name: Build Django image
         env:
@@ -207,3 +216,26 @@ jobs:
         run: |
           docker push \
             "${ECR_REGISTRY}/${ECR_NGINX_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Update GitOps image tags
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        working-directory: k8s/eks
+        run: |
+          kustomize edit set image \
+            REPLACE-WITH-DJANGO-ECR-REPOSITORY-URL="${ECR_REGISTRY}/${ECR_DJANGO_REPOSITORY}:${IMAGE_TAG}" \
+            REPLACE-WITH-NGINX-ECR-REPOSITORY-URL="${ECR_REGISTRY}/${ECR_NGINX_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Commit and push GitOps image tags
+        run: |
+          if git diff --quiet -- k8s/eks/kustomization.yaml; then
+            echo "GitOps image tags already match ${IMAGE_TAG}"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/eks/kustomization.yaml
+          git commit -m "Update GitOps images to ${IMAGE_TAG} [skip ci]"
+          git push origin HEAD:main
