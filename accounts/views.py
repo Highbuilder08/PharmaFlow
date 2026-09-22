@@ -32,6 +32,9 @@ from django.views.decorators.http import require_GET, require_POST
 # AuditLog: "누가 언제 무엇을 했는지" 기록을 남기는 표 (consultations 앱에 정의됨)
 from consultations.models import AuditLog
 
+# 관리자 Dashboard 집계 캐시 무효화 헬퍼 (core 앱에 정의됨)
+from core.cache import invalidate_admin_dashboard_summary
+
 from .decorators import (
     owner_required,
     staff_manager_required,
@@ -317,6 +320,11 @@ def signup(request):
                             "status": (PharmacyOwnershipRequest.Status.PENDING),
                         },
                     )
+
+                # 회원가입으로 Pharmacy/User/PharmacyOwnershipRequest가
+                # 바뀌므로 관리자 Dashboard 캐시를 무효화한다. 트랜잭션이
+                # 실제로 커밋된 뒤에만 지우기 위해 on_commit을 사용한다.
+                transaction.on_commit(invalidate_admin_dashboard_summary)
 
             request.session.pop(EMAIL_VERIFICATION_SESSION_KEY, None)
 
@@ -939,6 +947,10 @@ def pharmacy_delete(request, pk):
                     ),
                 )
 
+                # 약국 삭제로 Pharmacy·PharmacyOwnershipRequest가 바뀌므로
+                # 관리자 Dashboard 캐시를 무효화한다.
+                transaction.on_commit(invalidate_admin_dashboard_summary)
+
             messages.success(
                 request,
                 (
@@ -1070,6 +1082,11 @@ def user_create(request):
             staff.is_approved = True
 
             staff.save()
+
+            # 직원 계정 생성으로 User 총원이 바뀌므로 관리자 Dashboard
+            # 캐시를 무효화한다. 이 함수는 atomic 블록 밖이라
+            # on_commit이 사실상 즉시 실행된다.
+            transaction.on_commit(invalidate_admin_dashboard_summary)
 
             messages.success(
                 request,
@@ -1375,6 +1392,11 @@ def ownership_request_approve(request, pk):
                     "updated_at",
                 ]
             )
+
+            # 승인으로 PharmacyOwnershipRequest 상태와 User가 바뀌므로
+            # 관리자 Dashboard 캐시를 무효화한다. 위쪽의 중복 사업자번호
+            # early return 경로는 상태 변경이 없어 여기 도달하지 않는다.
+            transaction.on_commit(invalidate_admin_dashboard_summary)
     except IntegrityError:
         messages.error(request, "중복된 사업자등록번호로 승인할 수 없습니다.")
         return redirect("accounts:ownership_request_list")
@@ -1411,6 +1433,10 @@ def ownership_request_reject(request, pk):
         user = ownership_request.user
         user.is_approved = False
         user.save(update_fields=["is_approved"])
+
+        # 거절로 PharmacyOwnershipRequest 상태와 User가 바뀌므로
+        # 관리자 Dashboard 캐시를 무효화한다.
+        transaction.on_commit(invalidate_admin_dashboard_summary)
 
     # 누가 어떤 사용자의 점주 권한 요청을 거절했는지 기록
     AuditLog.objects.create(

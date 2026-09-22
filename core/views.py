@@ -25,6 +25,7 @@ from accounts.models import (
 from consultations.models import Consultation
 from inventory.models import Medicine
 
+from .cache import get_admin_dashboard_summary, set_admin_dashboard_summary
 from .models import CalendarMemo
 
 
@@ -50,19 +51,26 @@ def index(request):
 
     # 관리자 전용 대시보드 정보
     if request.user.is_authenticated and request.user.is_superuser:
-        today = timezone.localdate()
-        current_timezone = timezone.get_current_timezone()
-        today_start = timezone.make_aware(
-            datetime.combine(today, time.min),
-            current_timezone,
-        )
-        tomorrow_start = timezone.make_aware(
-            datetime.combine(today + timedelta(days=1), time.min),
-            current_timezone,
-        )
+        # 숫자 집계 4개(pharmacy_total/ownership_pending_count/user_total/
+        # today_joined_count)만 Redis에 캐싱한다. 캐시 HIT면 RDS를 전혀
+        # 조회하지 않고, MISS·Redis 장애 시에는 기존과 동일하게 아래에서
+        # RDS를 조회해 응답한다(get_admin_dashboard_summary가 예외를
+        # 삼키고 None을 반환하므로 이 분기가 곧 fallback 경로다).
+        summary = get_admin_dashboard_summary()
 
-        context.update(
-            {
+        if summary is None:
+            today = timezone.localdate()
+            current_timezone = timezone.get_current_timezone()
+            today_start = timezone.make_aware(
+                datetime.combine(today, time.min),
+                current_timezone,
+            )
+            tomorrow_start = timezone.make_aware(
+                datetime.combine(today + timedelta(days=1), time.min),
+                current_timezone,
+            )
+
+            summary = {
                 "pharmacy_total": Pharmacy.objects.count(),
                 "ownership_pending_count": (
                     PharmacyOwnershipRequest.objects.filter(
@@ -78,17 +86,24 @@ def index(request):
                     date_joined__gte=today_start,
                     date_joined__lt=tomorrow_start,
                 ).count(),
-                "recent_ownership_requests": (
-                    PharmacyOwnershipRequest.objects.filter(
-                        status=PharmacyOwnershipRequest.Status.PENDING,
-                    )
-                    .select_related(
-                        "user",
-                        "pharmacy",
-                    )
-                    .order_by("-created_at")[:5]
-                ),
-            },
+            }
+
+            set_admin_dashboard_summary(summary)
+
+        context.update(summary)
+
+        # 대기 중인 점주 권한 신청 목록은 QuerySet/연관 객체 형태 그대로
+        # 템플릿에서 쓰이므로 캐싱 대상에서 제외하고 매 요청 RDS에서
+        # 최신 상태로 조회한다.
+        context["recent_ownership_requests"] = (
+            PharmacyOwnershipRequest.objects.filter(
+                status=PharmacyOwnershipRequest.Status.PENDING,
+            )
+            .select_related(
+                "user",
+                "pharmacy",
+            )
+            .order_by("-created_at")[:5]
         )
 
     # 일반 사용자는 본인이 소속된 약국의 재고 요약을 확인한다.

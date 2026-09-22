@@ -192,6 +192,28 @@ else:
 
 
 # ==================================================
+# 캐시 (Redis)
+# ==================================================
+#
+# REDIS_URL이 설정된 경우에만 Redis 백엔드를 사용하고,
+# 없으면 Django 기본값(LocMemCache)으로 동작한다.
+# Endpoint·비밀번호 등 실제 접속 정보는 코드에 하드코딩하지 않고
+# 배포 환경(EnvironmentFile/Secret)에서 REDIS_URL로 주입한다.
+REDIS_URL = os.environ.get("REDIS_URL", "")
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        }
+    }
+
+
+# ==================================================
 # 사용자 모델
 # ==================================================
 
