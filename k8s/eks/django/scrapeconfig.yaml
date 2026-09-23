@@ -10,9 +10,39 @@ spec:
   metricsPath: /metrics
   scrapeInterval: 30s
   scrapeTimeout: 10s
-  staticConfigs:
-    - targets:
-        - django.pharmaflow-dev.svc.cluster.local:8000
-      labels:
-        namespace: pharmaflow-dev
-        service: django
+
+  kubernetesSDConfigs:
+    - role: Pod
+      namespaces:
+        names:
+          - pharmaflow-dev
+      selectors:
+        - role: Pod
+          label: app=django
+
+  relabelings:
+    - sourceLabels:
+        - __meta_kubernetes_pod_phase
+      regex: Running
+      action: keep
+
+    # Django 컨테이너의 :8000이 아니라 metrics-proxy :9100만 scrape.
+    - sourceLabels:
+        - __meta_kubernetes_pod_container_port_name
+      regex: metrics
+      action: keep
+
+    - sourceLabels:
+        - __address__
+      targetLabel: instance
+      action: replace
+
+    - sourceLabels:
+        - __meta_kubernetes_pod_name
+      targetLabel: pod
+      action: replace
+
+    - sourceLabels:
+        - __meta_kubernetes_namespace
+      targetLabel: namespace
+      action: replace
