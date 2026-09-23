@@ -6,6 +6,7 @@ resources:
 - django/collectstatic-job.yaml
 - django/deployment.yaml
 - django/service.yaml
+- django/scrapeconfig.yaml
 - django/hpa.yaml
 - django/pdb.yaml
 - nginx/deployment.yaml
