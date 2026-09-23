@@ -13,3 +13,11 @@ workers = int(os.environ.get("GUNICORN_WORKERS", "3"))  # 요청을 동시에 �
 accesslog = "-"  # 접속 로그 (누가 어떤 요청을 보냈는지)
 errorlog = "-"   # 에러 로그 (gunicorn 자체에서 발생한 에러)
 loglevel = os.environ.get("LOG_LEVEL", "info").lower()  # 기록할 최소 등급 (기본: info)
+
+
+# prometheus_client multiprocess mode:
+# remove stale files for workers that have exited.
+def child_exit(server, worker):
+    from prometheus_client import multiprocess
+
+    multiprocess.mark_process_dead(worker.pid)

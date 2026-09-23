@@ -77,6 +77,9 @@ ENV DJANGO_DEBUG=False \
 
 USER django
 
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/pharmaflow-prometheus
+
 EXPOSE 8000
 
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn", "--config", "gunicorn.conf.py", "mysite.wsgi:application"]
