@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: pharmaflow-django
+  namespace: pharmaflow-dev
+  labels:
+    release: pharmaflow-monitoring
+spec:
+  jobName: django
+  metricsPath: /metrics
+  scrapeInterval: 30s
+  scrapeTimeout: 10s
+  staticConfigs:
+    - targets:
+        - django.pharmaflow-dev.svc.cluster.local:8000
+      labels:
+        namespace: pharmaflow-dev
+        service: django
