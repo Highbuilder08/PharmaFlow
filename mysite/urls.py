@@ -15,6 +15,10 @@ from accounts.forms import ApprovedAuthenticationForm
 urlpatterns = [
     path("admin/", admin.site.urls),
 
+    # django_prometheus.urls가 자체적으로 "metrics" 경로를 정의하므로
+    # 여기서는 접두사 없이 그대로 포함한다 -> 최종 경로는 /metrics.
+    path("", include("django_prometheus.urls")),
+
     path(
         "accounts/login/",
         LoginView.as_view(

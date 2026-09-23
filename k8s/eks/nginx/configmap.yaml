@@ -37,6 +37,12 @@ data:
             proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         }
 
+        # Prometheus는 이 Nginx를 거치지 않고 django ClusterIP Service(8000)를
+        # 클러스터 내부에서 직접 scrape하므로, 외부(Public ALB)로는 노출하지 않는다.
+        location = /metrics {
+            return 404;
+        }
+
         location / {
             proxy_pass http://django:8000;
 

@@ -68,6 +68,7 @@ ALLOWED_HOSTS = [
 # ==================================================
 
 INSTALLED_APPS = [
+    "django_prometheus",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -86,6 +87,9 @@ INSTALLED_APPS = [
 # ==================================================
 
 MIDDLEWARE = [
+    # HTTP 요청 수/응답시간을 재기 위해 전체 미들웨어 스택을 감싸야 하므로
+    # 반드시 맨 앞에 둔다.
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -93,6 +97,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # 위와 같은 이유로 반드시 맨 뒤에 둔다.
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 

@@ -7,6 +7,7 @@
 import logging
 
 from django.core.cache import cache
+from prometheus_client import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,15 @@ ADMIN_DASHBOARD_SUMMARY_KEY = "pharmaflow:dashboard:admin:summary"
 # 계산되는 값이 있어, 자정을 넘겨도 최대 오차가 이 초 수로 제한된다.
 ADMIN_DASHBOARD_SUMMARY_TTL = 60
 
+# result 값은 hit/miss/error 세 가지로 고정한다. 캐시 키 문자열은
+# label로 넣지 않는다 - 대상 캐시가 늘어나도 label 카디널리티가
+# 늘어나지 않게 하기 위함이다.
+DASHBOARD_CACHE_REQUESTS = Counter(
+    "pharmaflow_dashboard_cache_requests_total",
+    "관리자 Dashboard 캐시 조회 결과(hit/miss/error) 횟수",
+    ["result"],
+)
+
 
 def get_admin_dashboard_summary():
     """캐시에서 관리자 Dashboard 집계를 읽는다.
@@ -26,14 +36,20 @@ def get_admin_dashboard_summary():
     호출 측이 캐시 MISS와 동일하게 RDS 조회 경로로 계속 진행하게 한다.
     """
     try:
-        return cache.get(ADMIN_DASHBOARD_SUMMARY_KEY)
+        summary = cache.get(ADMIN_DASHBOARD_SUMMARY_KEY)
     except Exception:
         logger.warning(
             "Redis 캐시 조회 실패 - RDS 조회로 진행합니다. key=%s",
             ADMIN_DASHBOARD_SUMMARY_KEY,
             exc_info=True,
         )
+        DASHBOARD_CACHE_REQUESTS.labels(result="error").inc()
         return None
+
+    DASHBOARD_CACHE_REQUESTS.labels(
+        result="hit" if summary is not None else "miss",
+    ).inc()
+    return summary
 
 
 def set_admin_dashboard_summary(summary):
